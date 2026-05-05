@@ -1,0 +1,392 @@
+{% extends 'vibarr/base.html' %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <div class="mb-12">
+        <h1 class="text-4xl font-bold text-white mb-2">Configuration</h1>
+        <p class="text-gray-400">Fine-tune how Vibarr interacts with your media stack and AI.</p>
+    </div>
+
+    <form action="{% url 'update_settings' %}" method="POST" class="space-y-8">
+        {% csrf_token %}
+        
+        <!-- Media Server Section -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Primary Media Servers
+            </h2>
+
+            <div class="glass p-8 rounded-3xl space-y-8">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Server Type</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <label class="relative flex items-center justify-center p-4 glass rounded-2xl cursor-pointer hover:bg-white/5 transition border border-white/5">
+                            <input type="radio" name="server_type" value="PLEX" class="hidden peer" {% if config.media_server_type == 'PLEX' %}checked{% endif %}>
+                            <div class="peer-checked:text-rose-500 font-bold">Plex Only</div>
+                            <div class="absolute inset-0 border-2 border-rose-500/50 rounded-2xl opacity-0 peer-checked:opacity-100 transition"></div>
+                        </label>
+                        <label class="relative flex items-center justify-center p-4 glass rounded-2xl cursor-pointer hover:bg-white/5 transition border border-white/5">
+                            <input type="radio" name="server_type" value="JELLYFIN" class="hidden peer" {% if config.media_server_type == 'JELLYFIN' %}checked{% endif %}>
+                            <div class="peer-checked:text-rose-500 font-bold">Jellyfin Only</div>
+                            <div class="absolute inset-0 border-2 border-rose-500/50 rounded-2xl opacity-0 peer-checked:opacity-100 transition"></div>
+                        </label>
+                        <label class="relative flex items-center justify-center p-4 glass rounded-2xl cursor-pointer hover:bg-white/5 transition border border-white/5">
+                            <input type="radio" name="server_type" value="BOTH" class="hidden peer" {% if config.media_server_type == 'BOTH' %}checked{% endif %}>
+                            <div class="peer-checked:text-rose-500 font-bold">Hybrid (Both)</div>
+                            <div class="absolute inset-0 border-2 border-rose-500/50 rounded-2xl opacity-0 peer-checked:opacity-100 transition"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-white/5">
+                    <!-- Plex Settings -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-white flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+                                Plex Server
+                            </h3>
+                            <div id="plex-status" class="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                                {% if config.plex_token %}Connected{% else %}Not Set{% endif %}
+                            </div>
+                        </div>
+                        <input type="text" name="plex_url" value="{{ config.plex_url|default:'' }}" placeholder="Plex URL (e.g. http://localhost:32400)" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500">
+                        <div class="flex items-center space-x-2">
+                             <a href="{% url 'start_plex_auth' %}" class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition text-center text-xs">
+                                Authenticate via Plex.tv
+                             </a>
+                        </div>
+                    </div>
+
+                    <!-- Jellyfin Settings -->
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h3 class="font-bold text-white flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-rose-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                                Jellyfin Server
+                            </h3>
+                            <div id="jelly-status" class="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                                <span hx-get="{% url 'test_jellyfin' %}" hx-trigger="load">Checking...</span>
+                            </div>
+                        </div>
+                        <input type="text" name="jellyfin_url" value="{{ config.jellyfin_url|default:'' }}" placeholder="Jellyfin URL (e.g. http://localhost:8096)" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500">
+                        <input type="password" name="jellyfin_key" value="{{ config.jellyfin_api_key|default:'' }}" placeholder="API Key" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500">
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t border-white/5 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-bold text-white">Library Filter</h3>
+                            <p class="text-[10px] text-gray-500">Select libraries to EXCLUDE from history and discovery.</p>
+                        </div>
+                        <button type="button" hx-get="{% url 'get_libraries' %}" hx-target="#library-list" class="text-[10px] font-bold text-rose-500 uppercase hover:underline">Refresh Libraries</button>
+                    </div>
+                    <div id="library-list" class="min-h-[60px]">
+                        <div hx-get="{% url 'get_libraries' %}" hx-trigger="load" hx-target="this">
+                            <div class="animate-pulse text-xs text-gray-600">Syncing with media servers...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Media Managers Section -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Automation Engines
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sonarr -->
+                <div class="glass p-6 rounded-3xl space-y-4">
+                    <h3 class="text-lg font-bold text-white">Sonarr (TV)</h3>
+                    <div class="space-y-4">
+                        <select name="sonarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            {% for folder in sonarr_folders %}
+                            <option value="{{ folder.path }}" {% if config.sonarr_root_folder == folder.path %}selected{% endif %}>{{ folder.path }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="sonarr_profile" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            {% for profile in sonarr_profiles %}
+                            <option value="{{ profile.id }}" {% if config.sonarr_quality_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Radarr -->
+                <div class="glass p-6 rounded-3xl space-y-4">
+                    <h3 class="text-lg font-bold text-white">Radarr (Movies)</h3>
+                    <div class="space-y-4">
+                        <select name="radarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            {% for folder in radarr_folders %}
+                            <option value="{{ folder.path }}" {% if config.radarr_root_folder == folder.path %}selected{% endif %}>{{ folder.path }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="radarr_profile" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            {% for profile in radarr_profiles %}
+                            <option value="{{ profile.id }}" {% if config.radarr_quality_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Companion Apps Section -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Companion Ecosystem
+            </h2>
+            <div class="glass p-8 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Unified Request Manager (Seerr)</label>
+                        <span class="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-bold">Supports Overseerr/Jellyseerr</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" name="seerr_url" value="{{ config.seerr_url|default:'' }}" placeholder="Seerr URL" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        <input type="password" name="seerr_key" value="{{ config.seerr_api_key|default:'' }}" placeholder="Seerr API Key" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Bazarr URL</label>
+                    <input type="text" name="bazarr_url" value="{{ config.bazarr_url|default:'' }}" placeholder="http://localhost:6767" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Prowlarr URL</label>
+                    <input type="text" name="prowlarr_url" value="{{ config.prowlarr_url|default:'' }}" placeholder="http://localhost:9696" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+        </section>
+
+        <!-- Notifications Section -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Concierge Notifications
+            </h2>
+            <div class="glass p-8 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2 space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Discord Webhook URL</label>
+                    <input type="text" name="discord_url" value="{{ config.discord_webhook_url|default:'' }}" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Telegram Bot Token</label>
+                    <input type="password" name="tg_token" value="{{ config.telegram_bot_token|default:'' }}" placeholder="123456:ABC-DEF..." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Telegram Chat ID</label>
+                    <input type="text" name="tg_chat" value="{{ config.telegram_chat_id|default:'' }}" placeholder="-100123456789" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Engine Section -->
+        <section class="space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                    <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                    AI Talent Scout
+                </h2>
+                <div id="ai-status" class="text-[10px] uppercase font-bold tracking-tighter">
+                    <span hx-get="{% url 'test_ai' %}" hx-trigger="load">Checking AI...</span>
+                </div>
+            </div>
+            
+            <div class="glass p-8 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2 flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 mb-2">
+                    <div>
+                        <h4 class="text-white font-bold">Use AI for Recommendations</h4>
+                        <p class="text-xs text-gray-500">Disabling this uses a faster, non-AI matching algorithm based on TMDB scores.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="use_ai" class="sr-only peer" {% if config.use_ai_recommendations %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+                <div class="md:col-span-2 flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div>
+                        <h4 class="text-white font-bold">Auto Universe Discovery</h4>
+                        <p class="text-xs text-gray-500">Automatically scan for cinematic universes (MCU, Star Wars, etc.) when you commit to a show.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="auto_universe_discovery" class="sr-only peer" {% if config.auto_universe_discovery %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">AI API URL (OpenAI Compatible)</label>
+                    <input type="text" name="ai_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Model Identifier</label>
+                    <input type="text" name="ai_model" value="{{ config.ai_model }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">API Key (Optional)</label>
+                    <input type="password" name="ai_key" value="{{ config.ai_api_key|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Auto-Tasting Threshold (0-10)</label>
+                        <input type="number" step="0.1" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        <p class="text-[9px] text-gray-500 mt-1">Autonomous Scout: Scores above this are tasted automatically.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Genre Filter (Global)</label>
+                        <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="Horror, Reality TV..." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        <p class="text-[9px] text-gray-500 mt-1">Comma-separated genres to never recommend.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Regional & Behavior Section -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Regional & Behavior
+            </h2>
+            <div class="glass p-8 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">TMDB Region (ISO 3166-1)</label>
+                    <input type="text" name="tmdb_region" value="{{ config.tmdb_region }}" placeholder="US" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">TMDB Language (ISO 639-1)</label>
+                    <input type="text" name="tmdb_language" value="{{ config.tmdb_language }}" placeholder="en-US" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">Tasting Episode Default</label>
+                    <input type="number" name="default_tasting_count" value="{{ config.default_tasting_count }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest">URL Base (for Proxy)</label>
+                    <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="/vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+        </section>
+
+        <!-- Save Button -->
+        <div class="flex justify-end pt-6">
+            <button type="submit" class="px-12 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl transition shadow-2xl shadow-rose-500/20 text-lg">
+                Deploy Stack Configuration
+            </button>
+        </div>
+    </form>
+
+    <!-- API Keys Section -->
+    <section class="mt-12 pt-12 border-t border-white/5 space-y-6">
+        <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+            <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+            API & External Integrations
+        </h2>
+        
+        <div class="glass p-8 rounded-3xl space-y-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Access Tokens</h3>
+                    <p class="text-xs text-gray-500 max-w-md">Generate keys for external apps, Discord bots, or mobile integration.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('key-modal').classList.remove('hidden')" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-lg transition">
+                    Generate New Key
+                </button>
+            </div>
+            <div id="api-key-list">
+                {% include 'vibarr/partials/api_key_list.html' %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Household Lenses Section (Advanced) -->
+    <section class="mt-12 pt-12 border-t border-white/5 space-y-6">
+        <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+            <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+            Advanced: Household Lenses
+        </h2>
+        
+        <div class="glass p-8 rounded-3xl space-y-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Lenses (Personas)</h3>
+                    <p class="text-xs text-gray-500 max-w-md">Define custom filters for different family members or times of day.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('persona-modal').classList.remove('hidden')" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold rounded-lg transition">
+                    Create New Lens
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                {% for p in personas %}
+                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div>
+                        <h4 class="text-white font-bold">{{ p.name }}</h4>
+                        <p class="text-[10px] text-gray-500">Max Rating: {{ p.max_content_rating }} • Filter: {{ p.ignored_genres|default:"None" }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-center py-4 text-xs text-gray-500 italic">No custom lenses defined yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Persona Modal -->
+<div id="persona-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center hidden">
+    <div class="glass p-8 rounded-3xl border border-white/10 w-full max-w-md space-y-6">
+        <h3 class="text-xl font-bold text-white">Create Household Lens</h3>
+        <form action="{% url 'create_persona' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Lens Name</label>
+                <input type="text" name="name" placeholder="e.g. Kids Mode" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition" required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Max Rating</label>
+                    <select name="max_content_rating" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <option value="G">G / TV-G</option>
+                        <option value="PG" selected>PG / TV-PG</option>
+                        <option value="PG-13">PG-13 / TV-14</option>
+                        <option value="R">R / TV-MA</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Genre Filter</label>
+                    <input type="text" name="ignored_genres" placeholder="Horror, etc." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="document.getElementById('persona-modal').classList.add('hidden')" class="flex-1 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" class="flex-1 py-3 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition">Create Lens</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Key Generation Modal -->
+<div id="key-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center hidden">
+    <div class="glass p-8 rounded-3xl border border-white/10 w-full max-w-md space-y-6">
+        <h3 class="text-xl font-bold text-white">Generate API Key</h3>
+        <form hx-post="{% url 'create_api_key' %}" hx-target="#api-key-list" hx-on::after-request="document.getElementById('key-modal').classList.add('hidden')" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Key Name</label>
+                <input type="text" name="key_name" placeholder="e.g. My Discord Bot" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition" required>
+            </div>
+            <div class="flex space-x-3 pt-2">
+                <button type="button" onclick="document.getElementById('key-modal').classList.add('hidden')" class="flex-1 py-3 bg-white/5 text-gray-400 font-bold rounded-xl hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" class="flex-1 py-3 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition">Generate</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

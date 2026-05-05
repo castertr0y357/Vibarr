@@ -1,0 +1,8 @@
+{% for show in committed %}
+<div class="relative group">
+    <img src="https://image.tmdb.org/t/p/w185{{ show.poster_path }}" alt="{{ show.title }}" class="rounded-lg opacity-40 group-hover:opacity-100 transition duration-500 grayscale group-hover:grayscale-0">
+    <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
+        <span class="text-[10px] bg-black/60 text-white px-2 py-1 rounded font-bold uppercase tracking-widest border border-white/20">Committed</span>
+    </div>
+</div>
+{% endfor %}

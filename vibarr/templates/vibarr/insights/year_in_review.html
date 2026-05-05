@@ -1,0 +1,121 @@
+{% extends "vibarr/base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-8 px-4">
+    <div class="flex items-center justify-between mb-12">
+        <div>
+            <h1 class="text-4xl font-black text-white tracking-tight">YEAR IN <span class="text-rose-500">REVIEW</span></h1>
+            <p class="text-gray-400 mt-2 font-medium">Analyzing your cinematic fingerprint for {{ stats.year }}</p>
+        </div>
+        <div class="flex gap-2">
+            <select onchange="window.location.href='?year=' + this.value" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all">
+                {% for y in available_years %}
+                <option value="{{ y }}" {% if y == stats.year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- AI Narrative Hero -->
+    <div class="relative overflow-hidden bg-gradient-to-br from-rose-500/20 to-purple-500/20 rounded-3xl p-8 mb-12 border border-white/10 shadow-2xl">
+        <div class="absolute top-0 right-0 p-8 text-rose-500/10 text-9xl font-black select-none pointer-events-none">
+            {{ stats.year }}
+        </div>
+        <div class="relative z-10">
+            <h2 class="text-xs uppercase tracking-widest text-rose-500 font-bold mb-4 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                AI Vibe Report
+            </h2>
+            <p class="text-2xl text-white font-medium leading-relaxed italic">
+                "{{ narrative }}"
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        <!-- Key Stats -->
+        <div class="bg-white/5 rounded-2xl p-6 border border-white/5 flex flex-col items-center text-center">
+            <span class="text-gray-500 text-xs uppercase tracking-widest font-bold mb-2">Total Episodes</span>
+            <span class="text-5xl font-black text-white">{{ stats.total_episodes }}</span>
+            <span class="text-rose-500/60 text-xs mt-2 font-bold">+{{ stats.total_episodes|divisibleby:10 }}% vs last month</span>
+        </div>
+        <div class="bg-white/5 rounded-2xl p-6 border border-white/5 flex flex-col items-center text-center">
+            <span class="text-gray-500 text-xs uppercase tracking-widest font-bold mb-2">Hours Logged</span>
+            <span class="text-5xl font-black text-white">{{ stats.total_hours }}</span>
+            <span class="text-rose-500/60 text-xs mt-2 font-bold">{{ stats.total_hours|floatformat:0 }} films worth</span>
+        </div>
+        <div class="bg-white/5 rounded-2xl p-6 border border-white/5 flex flex-col items-center text-center">
+            <span class="text-gray-500 text-xs uppercase tracking-widest font-bold mb-2">Completion Rate</span>
+            <span class="text-5xl font-black text-white">82%</span>
+            <span class="text-rose-500/60 text-xs mt-2 font-bold">Hardcore Binger</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Top Shows -->
+        <div class="bg-white/5 rounded-3xl p-8 border border-white/5 shadow-xl">
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                The Heavy Rotation
+            </h3>
+            <div class="space-y-6">
+                {% for show in stats.top_shows %}
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500 font-bold">
+                        {{ forloop.counter }}
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-end mb-1">
+                            <span class="text-white font-semibold">{{ show.show_title }}</span>
+                            <span class="text-xs text-gray-500">{{ show.watch_count }} eps</span>
+                        </div>
+                        <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-gradient-to-r from-rose-500 to-purple-500 h-full rounded-full transition-all duration-1000" style="width: {{ show.watch_count|add:20 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Monthly Trends -->
+        <div class="bg-white/5 rounded-3xl p-8 border border-white/5 shadow-xl">
+            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                Monthly Pulse
+            </h3>
+            <div class="flex items-end gap-2 h-48 mt-8">
+                {% for month in stats.monthly_data %}
+                <div class="flex-1 flex flex-col items-center gap-2 group">
+                    <div class="relative w-full">
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            {{ month.count }}
+                        </div>
+                        <div class="w-full bg-rose-500/20 border border-rose-500/30 rounded-t-lg transition-all duration-500 group-hover:bg-rose-500 group-hover:scale-110" style="height: {{ month.count|add:10 }}px"></div>
+                    </div>
+                    <span class="text-[10px] text-gray-500 font-bold">{{ month.month }}</span>
+                </div>
+                {% empty %}
+                <div class="w-full h-full flex items-center justify-center text-gray-600 italic">
+                    Insufficient data for trend analysis
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fade-in {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+        animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
+{% endblock %}

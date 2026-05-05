@@ -1,0 +1,50 @@
+{% for show in suggested %}
+<div class="group relative bg-white/5 rounded-2xl p-4 border {% if show.is_pinned %}border-rose-500/40 shadow-lg shadow-rose-500/5{% else %}border-white/5{% endif %} hover:border-rose-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-rose-500/10 hover:-translate-y-1">
+    <div class="relative">
+        <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="rounded-xl mb-4 w-full aspect-[2/3] object-cover">
+        <div class="absolute top-2 right-2 flex flex-col gap-2 items-end">
+            <span class="bg-black/80 text-[10px] px-2 py-0.5 rounded border {% if show.is_above_threshold %}border-rose-500 text-rose-500 animate-pulse{% else %}border-white/20 text-white{% endif %} font-bold">
+                {{ show.content_rating|default:"NR" }}
+            </span>
+            <div class="bg-black/60 backdrop-blur-sm p-1.5 rounded-lg border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                {% include 'vibarr/partials/pin_button.html' with show=show %}
+            </div>
+        </div>
+        <div class="absolute top-2 left-2">
+            <span class="bg-rose-500/80 text-[8px] px-1.5 py-0.5 rounded text-white font-bold uppercase">{{ show.media_type }}</span>
+        </div>
+        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col justify-center items-center space-y-3">
+            <button hx-post="{% url 'taste_show' show.id %}" hx-target="closest .group" hx-swap="outerHTML swap:0.5s" class="bg-rose-500 text-white px-6 py-2 rounded-full font-bold text-sm hover:bg-rose-600 transition">Taste</button>
+            <button hx-post="{% url 'reject_show' show.id %}" hx-target="closest .group" hx-swap="outerHTML swap:0.5s" class="text-gray-400 text-sm hover:text-white transition">Dismiss</button>
+        </div>
+    </div>
+    <h3 class="text-white font-semibold truncate">{{ show.title }}</h3>
+    <div class="flex items-center justify-between mt-1">
+        <span class="text-xs text-gray-500">{{ show.runtime }}m</span>
+        <div class="flex gap-1">
+            {% for tag in show.recommendations.first.vibe_tags.split %}
+            {% if forloop.counter <= 2 %}
+            <span class="text-[8px] bg-rose-500/10 text-rose-400 px-1.5 py-0.5 rounded border border-rose-500/20">{{ tag|cut:"," }}</span>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">Similarity: {{ show.recommendations.first.score|floatformat:1 }}</p>
+    
+    {% if show.streaming_providers %}
+    <div class="mt-2 flex items-center space-x-1">
+        <span class="text-[8px] text-gray-500 font-bold uppercase">Stream:</span>
+        <span class="text-[9px] text-rose-400 font-medium truncate">{{ show.streaming_providers }}</span>
+    </div>
+    {% endif %}
+    
+    {% if show.recommendations.first.reasoning %}
+    <p class="text-[10px] text-rose-400/80 mt-2 leading-tight italic line-clamp-2">"{{ show.recommendations.first.reasoning }}"</p>
+    {% endif %}
+</div>
+{% empty %}
+<div class="col-span-full py-24 text-center">
+    <div class="text-rose-500/20 text-6xl mb-4">✨</div>
+    <p class="text-gray-500">Watching Plex history for new triggers...</p>
+</div>
+{% endfor %}

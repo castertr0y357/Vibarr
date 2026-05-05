@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibarr | {% block title %}Dashboard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --rose: #e94560;
+            --rose-glow: rgba(233, 69, 96, 0.3);
+            --bg-dark: #0f172a;
+            --bg-sidebar: #1e293b;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a, #020617);
+            color: #f1f5f9;
+            min-height: 100 screen;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .sidebar-item {
+            @apply flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300;
+        }
+        .sidebar-item.active {
+            @apply bg-rose-500/10 text-rose-500 border border-rose-500/20 shadow-lg shadow-rose-500/10;
+        }
+        .sidebar-item:not(.active):hover {
+            @apply bg-white/5 text-white;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -10px var(--rose-glow);
+        }
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+        .htmx-request.htmx-indicator {
+            opacity: 1;
+        }
+        
+        /* Custom Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="flex">
+
+    <!-- Sidebar -->
+    <aside class="w-64 h-screen sticky top-0 flex-shrink-0 border-r border-white/5 bg-black/20 backdrop-blur-xl flex flex-col p-6 z-50">
+        <div class="mb-12 px-2">
+            <h1 class="text-3xl font-extrabold tracking-tighter text-white flex items-center">
+                VIB<span class="text-rose-500">ARR</span>
+                <span class="ml-2 text-[10px] bg-rose-500/10 text-rose-500 px-1.5 py-0.5 rounded border border-rose-500/20">BETA</span>
+            </h1>
+        </div>
+
+        <nav class="flex-1 space-y-2">
+            <a href="{% url 'dashboard' %}" class="sidebar-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'vibe_search_page' %}" class="sidebar-item {% if request.resolver_match.url_name == 'vibe_search_page' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <span>Vibe Search</span>
+            </a>
+            <a href="{% url 'settings' %}" class="sidebar-item {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span>Settings</span>
+            </a>
+        </nav>
+
+        <!-- Stack Health -->
+        <div class="mt-auto pt-6 border-t border-white/5 space-y-4">
+            <div class="px-4 py-4 glass rounded-2xl space-y-3">
+                <h3 class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Stack Health</h3>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-gray-400">Media Server</span>
+                    <div id="health-media" hx-get="{% url 'test_media_health' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-gray-400">Automation</span>
+                    <div id="health-automation" hx-get="{% url 'test_sonarr' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-gray-400">AI Scout</span>
+                    <div id="health-ai" hx-get="{% url 'test_ai' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+                </div>
+            </div>
+            
+            <div class="pt-4 space-y-1">
+                <h3 class="px-4 text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Maintenance</h3>
+                <a href="{% url 'logs_view' %}" class="sidebar-item scale-90 {% if request.resolver_match.url_name == 'logs_view' %}active{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Logs & Diagnostics</span>
+                </a>
+                <a href="/admin" class="sidebar-item opacity-50 hover:opacity-100 scale-90">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>Django Admin</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-h-screen relative">
+        <!-- Messages/Toasts -->
+        <div id="toast-container" class="fixed top-6 right-6 z-[100] space-y-4 pointer-events-none">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="pointer-events-auto px-6 py-4 rounded-2xl glass border shadow-2xl flex items-center space-x-4 animate-fade-in
+                    {% if message.tags == 'error' %}border-rose-500/50 bg-rose-500/10 text-rose-500
+                    {% elif message.tags == 'success' %}border-green-500/50 bg-green-500/10 text-green-500
+                    {% else %}border-blue-500/50 bg-blue-500/10 text-blue-400{% endif %}">
+                    <span class="text-sm font-semibold">{{ message }}</span>
+                    <button onclick="this.parentElement.remove()" class="opacity-50 hover:opacity-100">&times;</button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-12 max-w-7xl mx-auto">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script>
+        document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+            // Can add logic for dynamic toast creation from HX-Trigger headers if needed
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,85 @@
+{% extends 'vibarr/base.html' %}
+
+{% block title %}Logs & Diagnostics{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl">
+    <div class="flex justify-between items-end mb-12">
+        <div>
+            <h1 class="text-4xl font-bold text-white mb-2">Logs & Diagnostics</h1>
+            <p class="text-gray-400">Monitor system activity and capture logs for support.</p>
+        </div>
+        <div class="flex space-x-4">
+            <button onclick="window.location.reload()" class="px-6 py-3 glass rounded-2xl hover:bg-white/5 transition flex items-center text-sm font-medium">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Refresh
+            </button>
+            <a href="{% url 'download_logs' %}" class="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition shadow-lg shadow-rose-500/20 flex items-center text-sm font-bold">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download Log Bundle
+            </a>
+        </div>
+    </div>
+
+    <!-- LOG VIEWER -->
+    <section class="glass rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+        <div class="bg-black/40 px-6 py-3 border-b border-white/5 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 bg-rose-500 rounded-full"></div>
+                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span class="ml-4 text-[10px] text-gray-500 font-bold uppercase tracking-widest">vibarr.log</span>
+            </div>
+            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Showing last 200 lines</span>
+        </div>
+        <div class="p-6 h-[600px] overflow-y-auto scroll-hide bg-black/20 font-mono text-xs leading-relaxed">
+            {% if logs %}
+                {% for line in logs %}
+                <div class="hover:bg-white/5 py-0.5 px-2 rounded transition-colors group">
+                    <span class="text-rose-500/50 mr-2 opacity-0 group-hover:opacity-100 transition-opacity select-none">{{ forloop.counter }}</span>
+                    <span class="text-gray-300">{{ line }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="h-full flex items-center justify-center opacity-30 italic">
+                    No logs found.
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass p-6 rounded-2xl">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Memory Usage</h3>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-bold text-white">42.8 <span class="text-xs font-normal text-gray-500">MB</span></span>
+                <span class="text-green-500 text-xs font-bold">Stable</span>
+            </div>
+        </div>
+        <div class="glass p-6 rounded-2xl">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Database Size</h3>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-bold text-white">1.2 <span class="text-xs font-normal text-gray-500">MB</span></span>
+                <span class="text-gray-500 text-xs font-bold">SQLite</span>
+            </div>
+        </div>
+        <div class="glass p-6 rounded-2xl">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">API Latency</h3>
+            <div class="flex items-end justify-between">
+                <span class="text-2xl font-bold text-white">124 <span class="text-xs font-normal text-gray-500">ms</span></span>
+                <span class="text-rose-500 text-xs font-bold">AI Response</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Scroll log viewer to bottom on load
+    const logViewer = document.querySelector('.overflow-y-auto');
+    if (logViewer) {
+        logViewer.scrollTop = logViewer.scrollHeight;
+    }
+</script>
+{% endblock %}

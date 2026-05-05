@@ -1,0 +1,24 @@
+<div class="space-y-4">
+    {% for key in api_keys %}
+    <div class="flex items-center justify-between p-4 glass rounded-xl border border-white/5">
+        <div>
+            <h4 class="font-bold text-white">{{ key.name }}</h4>
+            <div class="flex items-center space-x-2 mt-1">
+                <code class="text-xs text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">{{ key.key }}</code>
+                <span class="text-[10px] text-gray-500">Created {{ key.created_at|date:"M d, Y" }}</span>
+                {% if key.last_used_at %}
+                <span class="text-[10px] text-gray-500">• Last used {{ key.last_used_at|timesince }} ago</span>
+                {% endif %}
+            </div>
+        </div>
+        <form hx-post="{% url 'revoke_api_key' key.id %}" hx-target="#api-key-list" hx-confirm="Are you sure you want to revoke this key?">
+            {% csrf_token %}
+            <button type="submit" class="text-xs text-gray-500 hover:text-rose-500 transition">Revoke</button>
+        </form>
+    </div>
+    {% empty %}
+    <div class="text-center py-8 text-gray-500 italic">
+        No API keys generated yet.
+    </div>
+    {% endfor %}
+</div>

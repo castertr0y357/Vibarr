@@ -1,0 +1,37 @@
+<div class="glass p-8 rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
+    <div class="absolute -right-12 -top-12 w-48 h-48 bg-rose-500/10 blur-[80px] rounded-full group-hover:bg-rose-500/20 transition-all duration-700"></div>
+    
+    <div id="nightcap-content" class="relative z-10">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-xl shadow-inner">
+                    🌙
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white tracking-tight">The Nightcap</h3>
+                    <p class="text-xs text-gray-500 font-medium uppercase tracking-widest">Contextual Mood Suggestions</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for mood in moods %}
+            <button hx-post="{% url 'nightcap_action' %}" 
+                    hx-vals='{"mood": "{{ mood }}"}'
+                    hx-target="#nightcap-content"
+                    hx-indicator="#nightcap-loader"
+                    class="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-rose-500 hover:border-rose-500/50 hover:shadow-lg hover:shadow-rose-500/20 transition-all duration-300 text-left group/btn">
+                <div class="text-white font-bold mb-1 group-hover/btn:text-white">{{ mood }}</div>
+                <div class="text-[10px] text-gray-500 group-hover/btn:text-rose-100/70">Tap to calibrate vibe &rarr;</div>
+            </button>
+            {% endfor %}
+        </div>
+        
+        <div id="nightcap-loader" class="htmx-indicator absolute inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center z-20 rounded-[2.5rem]">
+            <div class="flex flex-col items-center space-y-4">
+                <img class="w-8 h-8" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+                <p class="text-xs font-bold text-rose-500 uppercase tracking-widest animate-pulse">Consulting the Stars...</p>
+            </div>
+        </div>
+    </div>
+</div>

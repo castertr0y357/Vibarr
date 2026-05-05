@@ -1,0 +1,118 @@
+from django.db import models
+from django.core.cache import cache
+from .enums import MediaServerType
+
+class Persona(models.Model):
+    name = models.CharField(max_length=50)
+    max_content_rating = models.CharField(max_length=10, default="NR", help_text="Max content rating allowed (e.g. PG, TV-14)")
+    ignored_genres = models.TextField(default="", blank=True, help_text="Comma-separated list of genres to ignore")
+    
+    # Automation
+    auto_switch_enabled = models.BooleanField(default=False)
+    start_time = models.TimeField(null=True, blank=True, help_text="When to auto-activate this lens.")
+    end_time = models.TimeField(null=True, blank=True, help_text="When to deactivate.")
+
+    def __str__(self):
+        return self.name
+
+class AppConfig(models.Model):
+    # Media Server Choice
+    media_server_type = models.CharField(
+        max_length=10, 
+        choices=MediaServerType.choices, 
+        default=MediaServerType.PLEX
+    )
+    active_persona = models.ForeignKey(Persona, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Plex Settings
+    plex_token = models.CharField(max_length=255, null=True, blank=True)
+    plex_url = models.CharField(max_length=500, null=True, blank=True)
+    
+    # Jellyfin Settings
+    jellyfin_url = models.CharField(max_length=500, null=True, blank=True)
+    jellyfin_api_key = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Manager Settings
+    sonarr_url = models.CharField(max_length=500, null=True, blank=True)
+    sonarr_api_key = models.CharField(max_length=255, null=True, blank=True)
+    sonarr_root_folder = models.CharField(max_length=500, null=True, blank=True)
+    sonarr_quality_profile_id = models.IntegerField(null=True, blank=True)
+    
+    radarr_url = models.CharField(max_length=500, null=True, blank=True)
+    radarr_api_key = models.CharField(max_length=255, null=True, blank=True)
+    radarr_root_folder = models.CharField(max_length=500, null=True, blank=True)
+    radarr_quality_profile_id = models.IntegerField(null=True, blank=True)
+    
+    # External APIs
+    tmdb_api_key = models.CharField(max_length=255, null=True, blank=True)
+    tautulli_url = models.CharField(max_length=500, null=True, blank=True)
+    tautulli_api_key = models.CharField(max_length=255, null=True, blank=True)
+
+    # Companion Apps (Optional)
+    seerr_url = models.CharField(max_length=500, null=True, blank=True, help_text="Seerr/Overseerr/Jellyseerr URL")
+    seerr_api_key = models.CharField(max_length=255, null=True, blank=True)
+    bazarr_url = models.CharField(max_length=500, null=True, blank=True)
+    prowlarr_url = models.CharField(max_length=500, null=True, blank=True)
+    
+    # Notifications
+    discord_webhook_url = models.CharField(max_length=500, null=True, blank=True)
+    telegram_bot_token = models.CharField(max_length=255, null=True, blank=True)
+    telegram_chat_id = models.CharField(max_length=100, null=True, blank=True)
+    
+    # AI Settings
+    use_ai_recommendations = models.BooleanField(default=True)
+    auto_universe_discovery = models.BooleanField(default=False)
+    auto_tasting_threshold = models.FloatField(default=9.5, help_text="AI confidence score (0-10) above which a recommendation is automatically sent to 'Tasting'.")
+    
+    ai_api_url = models.URLField(default="http://localhost:11434/v1/chat/completions")
+    ai_model = models.CharField(max_length=100, default="gemma4:e4b")
+    ai_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="Optional API Key for remote instances")
+    
+    # Content Filtering
+    tmdb_region = models.CharField(max_length=2, default="US", help_text="ISO-3166-1 region code for ratings and availability")
+    tmdb_language = models.CharField(max_length=5, default="en-US", help_text="ISO-639-1 language code")
+    max_content_rating = models.CharField(max_length=10, default="TV-14", help_text="Maximum rating to show without warning")
+    ignored_genres = models.TextField(default="", blank=True, help_text="Comma-separated list of genres to ignore (e.g. 'Horror, Reality TV')")
+    ignored_libraries = models.TextField(default="", blank=True, help_text="Comma-separated list of library names to ignore")
+    url_base = models.CharField(max_length=100, default="", blank=True, help_text="Base URL path for reverse proxies (e.g. '/vibarr').")
+    plex_user_filter = models.CharField(max_length=100, null=True, blank=True, help_text="Only learn from this User ID")
+    
+    # Defaults
+    default_tasting_count = models.IntegerField(default=3, help_text="Default number of episodes for a new show tasting")
+    
+    last_sync = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_configured(self):
+        """Checks if the minimum required settings are present."""
+        has_media_server = bool(self.plex_token or self.jellyfin_api_key)
+        has_manager = bool(self.sonarr_url or self.radarr_url)
+        return has_media_server and has_manager
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton
+        if not self.pk and AppConfig.objects.exists():
+            return # Don't allow multiple configs
+        super().save(*args, **kwargs)
+        cache.delete('app_config_solo')
+
+    def delete(self, *args, **kwargs):
+        pass # Don't allow deletion of config
+
+    @classmethod
+    def get_solo(cls):
+        """Retrieves the singleton config with caching."""
+        config = cache.get('app_config_solo')
+        if not config:
+            config = cls.objects.first()
+            if not config:
+                config = cls.objects.create()
+            cache.set('app_config_solo', config, 3600)
+        return config
+
+    def __str__(self):
+        return "Application Configuration"
+    
+    class Meta:
+        verbose_name_plural = "Application Configuration"
+

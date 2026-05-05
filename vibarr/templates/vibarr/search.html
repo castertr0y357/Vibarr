@@ -1,0 +1,49 @@
+{% extends 'vibarr/base.html' %}
+
+{% block title %}Vibe Search{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl">
+    <div class="mb-12">
+        <h1 class="text-4xl font-bold text-white mb-2">Vibe Search</h1>
+        <p class="text-gray-400">Describe what you're looking for, and let the AI find the perfect match.</p>
+    </div>
+
+    <!-- SEARCH BOX -->
+    <section class="glass p-8 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500"></div>
+        <h2 class="text-xl font-semibold text-white mb-6 flex items-center relative">
+            <span class="w-2 h-2 bg-rose-500 rounded-full mr-3"></span>
+            Semantic Vibe Discovery
+        </h2>
+        <form hx-post="{% url 'vibe_search' %}" hx-target="#vibe-results" hx-indicator="#search-indicator" class="relative group">
+            {% csrf_token %}
+            <div class="relative">
+                <input type="text" name="q" autofocus
+                       placeholder="What's the vibe? e.g. 'A slow-burn detective story in a small town' or '90s sci-fi with a philosophical twist'" 
+                       class="w-full bg-black/40 border border-white/10 rounded-2xl py-6 px-8 text-xl text-white placeholder-gray-500 focus:outline-none focus:border-rose-500/50 transition-all duration-300">
+                
+                <div class="absolute right-4 top-4 bottom-4 flex items-center space-x-4">
+                    <div id="search-indicator" class="htmx-indicator">
+                        <svg class="animate-spin h-6 w-6 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <button type="submit" class="bg-rose-500 text-white px-8 h-full rounded-xl font-bold hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20 active:scale-95">
+                        Discover
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <!-- RESULTS -->
+    <div id="vibe-results" class="mt-12">
+        <div class="text-center py-24 opacity-20">
+            <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <p class="text-lg font-medium">Results will appear here...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

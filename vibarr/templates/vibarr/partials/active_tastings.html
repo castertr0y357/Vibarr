@@ -1,0 +1,43 @@
+{% for show in tasting %}
+<div class="glass p-6 rounded-2xl border border-white/5 flex gap-6 group">
+    <div class="w-24 flex-shrink-0">
+        <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="rounded-xl shadow-lg">
+    </div>
+    <div class="flex-grow">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <h3 class="text-white font-bold">{{ show.title }}</h3>
+                <p class="text-xs text-gray-500 uppercase tracking-widest">{{ show.media_type }}</p>
+            </div>
+            <button hx-post="{% url 'stop_and_delete' show.id %}" hx-target="closest .glass" hx-swap="outerHTML swap:0.5s" class="text-gray-600 hover:text-rose-500 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+        </div>
+        
+        <div class="mb-4">
+            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                <span>Progress</span>
+                <span>
+                    {% if show.media_type == 'MOVIE' %}
+                        {{ show.tasting_progress_percent }}%
+                    {% else %}
+                        {{ show.mediawatchevent_set.count }} / {{ show.tasting_episodes_count }} ep
+                    {% endif %}
+                </span>
+            </div>
+            <div class="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                <div class="h-full bg-rose-500 transition-all duration-500" style="width: {{ show.tasting_progress_percent }}%"></div>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <span class="text-[9px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 uppercase font-bold">{{ show.content_rating|default:"NR" }}</span>
+            <span class="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-bold">In {% if show.media_type == 'MOVIE' %}Radarr{% else %}Sonarr{% endif %}</span>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
+    <p class="text-gray-600 text-sm italic">No active tastings. Find something you like below!</p>
+</div>
+{% endfor %}

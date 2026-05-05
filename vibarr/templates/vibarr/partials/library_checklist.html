@@ -1,0 +1,11 @@
+<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+    {% for lib in libraries %}
+    <label class="flex items-center space-x-3 p-3 glass rounded-xl cursor-pointer hover:bg-white/5 transition border border-white/5">
+        <input type="checkbox" name="ignored_libs" value="{{ lib }}" class="form-checkbox h-4 w-4 text-rose-500 rounded border-white/10 bg-black/40" 
+               {% if lib in ignored %}checked{% endif %}>
+        <span class="text-xs text-white {% if lib in ignored %}opacity-50 line-through{% endif %}">{{ lib }}</span>
+    </label>
+    {% empty %}
+    <p class="col-span-full text-xs text-gray-500 italic">No libraries found. Check server connection.</p>
+    {% endfor %}
+</div>

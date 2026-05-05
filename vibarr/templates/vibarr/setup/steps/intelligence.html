@@ -1,0 +1,32 @@
+<form hx-post="{% url 'setup_action' %}" hx-target="#setup-content" class="space-y-8">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_intelligence">
+    
+    <div class="space-y-2">
+        <h2 class="text-2xl font-bold text-white">Intelligence Profile</h2>
+        <p class="text-sm text-gray-500">How should Vibarr discover new media?</p>
+    </div>
+
+    <div class="space-y-6">
+        <div class="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
+            <div>
+                <h4 class="text-white font-bold">Use AI recommendations</h4>
+                <p class="text-xs text-gray-500">Requires a local Ollama or remote OpenAI-compatible instance.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="use_ai" class="sr-only peer" checked>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+        </div>
+
+        <div class="space-y-3">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">AI API Endpoint</label>
+            <input type="text" name="ai_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+        </div>
+    </div>
+
+    <div class="pt-8 flex gap-4">
+        <button type="button" hx-get="{% url 'setup_wizard' %}?step=automation" hx-target="#setup-content" class="flex-1 py-4 bg-white/5 text-gray-400 font-bold rounded-2xl hover:text-white transition">Back</button>
+        <button type="submit" class="flex-2 px-12 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl transition shadow-xl shadow-rose-500/20">Finalize</button>
+    </div>
+</form>
