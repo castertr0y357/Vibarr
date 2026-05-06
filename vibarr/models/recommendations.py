@@ -11,3 +11,8 @@ class Recommendation(models.Model):
 
     class Meta:
         ordering = ['-score']
+
+    @property
+    def vibe_tags_list(self):
+        if not self.vibe_tags: return []
+        return [t.strip() for t in self.vibe_tags.split(',')]

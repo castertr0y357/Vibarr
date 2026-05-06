@@ -1,0 +1,17 @@
+{% if config.is_syncing %}
+<div hx-get="{% url 'sync_status' %}" hx-trigger="every 3s" hx-swap="outerHTML" class="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-between animate-pulse">
+    <div class="flex items-center space-x-4">
+        <div class="w-2 h-2 bg-rose-500 rounded-full animate-ping"></div>
+        <div>
+            <p class="text-sm font-bold text-white">{{ config.sync_status|default:"Synchronizing libraries..." }}</p>
+            <p class="text-[10px] text-rose-400 uppercase tracking-widest font-bold">Background Scout Active</p>
+        </div>
+    </div>
+    <div class="flex items-center space-x-2">
+        <img class="w-4 h-4 opacity-50" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+    </div>
+</div>
+{% else %}
+<div hx-get="{% url 'sync_status' %}" hx-trigger="every 15s" hx-swap="outerHTML" class="hidden" 
+     x-data x-init="document.body.dispatchEvent(new Event('sync-complete'))"></div>
+{% endif %}

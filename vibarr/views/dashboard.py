@@ -33,7 +33,7 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
         context['suggested'] = Show.objects.filter(
             state=ShowState.SUGGESTED
         ).prefetch_related('recommendations').order_by('-is_pinned', '-recommendations__score')[:20]
-        context['tasting'] = Show.objects.filter(state=ShowState.TASTING).prefetch_related('mediawatchevent_set')
+        context['tasting'] = Show.objects.filter(state=ShowState.TASTING).prefetch_related('mediawatchevent_set', 'recommendations')
         context['committed'] = Show.objects.filter(state=ShowState.COMMITTED).order_by('-updated_at')[:10]
         
         # Determine if we should render a partial
@@ -44,6 +44,8 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
             self.template_name = 'vibarr/partials/active_tastings.html'
         elif partial == 'committed':
             self.template_name = 'vibarr/partials/recent_committed.html'
+        elif partial == 'sync':
+            self.template_name = 'vibarr/partials/sync_status.html'
             
         from ..models import Persona
         context['personas'] = Persona.objects.all()
@@ -53,3 +55,12 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
         # Override get to handle template switching for HTMX partials
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
+
+from django.views import View
+from django.shortcuts import render
+from ..models import AppConfig
+
+class SyncStatusView(ConfigMixin, View):
+    def get(self, request):
+        config = AppConfig.get_solo()
+        return render(request, 'vibarr/partials/sync_status.html', {'config': config})

@@ -27,10 +27,12 @@ services:
   web:
     build: .
     restart: unless-stopped
-    command: web
+    command: ["web"]
     volumes:
       - .:/app
       - ./logs:/app/logs
+      - ./data:/app/data
+      - static_volume:/app/staticfiles
     env_file:
       - .env
     ports:
@@ -44,10 +46,11 @@ services:
   worker:
     build: .
     restart: unless-stopped
-    command: worker
+    command: ["worker"]
     volumes:
       - .:/app
       - ./logs:/app/logs
+      - ./data:/app/data
     env_file:
       - .env
     depends_on:
@@ -58,3 +61,4 @@ services:
 
 volumes:
   postgres_data:
+  static_volume:

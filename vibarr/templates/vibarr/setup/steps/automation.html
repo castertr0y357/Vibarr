@@ -8,26 +8,88 @@
     </div>
 
     <div class="space-y-6">
-        <div class="space-y-3">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Sonarr TV Root Folder</label>
-            <select name="sonarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
-                {% for folder in sonarr_folders %}
-                <option value="{{ folder.path }}">{{ folder.path }}</option>
-                {% empty %}
-                <option disabled>Could not reach Sonarr. Check .env settings.</option>
-                {% endfor %}
-            </select>
+        <div class="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h4 class="text-white font-bold flex items-center gap-2">
+                    <span class="w-2 h-2 bg-blue-500 rounded-full"></span> Sonarr Configuration
+                </h4>
+                <div id="sonarr-test-status"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Sonarr URL</label>
+                    <input type="text" id="sonarr_url_input" name="sonarr_url" value="{{ config.sonarr_url|default:'' }}" placeholder="http://localhost:8989" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Sonarr API Key</label>
+                    <input type="password" id="sonarr_key_input" name="sonarr_key" value="{{ config.sonarr_api_key|default:'' }}" placeholder="Your API Key" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+            <div class="flex justify-between items-center gap-4">
+                <div class="flex-1 space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">TV Root Folder</label>
+                    <select id="sonarr_root_select" name="sonarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        {% if config.sonarr_root_folder %}
+                        <option value="{{ config.sonarr_root_folder }}" selected>{{ config.sonarr_root_folder }} (Current)</option>
+                        {% endif %}
+                        {% for folder in sonarr_folders %}
+                        <option value="{{ folder.path }}">{{ folder.path }}</option>
+                        {% empty %}
+                        <option disabled>Connect Sonarr first to see folders.</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" 
+                        hx-post="{% url 'setup_test_automation' %}" 
+                        hx-vals='{"type": "sonarr"}'
+                        hx-include="#sonarr_url_input, #sonarr_key_input"
+                        hx-target="#sonarr-test-status"
+                        class="mt-6 px-4 py-4 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/10 transition">
+                    Test Connection
+                </button>
+            </div>
         </div>
 
-        <div class="space-y-3">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Radarr Movie Root Folder</label>
-            <select name="radarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
-                {% for folder in radarr_folders %}
-                <option value="{{ folder.path }}">{{ folder.path }}</option>
-                {% empty %}
-                <option disabled>Could not reach Radarr. Check .env settings.</option>
-                {% endfor %}
-            </select>
+        <div class="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h4 class="text-white font-bold flex items-center gap-2">
+                    <span class="w-2 h-2 bg-orange-500 rounded-full"></span> Radarr Configuration
+                </h4>
+                <div id="radarr-test-status"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Radarr URL</label>
+                    <input type="text" id="radarr_url_input" name="radarr_url" value="{{ config.radarr_url|default:'' }}" placeholder="http://localhost:7878" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Radarr API Key</label>
+                    <input type="password" id="radarr_key_input" name="radarr_key" value="{{ config.radarr_api_key|default:'' }}" placeholder="Your API Key" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
+            <div class="flex justify-between items-center gap-4">
+                <div class="flex-1 space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Movies Root Folder</label>
+                    <select id="radarr_root_select" name="radarr_root" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        {% if config.radarr_root_folder %}
+                        <option value="{{ config.radarr_root_folder }}" selected>{{ config.radarr_root_folder }} (Current)</option>
+                        {% endif %}
+                        {% for folder in radarr_folders %}
+                        <option value="{{ folder.path }}">{{ folder.path }}</option>
+                        {% empty %}
+                        <option disabled>Connect Radarr first to see folders.</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" 
+                        hx-post="{% url 'setup_test_automation' %}" 
+                        hx-vals='{"type": "radarr"}'
+                        hx-include="#radarr_url_input, #radarr_key_input"
+                        hx-target="#radarr-test-status"
+                        class="mt-6 px-4 py-4 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl border border-white/10 transition">
+                    Test Connection
+                </button>
+            </div>
         </div>
     </div>
 

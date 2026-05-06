@@ -138,16 +138,9 @@ Q_CLUSTER = {
     'redis': env('REDIS_URL', default='redis://localhost:6379/0')
 }
 
-# Plex/Sonarr/TMDB API settings
-PLEX_URL = env('PLEX_URL')
-PLEX_TOKEN = env('PLEX_TOKEN')
-SONARR_URL = env('SONARR_URL')
-SONARR_API_KEY = env('SONARR_API_KEY')
-RADARR_URL = env.str('RADARR_URL', default='')
-RADARR_API_KEY = env.str('RADARR_API_KEY', default='')
-TAUTULLI_URL = env.str('TAUTULLI_URL', default='')
-TAUTULLI_API_KEY = env.str('TAUTULLI_API_KEY', default='')
-TMDB_API_KEY = env('TMDB_API_KEY')
+# External API settings are managed via the in-app Application Configuration (AppConfig model).
+# Environment variables can still be used for initial setup or overrides in services if needed,
+# but the primary source of truth is the database.
 
 # Logging Configuration
 LOGGING = {

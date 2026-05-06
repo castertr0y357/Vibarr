@@ -1,0 +1,21 @@
+<div class="mt-2 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4 animate-fade-in">
+    <div class="flex items-center justify-between">
+        <div class="space-y-1">
+            <div class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Plex PIN</div>
+            <div class="text-2xl font-black text-rose-500 tracking-widest">{{ pin_code }}</div>
+        </div>
+        <a href="https://plex.tv/link" target="_blank" class="px-4 py-2 bg-rose-500 text-white text-[10px] font-bold rounded-lg hover:bg-rose-600 transition shadow-lg shadow-rose-500/20">
+            Go to plex.tv/link
+        </a>
+    </div>
+
+    <div id="pin-poll-target" 
+         hx-get="/setup/plex/poll/{{ pin_id }}/" 
+         hx-trigger="load delay:3s" 
+         hx-target="#pin-poll-target"
+         hx-swap="outerHTML" 
+         class="text-[10px] text-gray-500 flex items-center justify-center gap-2 pt-2 border-t border-white/5">
+        <div class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></div>
+        Waiting for authorization...
+    </div>
+</div>

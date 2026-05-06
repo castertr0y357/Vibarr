@@ -5,6 +5,7 @@ class ShowState(models.TextChoices):
     TASTING = 'TASTING', 'Tasting'
     COMMITTED = 'COMMITTED', 'Committed'
     REJECTED = 'REJECTED', 'Rejected'
+    WATCHED = 'WATCHED', 'Watched'
 
 class MediaType(models.TextChoices):
     SHOW = 'SHOW', 'Show'

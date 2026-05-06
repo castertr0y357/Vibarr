@@ -2,11 +2,16 @@ import requests
 from django.conf import settings
 
 class RadarrService:
-    def __init__(self):
-        from ...models import AppConfig
-        config = AppConfig.get_solo()
-        self.base_url = (config.radarr_url or getattr(settings, 'RADARR_URL', '')).rstrip('/')
-        self.api_key = config.radarr_api_key or getattr(settings, 'RADARR_API_KEY', '')
+    def __init__(self, url=None, api_key=None):
+        if url and api_key:
+            self.base_url = url.rstrip('/')
+            self.api_key = api_key
+        else:
+            from ...models import AppConfig
+            config = AppConfig.get_solo()
+            self.base_url = (config.radarr_url or getattr(settings, 'RADARR_URL', '')).rstrip('/')
+            self.api_key = config.radarr_api_key or getattr(settings, 'RADARR_API_KEY', '')
+        
         self.headers = {"X-Api-Key": self.api_key}
 
     def get_root_folders(self):

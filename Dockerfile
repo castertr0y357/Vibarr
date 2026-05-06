@@ -20,6 +20,7 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/install/bin:${PATH}"
+ENV PYTHONPATH="/install/lib/python3.13/site-packages"
 
 WORKDIR /app
 

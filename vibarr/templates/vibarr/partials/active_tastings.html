@@ -1,38 +1,84 @@
 {% for show in tasting %}
-<div class="glass p-6 rounded-2xl border border-white/5 flex gap-6 group">
-    <div class="w-24 flex-shrink-0">
-        <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="rounded-xl shadow-lg">
-    </div>
-    <div class="flex-grow">
-        <div class="flex justify-between items-start mb-2">
-            <div>
-                <h3 class="text-white font-bold">{{ show.title }}</h3>
-                <p class="text-xs text-gray-500 uppercase tracking-widest">{{ show.media_type }}</p>
+<div class="flip-card h-[420px]" data-flipped="false">
+    <div class="flip-card-inner">
+        <!-- FRONT -->
+        <div class="flip-card-front glass p-4 border border-white/5 flex flex-col group">
+            <div class="relative mb-4 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer"
+                 onclick="var fc = this.closest('.flip-card'); fc.classList.add('flipped'); fc.dataset.flipped='true';">
+                <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 pointer-events-none">
+                    <p class="text-[10px] text-white font-bold uppercase tracking-widest">Click for Vibe Reasoning</p>
+                </div>
             </div>
-            <button hx-post="{% url 'stop_and_delete' show.id %}" hx-target="closest .glass" hx-swap="outerHTML swap:0.5s" class="text-gray-600 hover:text-rose-500 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-        </div>
-        
-        <div class="mb-4">
-            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
-                <span>Progress</span>
-                <span>
-                    {% if show.media_type == 'MOVIE' %}
-                        {{ show.tasting_progress_percent }}%
-                    {% else %}
-                        {{ show.mediawatchevent_set.count }} / {{ show.tasting_episodes_count }} ep
-                    {% endif %}
-                </span>
-            </div>
-            <div class="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-                <div class="h-full bg-rose-500 transition-all duration-500" style="width: {{ show.tasting_progress_percent }}%"></div>
+            
+            <div class="flex-grow flex flex-col">
+                <div class="mb-3">
+                    <h3 class="text-white font-bold text-sm truncate">{{ show.title }}</h3>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-widest">{{ show.media_type }}</p>
+                </div>
+                
+                <div class="mt-auto space-y-3">
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
+                            <span>Tasting Progress</span>
+                            <span class="text-rose-500">
+                                {% if show.media_type == 'MOVIE' %}
+                                    {{ show.tasting_progress_percent }}%
+                                {% else %}
+                                    {{ show.mediawatchevent_set.count }}/{{ show.tasting_episodes_count }} ep
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full bg-rose-500 transition-all duration-700 ease-out shadow-[0_0_8px_rgba(233,69,96,0.5)]" style="width: {{ show.tasting_progress_percent }}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex gap-2">
+                            <span class="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 uppercase font-black">{{ show.content_rating|default:"NR" }}</span>
+                            <span class="text-[8px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-black tracking-tighter">In {% if show.media_type == 'MOVIE' %}Radarr{% else %}Sonarr{% endif %}</span>
+                        </div>
+                        <button hx-post="{% url 'stop_and_delete' show.id %}"
+                                hx-target="closest .flip-card"
+                                hx-swap="outerHTML"
+                                class="p-1.5 rounded-lg text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="flex gap-2">
-            <span class="text-[9px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 uppercase font-bold">{{ show.content_rating|default:"NR" }}</span>
-            <span class="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-bold">In {% if show.media_type == 'MOVIE' %}Radarr{% else %}Sonarr{% endif %}</span>
+        <!-- BACK -->
+        <div class="flip-card-back glass p-6 border border-rose-500/20 bg-rose-500/5 flex flex-col cursor-pointer"
+             onclick="var fc = this.closest('.flip-card'); fc.classList.remove('flipped'); fc.dataset.flipped='false';">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-rose-500 font-black text-xs uppercase tracking-[0.2em]">Scout Reasoning</h3>
+                <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            
+            <div class="flex-grow space-y-4">
+                <p class="text-xs text-gray-300 leading-relaxed italic">
+                    "{{ show.recommendations.first.reasoning|default:'This title was selected based on your recurring interest in similar themes and atmospheric vibes discovered in your history.' }}"
+                </p>
+                
+                {% if show.recommendations.first.vibe_tags %}
+                <div class="flex flex-wrap gap-2 pt-2">
+                    {% for tag in show.recommendations.first.vibe_tags_list %}
+                    <span class="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-1 rounded-lg border border-rose-500/10 font-bold uppercase tracking-wider">#{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-white/5">
+                <div class="flex items-center space-x-2 text-[10px] text-gray-500">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Selected: {{ show.recommendations.first.created_at|timesince }} ago</span>
+                </div>
+                <p class="mt-2 text-[10px] text-gray-400 font-medium">↩ Click to return to poster</p>
+            </div>
         </div>
     </div>
 </div>

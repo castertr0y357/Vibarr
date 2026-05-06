@@ -13,6 +13,7 @@ This document defines how Antigravity (AI) and the User collaborate on this proj
 - `/health`: Immediately run `skill_pre_flight_check.md` and `skill_api_smoke_test.md`.
 - `/logs`: Immediately run `skill_log_forensics.md` and provide a summary of the latest errors.
 - `/sync`: Immediately run `skill_manual_sync_cycle.md`.
+- `/rebuild`: Immediately run `skill_rebuild_stack.md`.
 
 ## CI/CD Workflow
 - **Development**: Work happens on local branches.

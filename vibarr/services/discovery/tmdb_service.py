@@ -9,15 +9,25 @@ class TMDBService:
     BASE_URL = "https://api.themoviedb.org/3"
     _session = None
     
-    def __init__(self):
+    def __init__(self, api_key=None):
         from ...models import AppConfig
         config = AppConfig.get_solo()
-        self.api_key = config.tmdb_api_key or getattr(settings, 'TMDB_API_KEY', '')
+        self.api_key = api_key or config.tmdb_api_key or getattr(settings, 'TMDB_API_KEY', '')
         self.region = config.tmdb_region or "US"
         self.language = config.tmdb_language or "en-US"
         
         if TMDBService._session is None:
             TMDBService._session = requests.Session()
+
+    def test_connection(self):
+        if not self.api_key: return False
+        try:
+            url = f"{self.BASE_URL}/configuration"
+            params = {"api_key": self.api_key}
+            response = self._session.get(url, params=params, timeout=5)
+            return response.status_code == 200
+        except Exception:
+            return False
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):
         if cache_key:

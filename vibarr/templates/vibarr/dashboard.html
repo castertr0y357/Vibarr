@@ -5,6 +5,11 @@
 {% block content %}
 <div class="space-y-12">
     
+    <!-- SYNC STATUS -->
+    <div id="sync-status-container" hx-get="{% url 'sync_status' %}" hx-trigger="load">
+        {% include 'vibarr/partials/sync_status.html' %}
+    </div>
+    
     <!-- HEADER -->
     <div class="flex justify-between items-end">
         <div>
@@ -81,7 +86,7 @@
             </h2>
             <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">AI Reranking Active</span>
         </div>
-        <div id="discovery-feed-container" hx-get="{% url 'dashboard' %}?partial=discovery" hx-trigger="every 30s" hx-indicator="closest section h2 img" class="flex overflow-x-auto space-x-6 pb-6 scroll-hide">
+        <div id="discovery-feed-container" hx-get="{% url 'dashboard' %}?partial=discovery" hx-trigger="every 30s, sync-complete from:body" hx-indicator="closest section h2 img" class="flex overflow-x-auto space-x-6 pb-6 scroll-hide">
             {% include 'vibarr/partials/discovery_feed.html' %}
         </div>
     </section>

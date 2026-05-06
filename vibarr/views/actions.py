@@ -1,4 +1,5 @@
 from django.views.generic import View, RedirectView
+from django.utils import timezone
 from django.shortcuts import get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
@@ -49,6 +50,29 @@ class StopAndDeleteShowView(View):
             return HttpResponse("")
         return redirect('dashboard')
 
+class MarkWatchedView(APIMixin, View):
+    def post(self, request, show_id):
+        show = get_object_or_404(Show, id=show_id)
+        show.state = ShowState.WATCHED
+        show.save()
+        
+        # Inform history to avoid re-suggesting
+        from ..models import MediaWatchEvent
+        MediaWatchEvent.objects.get_or_create(
+            event_id=f"MANUAL_{show.tmdb_id}",
+            defaults={
+                'source_server': 'MANUAL',
+                'show_title': show.title,
+                'tmdb_id': show.tmdb_id,
+                'media_type': show.media_type,
+                'watched_at': timezone.now(),
+            }
+        )
+        
+        if request.headers.get('HX-Request'):
+            return HttpResponse("")
+        return redirect('dashboard')
+
 class TasteShowView(APIMixin, View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
@@ -65,7 +89,12 @@ class ManualSyncView(APIMixin, RedirectView):
     pattern_name = 'dashboard'
     def get(self, request, *args, **kwargs):
         from ..tasks import poll_media_servers, sync_external_states
-        async_task(poll_media_servers)
+        config = AppConfig.get_solo()
+        config.is_syncing = True
+        config.sync_status = "Sync task queued..."
+        config.save()
+        
+        async_task(poll_media_servers, hours=72)
         async_task(sync_external_states)
         messages.success(request, "Manual sync triggered.")
         if getattr(request, 'is_api_request', False):

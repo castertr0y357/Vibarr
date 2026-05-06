@@ -1,14 +1,14 @@
 # Project Status: Vibarr
 
 ## Current State: HEADLESS & HOUSEHOLD READY (v1.0-RC1)
-**Last Checkpoint**: 2026-05-05 (API-First & Household Lenses)
+**Last Checkpoint**: 2026-05-05 (Production-Ready Settings & Automated Onboarding)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
 - **API Strategy**: Headless Hybrid (Django CBVs + APIMixin supporting JSON & HTMX)
-- **Deployment**: Hardened Docker (Multi-stage build, Non-root user, isolated networking)
-- **Integrations**: Plex/Jellyfin (Syncing), Sonarr/Radarr (Automation), TMDB, OpenAI-Compatible AI (Ollama/Remote)
-- **Frontend**: Vanilla CSS + HTMX (Real-time polling and partial updates)
+- **Deployment**: Hardened Docker Compose (Orchestrated Postgres, Redis, Web, and Worker)
+- **Integrations**: Plex/Jellyfin (Media), Sonarr/Radarr (Automation), Overseerr/Jellyseerr (Requests), TMDB, OpenAI-Compatible AI
+- **Frontend**: Vanilla CSS + HTMX + Alpine.js (Real-time polling, partial updates, dynamic states)
 
 ## Primary Logic
 - **4+1 Serendipity**: AI Ranking that provides 4 high-confidence matches and 1 "Wildcard" thematic connection.
@@ -25,12 +25,13 @@
 - [x] **Household Lenses**: Persona-based filtering (Age limits & Genre blacklists).
 - [x] **Autonomous Scout**: AI-driven auto-acquisition based on confidence thresholds.
 - [x] **Hardened Docker**: Production-ready containerization.
-- [x] **Setup Wizard**: Automated first-run calibration.
+- [x] **Automated Onboarding**: Setup Wizard with Plex PIN Auth & Media Source selection.
+- [x] **Production Settings**: 100% Model synchronized form with HTMX connection validation.
+- [x] **Companion Manager**: Seamless sync with Overseerr/Jellyseerr.
 - [x] **The Nightcap**: Time-of-day mood selector with AI-reranking.
 - [x] **Concierge Notifications**: Discord/Telegram triggers.
 - [x] **Semantic Vibe Search**: Natural language discovery via AI.
 - [x] **Universe Architect**: AI-driven cinematic universe detection.
-- [~] **Insights Engine**: (Removed/Distilled to keep app lean).
 
 ## Quality Gates
 - **Security**: Non-root container execution & Token-based API Auth.

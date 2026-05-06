@@ -61,7 +61,8 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
     for c in candidates_raw:
         title_lower = (c.get('name') or c.get('title', '')).lower()
         if Show.objects.filter(tmdb_id=c['id']).exists(): continue
-        if title_lower in library_titles: continue
+        if MediaWatchEvent.objects.filter(tmdb_id=c['id']).exists(): continue
+        if library_titles and title_lower in library_titles: continue
             
         # Genre Blacklist Check
         if ignored_genres:

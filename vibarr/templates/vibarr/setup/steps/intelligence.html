@@ -8,20 +8,57 @@
     </div>
 
     <div class="space-y-6">
-        <div class="flex items-center justify-between p-6 bg-white/5 rounded-2xl border border-white/5">
-            <div>
-                <h4 class="text-white font-bold">Use AI recommendations</h4>
-                <p class="text-xs text-gray-500">Requires a local Ollama or remote OpenAI-compatible instance.</p>
+        <!-- TMDB Section -->
+        <div class="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+            <h4 class="text-white font-bold flex items-center gap-2">
+                <span class="w-2 h-2 bg-rose-500 rounded-full"></span> Metadata & Search
+            </h4>
+            <div class="space-y-3">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">TMDB API Key</label>
+                <input type="password" name="tmdb_api_key" value="{{ config.tmdb_api_key|default:'' }}" placeholder="Your TMDB API Key" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                <p class="text-[10px] text-gray-500">Vibarr uses TMDB to fetch poster art, trailers, and initial discovery seeds.</p>
             </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="use_ai" class="sr-only peer" checked>
-                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-            </label>
         </div>
 
-        <div class="space-y-3">
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">AI API Endpoint</label>
-            <input type="text" name="ai_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+        <!-- AI Section -->
+        <div class="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="text-white font-bold flex items-center gap-2">
+                        <span class="w-2 h-2 bg-cyan-500 rounded-full"></span> AI Recommendations
+                    </h4>
+                    <p class="text-[10px] text-gray-500 mt-1">Enable autonomous tasting and smart show bridging.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="use_ai" class="sr-only peer" 
+                           {% if config.use_ai_recommendations %}checked{% endif %}
+                           onchange="document.getElementById('ai-settings-group').classList.toggle('hidden', !this.checked)">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                </label>
+            </div>
+
+            <div id="ai-settings-group" class="space-y-6 pt-4 border-t border-white/5 {% if not config.use_ai_recommendations %}hidden{% endif %} transition-all">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Model Endpoint</label>
+                        <div class="group relative">
+                            <span class="cursor-help text-rose-500 text-xs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.444 1.103m.444-1.103c.542.104.994.54.444 1.103m-.444-1.103V15m0 3h.01"></path></svg>
+                            </span>
+                            <div class="absolute bottom-full right-0 mb-2 w-64 p-3 bg-black border border-white/10 rounded-xl text-[10px] text-gray-400 leading-relaxed opacity-0 group-hover:opacity-100 transition pointer-events-none z-50 shadow-2xl">
+                                <b class="text-white block mb-1">Recommended Models:</b>
+                                Vibarr works best with <span class="text-rose-500">Llama 3 (8B)</span>, <span class="text-rose-500">Mistral (7B)</span>, or larger. 
+                                Minimum 7B parameters recommended for accurate media reasoning.
+                            </div>
+                        </div>
+                    </div>
+                    <input type="text" name="ai_url" value="{{ config.ai_api_url|default:'http://localhost:11434/v1' }}" placeholder="http://localhost:11434/v1" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Model Name</label>
+                    <input type="text" name="ai_model" value="{{ config.ai_model|default:'llama3' }}" placeholder="llama3" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                </div>
+            </div>
         </div>
     </div>
 

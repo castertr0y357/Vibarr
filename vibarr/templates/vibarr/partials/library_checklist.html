@@ -1,9 +1,13 @@
 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <input type="hidden" name="libraries_loaded" value="1">
     {% for lib in libraries %}
-    <label class="flex items-center space-x-3 p-3 glass rounded-xl cursor-pointer hover:bg-white/5 transition border border-white/5">
-        <input type="checkbox" name="ignored_libs" value="{{ lib }}" class="form-checkbox h-4 w-4 text-rose-500 rounded border-white/10 bg-black/40" 
-               {% if lib in ignored %}checked{% endif %}>
-        <span class="text-xs text-white {% if lib in ignored %}opacity-50 line-through{% endif %}">{{ lib }}</span>
+    <label class="flex items-center space-x-3 p-3 glass rounded-xl cursor-pointer hover:bg-white/5 transition border border-white/5"
+           :class="checked ? 'border-rose-500/50 bg-rose-500/5' : 'border-white/5'"
+           x-data="{ checked: {% if lib in monitored %}true{% else %}false{% endif %} }">
+        <input type="checkbox" name="monitored_libs" value="{{ lib }}" 
+               class="form-checkbox h-4 w-4 text-rose-500 rounded border-white/10 bg-black/40" 
+               x-model="checked">
+        <span class="text-xs text-white" :class="checked ? 'text-rose-400 font-bold' : 'opacity-60'">{{ lib }}</span>
     </label>
     {% empty %}
     <p class="col-span-full text-xs text-gray-500 italic">No libraries found. Check server connection.</p>

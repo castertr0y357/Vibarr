@@ -49,10 +49,9 @@ class AppConfig(models.Model):
     tautulli_api_key = models.CharField(max_length=255, null=True, blank=True)
 
     # Companion Apps (Optional)
+    use_seerr = models.BooleanField(default=False, help_text="Sync recommendations as requests to Overseerr/Jellyseerr")
     seerr_url = models.CharField(max_length=500, null=True, blank=True, help_text="Seerr/Overseerr/Jellyseerr URL")
     seerr_api_key = models.CharField(max_length=255, null=True, blank=True)
-    bazarr_url = models.CharField(max_length=500, null=True, blank=True)
-    prowlarr_url = models.CharField(max_length=500, null=True, blank=True)
     
     # Notifications
     discord_webhook_url = models.CharField(max_length=500, null=True, blank=True)
@@ -65,7 +64,7 @@ class AppConfig(models.Model):
     auto_tasting_threshold = models.FloatField(default=9.5, help_text="AI confidence score (0-10) above which a recommendation is automatically sent to 'Tasting'.")
     
     ai_api_url = models.URLField(default="http://localhost:11434/v1/chat/completions")
-    ai_model = models.CharField(max_length=100, default="gemma4:e4b")
+    ai_model = models.CharField(max_length=100, default="gemma3:4b")
     ai_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="Optional API Key for remote instances")
     
     # Content Filtering
@@ -73,7 +72,7 @@ class AppConfig(models.Model):
     tmdb_language = models.CharField(max_length=5, default="en-US", help_text="ISO-639-1 language code")
     max_content_rating = models.CharField(max_length=10, default="TV-14", help_text="Maximum rating to show without warning")
     ignored_genres = models.TextField(default="", blank=True, help_text="Comma-separated list of genres to ignore (e.g. 'Horror, Reality TV')")
-    ignored_libraries = models.TextField(default="", blank=True, help_text="Comma-separated list of library names to ignore")
+    monitored_libraries = models.TextField(default="", blank=True, help_text="Comma-separated list of library names to monitor")
     url_base = models.CharField(max_length=100, default="", blank=True, help_text="Base URL path for reverse proxies (e.g. '/vibarr').")
     plex_user_filter = models.CharField(max_length=100, null=True, blank=True, help_text="Only learn from this User ID")
     
@@ -81,6 +80,8 @@ class AppConfig(models.Model):
     default_tasting_count = models.IntegerField(default=3, help_text="Default number of episodes for a new show tasting")
     
     last_sync = models.DateTimeField(null=True, blank=True)
+    is_syncing = models.BooleanField(default=False)
+    sync_status = models.CharField(max_length=255, default="", blank=True)
 
     @property
     def is_configured(self):
@@ -94,20 +95,16 @@ class AppConfig(models.Model):
         if not self.pk and AppConfig.objects.exists():
             return # Don't allow multiple configs
         super().save(*args, **kwargs)
-        cache.delete('app_config_solo')
 
     def delete(self, *args, **kwargs):
         pass # Don't allow deletion of config
 
     @classmethod
     def get_solo(cls):
-        """Retrieves the singleton config with caching."""
-        config = cache.get('app_config_solo')
+        """Retrieves the singleton config."""
+        config = cls.objects.first()
         if not config:
-            config = cls.objects.first()
-            if not config:
-                config = cls.objects.create()
-            cache.set('app_config_solo', config, 3600)
+            config = cls.objects.create()
         return config
 
     def __str__(self):
