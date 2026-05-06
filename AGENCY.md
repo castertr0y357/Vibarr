@@ -17,10 +17,11 @@ This document defines how Antigravity (AI) and the User collaborate on this proj
 
 ## CI/CD Workflow
 - **Development**: Work happens on local branches.
-- **Quality Gate (MANDATORY)**: Before declaring any code change "complete," I MUST run:
-    1. `skill_pre_flight_check.md`: To catch syntax and migration errors.
-    2. `skill_api_smoke_test.md`: To ensure no 500 errors on the main dashboard.
-- **Verification**: All changes must be verified with a `manual_sync_cycle` or a test run.
+- **Quality Gate (MANDATORY)**: Before declaring any task "complete," I MUST run:
+    1. **Trigger: Code Change**: If any `*.py`, `Dockerfile`, or `docker-compose.yml` was modified, I MUST run `skill_rebuild_stack.md`.
+    2. **Verification**: Run `skill_pre_flight_check.md` to ensure migrations and system health.
+    3. **UI Validation**: Run `skill_api_smoke_test.md` to ensure no 500 errors.
+- **Auto-Fix**: If `pre_flight_check` fails due to unapplied migrations, I will attempt to fix them via `python manage.py migrate` before escalating.
 - **Documentation**: Any change to API interaction must be reflected in the relevant `skill_*.md`.
 
 ## Quality Standard
