@@ -13,13 +13,22 @@ from ..services.discovery.ai_service import AIService
 from .mixins import ConfigMixin, APIMixin
 import logging
 
+logger = logging.getLogger(__name__)
+
+# HTMX outerHTML swap crashes on empty responses. Return a self-removing element instead.
+HTMX_REMOVE = (
+    '<div style="transition:all .5s ease;opacity:0;max-height:0;overflow:hidden;'
+    'margin:0;padding:0;border:none;width:0;" '
+    'onanimationend="this.remove()"></div>'
+)
+
 class RejectShowView(APIMixin, View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
         show.state = ShowState.REJECTED
         show.save()
         if request.headers.get('HX-Request'):
-            return HttpResponse("")
+            return HttpResponse(HTMX_REMOVE)
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': f'Show {show_id} rejected'})
         return redirect('dashboard')
@@ -47,7 +56,7 @@ class StopAndDeleteShowView(View):
         show.state = ShowState.REJECTED
         show.save()
         if request.headers.get('HX-Request'):
-            return HttpResponse("")
+            return HttpResponse(HTMX_REMOVE)
         return redirect('dashboard')
 
 class MarkWatchedView(APIMixin, View):
@@ -70,7 +79,7 @@ class MarkWatchedView(APIMixin, View):
         )
         
         if request.headers.get('HX-Request'):
-            return HttpResponse("")
+            return HttpResponse(HTMX_REMOVE)
         return redirect('dashboard')
 
 class TasteShowView(APIMixin, View):
@@ -80,7 +89,7 @@ class TasteShowView(APIMixin, View):
         async_task(start_tasting, show.id)
         messages.info(request, f"Started tasting for '{show.title}'.")
         if request.headers.get('HX-Request'):
-            return HttpResponse("")
+            return HttpResponse(HTMX_REMOVE)
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': f'Started tasting for {show.title}'})
         return redirect('dashboard')

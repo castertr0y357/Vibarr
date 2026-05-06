@@ -194,26 +194,6 @@
                 event.detail.headers['X-CSRFToken'] = tokenEl.value;
             }
         });
-
-        // --- HTMX: Handle empty-response swaps gracefully ---
-        // When a button returns empty HTML (e.g. Dismiss, Taste, Delete),
-        // animate the card out and remove it instead of letting HTMX crash.
-        document.body.addEventListener('htmx:beforeSwap', function(event) {
-            if (event.detail.serverResponse.trim() === '') {
-                event.detail.shouldSwap = false;
-                var target = event.detail.target;
-                if (target) {
-                    target.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-                    target.style.opacity = '0';
-                    target.style.transform = 'scale(0.8) translateY(20px)';
-                    target.style.maxWidth = '0';
-                    target.style.padding = '0';
-                    target.style.margin = '0';
-                    target.style.overflow = 'hidden';
-                    setTimeout(function() { target.remove(); }, 500);
-                }
-            }
-        });
     </script>
     {% block extra_js %}{% endblock %}
 </body>
