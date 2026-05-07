@@ -1,5 +1,5 @@
 from django.urls import path
-from ..views.actions import HealthCheckView, TasteShowView, RejectShowView, TogglePinShowView, StopAndDeleteShowView, ManualSyncView, UniverseSyncView, MarkWatchedView
+from ..views.actions import HealthCheckView, TasteShowView, RejectShowView, TogglePinShowView, StopAndDeleteShowView, ManualSyncView, UniverseSyncView, MarkWatchedView, ResetSyncStatusView
 from ..views import webhooks
 
 urlpatterns = [
@@ -21,5 +21,6 @@ urlpatterns = [
     path('show/<int:show_id>/delete/', StopAndDeleteShowView.as_view(), name='stop_and_delete'),
     path('show/<int:show_id>/watched/', MarkWatchedView.as_view(), name='mark_watched'),
     path('sync/manual/', ManualSyncView.as_view(), name='manual_sync'),
+    path('sync/reset/', ResetSyncStatusView.as_view(), name='reset_sync'),
     path('sync/universe/', UniverseSyncView.as_view(), name='universe_sync'),
 ]

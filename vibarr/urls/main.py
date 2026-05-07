@@ -1,16 +1,19 @@
 from django.urls import path
 from ..views.dashboard import DashboardView, SyncStatusView
 from ..views.search import VibeSearchView, VibeSearchActionView, TasteFromSearchView
-from ..views.settings import SettingsView, UpdateSettingsView, GetLibrariesView, TestSettingsView
+from ..views.settings import SettingsView, UpdateSettingsView, GetLibrariesView, TestSettingsView, DiscoverPlexServersView
 from ..views.diagnostics import LogsView, DownloadLogsView
 from ..views.setup import SetupWizardView, SetupActionView, PlexPinRequestView, PlexPinPollView, ResetSetupView, TestAutomationView
 from ..views.nightcap import NightcapView, NightcapActionView
 
 from ..views.api_keys import APIKeyListView, CreateAPIKeyView, RevokeAPIKeyView
 from ..views.personas import SwitchPersonaView, CreatePersonaView
+from ..views.history import HistoryView, BackfillHistoryView
 
 urlpatterns = [
     path('', DashboardView.as_view(), name='dashboard'),
+    path('history/', HistoryView.as_view(), name='history_view'),
+    path('history/backfill/', BackfillHistoryView.as_view(), name='backfill_history'),
     path('sync-status/', SyncStatusView.as_view(), name='sync_status'),
     path('nightcap/', NightcapView.as_view(), name='nightcap'),
     path('nightcap/action/', NightcapActionView.as_view(), name='nightcap_action'),
@@ -27,6 +30,7 @@ urlpatterns = [
     path('settings/', SettingsView.as_view(), name='settings'),
     path('settings/update/', UpdateSettingsView.as_view(), name='update_settings'),
     path('settings/test/', TestSettingsView.as_view(), name='test_settings'),
+    path('settings/plex/discover/', DiscoverPlexServersView.as_view(), name='discover_plex_servers'),
     path('settings/keys/', APIKeyListView.as_view(), name='api_key_list'),
     path('settings/keys/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
     path('settings/keys/revoke/<int:key_id>/', RevokeAPIKeyView.as_view(), name='revoke_api_key'),

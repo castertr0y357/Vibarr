@@ -1,15 +1,27 @@
-<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+<div class="space-y-8 w-full">
     <input type="hidden" name="libraries_loaded" value="1">
-    {% for lib in libraries %}
-    <label class="flex items-center space-x-3 p-3 glass rounded-xl cursor-pointer hover:bg-white/5 transition border border-white/5"
-           :class="checked ? 'border-rose-500/50 bg-rose-500/5' : 'border-white/5'"
-           x-data="{ checked: {% if lib in monitored %}true{% else %}false{% endif %} }">
-        <input type="checkbox" name="monitored_libs" value="{{ lib }}" 
-               class="form-checkbox h-4 w-4 text-rose-500 rounded border-white/10 bg-black/40" 
-               x-model="checked">
-        <span class="text-xs text-white" :class="checked ? 'text-rose-400 font-bold' : 'opacity-60'">{{ lib }}</span>
-    </label>
+    {% for server, libs in libraries_by_server.items %}
+    <div class="space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em]">{{ server }} Ecosystem</span>
+            <div class="flex-grow h-[1px] bg-white/5"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {% for lib in libs %}
+            <label class="flex items-center space-x-3 p-3 glass rounded-xl cursor-pointer hover:bg-white/5 transition border border-white/5"
+                   :class="checked ? 'border-rose-500/50 bg-rose-500/5' : 'border-white/5'"
+                   x-data="{ checked: {% if lib in monitored %}true{% else %}false{% endif %} }">
+                <input type="checkbox" name="monitored_libs" value="{{ lib }}" 
+                       class="form-checkbox h-4 w-4 text-rose-500 rounded border-white/10 bg-black/40" 
+                       x-model="checked">
+                <span class="text-xs text-white truncate" :class="checked ? 'text-rose-400 font-bold' : 'opacity-60'" title="{{ lib }}">
+                    {{ lib }}
+                </span>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
     {% empty %}
-    <p class="col-span-full text-xs text-gray-500 italic">No libraries found. Check server connection.</p>
+    <p class="text-xs text-gray-500 italic">No libraries found. Check server connection and ensure you have 'Movie' or 'Show' libraries.</p>
     {% endfor %}
 </div>

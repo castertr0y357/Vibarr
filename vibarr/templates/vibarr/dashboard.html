@@ -62,12 +62,31 @@
             <h2 class="text-xl font-semibold text-white flex items-center">
                 <span class="w-2 h-2 bg-rose-500 rounded-full mr-3 animate-pulse"></span>
                 Active Tastings
-                <img class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+                <img id="tasting-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
             </h2>
             <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Polling every 15s</span>
         </div>
-        <div id="active-tastings-container" hx-get="{% url 'dashboard' %}?partial=tasting" hx-trigger="every 15s" hx-indicator="closest section h2 img" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {% include 'vibarr/partials/active_tastings.html' %}
+        <div class="relative" x-data="{ showControls: false }" @mouseenter="showControls = true" @mouseleave="showControls = false">
+            <button class="absolute left-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-r-xl transition duration-300 backdrop-blur-sm shadow-2xl"
+                    :class="showControls ? 'opacity-100' : 'opacity-0'"
+                    onclick="document.getElementById('active-tastings-container').scrollBy({left: -600, behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+
+             <div id="active-tastings-container" 
+                 hx-get="{% url 'dashboard' %}?partial=tasting" 
+                 hx-trigger="sync-complete from:body"
+                 hx-sync="this:replace"
+                 hx-indicator="#tasting-indicator" 
+                 class="flex flex-nowrap overflow-x-auto space-x-6 pb-6 scroll-smooth">
+                {% include 'vibarr/partials/active_tastings.html' %}
+            </div>
+
+            <button class="absolute right-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-l-xl transition duration-300 backdrop-blur-sm shadow-2xl"
+                    :class="showControls ? 'opacity-100' : 'opacity-0'"
+                    onclick="document.getElementById('active-tastings-container').scrollBy({left: 600, behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
         </div>
     </section>
     {% else %}
@@ -82,12 +101,31 @@
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-white flex items-center">
                 Discovery Feed
-                <img class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+                <img id="discovery-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
             </h2>
             <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">AI Reranking Active</span>
         </div>
-        <div id="discovery-feed-container" hx-get="{% url 'dashboard' %}?partial=discovery" hx-trigger="every 30s, sync-complete from:body" hx-indicator="closest section h2 img" class="flex overflow-x-auto space-x-6 pb-6 scroll-hide">
-            {% include 'vibarr/partials/discovery_feed.html' %}
+        <div class="relative" x-data="{ showControls: false }" @mouseenter="showControls = true" @mouseleave="showControls = false">
+            <button class="absolute left-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-r-xl transition duration-300 backdrop-blur-sm shadow-2xl"
+                    :class="showControls ? 'opacity-100' : 'opacity-0'"
+                    onclick="document.getElementById('discovery-feed-container').scrollBy({left: -600, behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </button>
+
+            <div id="discovery-feed-container" 
+                 hx-get="{% url 'dashboard' %}?partial=discovery" 
+                 hx-trigger="sync-complete from:body"
+                 hx-sync="this:replace"
+                 hx-indicator="#discovery-indicator" 
+                 class="flex flex-nowrap overflow-x-auto space-x-6 pb-6 scroll-smooth">
+                {% include 'vibarr/partials/discovery_feed.html' %}
+            </div>
+
+            <button class="absolute right-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-l-xl transition duration-300 backdrop-blur-sm shadow-2xl"
+                    :class="showControls ? 'opacity-100' : 'opacity-0'"
+                    onclick="document.getElementById('discovery-feed-container').scrollBy({left: 600, behavior: 'smooth'})">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </button>
         </div>
     </section>
 

@@ -25,38 +25,38 @@ class AppConfig(models.Model):
     active_persona = models.ForeignKey(Persona, on_delete=models.SET_NULL, null=True, blank=True)
     
     # Plex Settings
-    plex_token = models.CharField(max_length=255, null=True, blank=True)
-    plex_url = models.CharField(max_length=500, null=True, blank=True)
+    plex_token = models.TextField(null=True, blank=True)
+    plex_url = models.TextField(null=True, blank=True)
     
     # Jellyfin Settings
-    jellyfin_url = models.CharField(max_length=500, null=True, blank=True)
-    jellyfin_api_key = models.CharField(max_length=255, null=True, blank=True)
+    jellyfin_url = models.TextField(null=True, blank=True)
+    jellyfin_api_key = models.TextField(null=True, blank=True)
     
     # Manager Settings
-    sonarr_url = models.CharField(max_length=500, null=True, blank=True)
-    sonarr_api_key = models.CharField(max_length=255, null=True, blank=True)
-    sonarr_root_folder = models.CharField(max_length=500, null=True, blank=True)
+    sonarr_url = models.TextField(null=True, blank=True)
+    sonarr_api_key = models.TextField(null=True, blank=True)
+    sonarr_root_folder = models.TextField(null=True, blank=True)
     sonarr_quality_profile_id = models.IntegerField(null=True, blank=True)
     
-    radarr_url = models.CharField(max_length=500, null=True, blank=True)
-    radarr_api_key = models.CharField(max_length=255, null=True, blank=True)
-    radarr_root_folder = models.CharField(max_length=500, null=True, blank=True)
+    radarr_url = models.TextField(null=True, blank=True)
+    radarr_api_key = models.TextField(null=True, blank=True)
+    radarr_root_folder = models.TextField(null=True, blank=True)
     radarr_quality_profile_id = models.IntegerField(null=True, blank=True)
     
     # External APIs
-    tmdb_api_key = models.CharField(max_length=255, null=True, blank=True)
-    tautulli_url = models.CharField(max_length=500, null=True, blank=True)
-    tautulli_api_key = models.CharField(max_length=255, null=True, blank=True)
+    tmdb_api_key = models.TextField(null=True, blank=True)
+    tautulli_url = models.TextField(null=True, blank=True)
+    tautulli_api_key = models.TextField(null=True, blank=True)
 
     # Companion Apps (Optional)
     use_seerr = models.BooleanField(default=False, help_text="Sync recommendations as requests to Overseerr/Jellyseerr")
-    seerr_url = models.CharField(max_length=500, null=True, blank=True, help_text="Seerr/Overseerr/Jellyseerr URL")
-    seerr_api_key = models.CharField(max_length=255, null=True, blank=True)
+    seerr_url = models.TextField(null=True, blank=True, help_text="Seerr/Overseerr/Jellyseerr URL")
+    seerr_api_key = models.TextField(null=True, blank=True)
     
     # Notifications
-    discord_webhook_url = models.CharField(max_length=500, null=True, blank=True)
-    telegram_bot_token = models.CharField(max_length=255, null=True, blank=True)
-    telegram_chat_id = models.CharField(max_length=100, null=True, blank=True)
+    discord_webhook_url = models.TextField(null=True, blank=True)
+    telegram_bot_token = models.TextField(null=True, blank=True)
+    telegram_chat_id = models.TextField(null=True, blank=True)
     
     # AI Settings
     use_ai_recommendations = models.BooleanField(default=True)
@@ -70,6 +70,7 @@ class AppConfig(models.Model):
     # Content Filtering
     tmdb_region = models.CharField(max_length=2, default="US", help_text="ISO-3166-1 region code for ratings and availability")
     tmdb_language = models.CharField(max_length=5, default="en-US", help_text="ISO-639-1 language code")
+    timezone = models.CharField(max_length=50, default="UTC", help_text="Application timezone for logs and display")
     max_content_rating = models.CharField(max_length=10, default="TV-14", help_text="Maximum rating to show without warning")
     ignored_genres = models.TextField(default="", blank=True, help_text="Comma-separated list of genres to ignore (e.g. 'Horror, Reality TV')")
     monitored_libraries = models.TextField(default="", blank=True, help_text="Comma-separated list of library names to monitor")
@@ -81,7 +82,7 @@ class AppConfig(models.Model):
     
     last_sync = models.DateTimeField(null=True, blank=True)
     is_syncing = models.BooleanField(default=False)
-    sync_status = models.CharField(max_length=255, default="", blank=True)
+    sync_status = models.TextField(default="", blank=True)
 
     @property
     def is_configured(self):

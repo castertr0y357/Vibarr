@@ -1,0 +1,39 @@
+{% for event in events %}
+<tr class="hover:bg-white/5 transition-colors group">
+    <td class="px-6 py-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-10 rounded bg-white/5 flex-shrink-0 overflow-hidden">
+                <img src="https://image.tmdb.org/t/p/w92/{{ event.poster_path }}" class="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition" onerror="this.src='https://placehold.co/92x138/000000/rose?text=V'">
+            </div>
+            <div class="flex flex-col">
+                <span class="text-sm font-bold text-white">{{ event.show_title }}</span>
+                {% if event.media_type == 'SHOW' %}
+                <span class="text-[10px] text-gray-500">{{ event.event_count }} episodes watched</span>
+                {% endif %}
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-[10px] px-2 py-0.5 rounded border border-white/10 text-gray-400 uppercase font-medium">{{ event.media_type }}</span>
+    </td>
+    <td class="px-6 py-4">
+        <span class="text-[10px] text-rose-500 font-black tracking-tighter uppercase">{{ event.source_server }}</span>
+    </td>
+    <td class="px-6 py-4 text-xs text-gray-500">
+        {{ event.watched_at|date:"M d, Y H:i" }}
+    </td>
+    <td class="px-6 py-4 text-xs text-gray-500 italic">
+        {% if event.media_type == 'SHOW' %}
+        Latest Activity
+        {% else %}
+        Complete
+        {% endif %}
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">
+        No history events found. Try running a Full Backfill.
+    </td>
+</tr>
+{% endfor %}

@@ -2,11 +2,11 @@ from django.db import models
 from .shows import Show
 
 class Recommendation(models.Model):
-    source_title = models.CharField(max_length=255, help_text="Title of the show that triggered this recommendation")
+    source_title = models.TextField(help_text="Title of the show that triggered this recommendation")
     suggested_show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name='recommendations')
     score = models.FloatField(default=0.0, db_index=True)
     reasoning = models.TextField(null=True, blank=True, help_text="AI generated reasoning for this suggestion")
-    vibe_tags = models.CharField(max_length=255, null=True, blank=True, help_text="AI generated vibe tags (comma separated)")
+    vibe_tags = models.TextField(null=True, blank=True, help_text="AI generated vibe tags (comma separated)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

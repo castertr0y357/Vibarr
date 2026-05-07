@@ -35,31 +35,51 @@
 
             <div class="glass p-8 rounded-3xl space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- Plex Settings -->
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-bold text-white">Plex</h3>
-                            <div class="text-[10px] uppercase font-bold tracking-tighter {% if config.plex_token %}text-green-500{% else %}text-gray-500{% endif %}">
-                                {% if config.plex_token %}Connected{% else %}Not Set{% endif %}
-                            </div>
-                        </div>
-                        <input type="text" id="plex_url_input" name="plex_url" value="{{ config.plex_url|default:'' }}" placeholder="Plex URL (e.g. http://localhost:32400)" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500">
-                        <input type="password" id="plex_token_input" name="plex_token" value="{{ config.plex_token|default:'' }}" placeholder="Plex Token" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500">
-                        <div class="flex items-center space-x-2">
-                             <a href="{% url 'start_plex_auth' %}" class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition text-center text-xs">
-                                 Authenticate via Plex.tv
-                             </a>
-                             <button type="button" 
-                                     hx-post="{% url 'test_settings' %}" 
-                                     hx-vals='{"type": "plex"}'
-                                     hx-include="#plex_url_input, #plex_token_input"
-                                     hx-target="#plex-status-msg"
-                                     class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-lg transition text-xs">
-                                 Test
-                             </button>
-                        </div>
-                        <div id="plex-status-msg"></div>
-                    </div>
+                     <!-- Plex Settings -->
+                     <div class="space-y-4">
+                         <div class="flex justify-between items-center">
+                             <h3 class="text-lg font-bold text-white">Plex</h3>
+                             <div class="flex items-center gap-2">
+                                 {% if config.plex_token %}
+                                 <span class="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                                 <span class="text-[10px] uppercase font-bold tracking-tighter text-green-500">Connected</span>
+                                 {% else %}
+                                 <span class="text-[10px] uppercase font-bold tracking-tighter text-gray-500">Not Authenticated</span>
+                                 {% endif %}
+                             </div>
+                         </div>
+                         
+                         <input type="hidden" id="plex_token_hidden" name="plex_token" value="{{ config.plex_token|default:'' }}">
+                         
+                         <div class="space-y-2">
+                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server URL</label>
+                             <input type="text" id="plex_url_input" name="plex_url" value="{{ config.plex_url|default:'' }}" placeholder="e.g. http://192.168.1.5:32400" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                         </div>
+
+                         <div class="flex items-center space-x-2">
+                              <button type="submit" name="action" value="plex_auth" class="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition text-center text-xs">
+                                  {% if config.plex_token %}Re-Authenticate{% else %}Authenticate via Plex.tv{% endif %}
+                              </button>
+                              {% if config.plex_token %}
+                              <button type="button" 
+                                      hx-get="{% url 'discover_plex_servers' %}"
+                                      hx-target="#plex-discovery-results"
+                                      class="px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 font-bold rounded-lg transition text-xs">
+                                  Discover
+                              </button>
+                              {% endif %}
+                              <button type="button" 
+                                      hx-post="{% url 'test_settings' %}" 
+                                      hx-vals='{"type": "plex"}'
+                                      hx-include="#plex_url_input, #plex_token_hidden"
+                                      hx-target="#plex-status-msg"
+                                      class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-lg transition text-xs">
+                                  Test
+                              </button>
+                         </div>
+                         <div id="plex-status-msg"></div>
+                         <div id="plex-discovery-results"></div>
+                     </div>
 
                     <!-- Jellyfin Settings -->
                     <div class="space-y-4">
@@ -88,9 +108,13 @@
                 <div class="pt-6 border-t border-white/5 space-y-4">
                     <div class="flex justify-between items-center">
                         <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Library Visibility</h4>
-                        <button type="button" hx-get="{% url 'get_libraries' %}" hx-target="#library-list" class="text-[10px] text-rose-500 hover:underline">Refresh Available Libraries</button>
+                        <button type="button" 
+                                hx-post="{% url 'get_libraries' %}" 
+                                hx-include="#plex_url_input, #plex_token_hidden, #jellyfin_url_input, #jellyfin_key_input"
+                                hx-target="#library-list" 
+                                class="text-[10px] text-rose-500 hover:underline">Refresh Available Libraries</button>
                     </div>
-                    <div id="library-list" class="grid grid-cols-2 md:grid-cols-4 gap-3" hx-get="{% url 'get_libraries' %}" hx-trigger="load">
+                    <div id="library-list" class="w-full" hx-get="{% url 'get_libraries' %}" hx-trigger="load">
                          {% include 'vibarr/partials/library_checklist.html' %}
                     </div>
                 </div>
@@ -313,6 +337,96 @@
             </div>
         </section>
 
+        <!-- Curation & Safety -->
+        <section class="space-y-6">
+            <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+                <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+                Curation & Regional Guardrails
+            </h2>
+            <div class="glass p-8 rounded-3xl space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Global Safety -->
+                    <div class="space-y-4">
+                        <h3 class="text-white font-bold text-sm">Global Safety</h3>
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Max Content Rating</label>
+                            <select name="max_content_rating" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                                <option value="NR" {% if config.max_content_rating == 'NR' %}selected{% endif %}>No Restriction (NR/UR)</option>
+                                <option value="G" {% if config.max_content_rating == 'G' %}selected{% endif %}>General (G / TV-G)</option>
+                                <option value="PG" {% if config.max_content_rating == 'PG' %}selected{% endif %}>Parental Guidance (PG / TV-PG)</option>
+                                <option value="PG-13" {% if config.max_content_rating == 'PG-13' %}selected{% endif %}>Teen (PG-13 / TV-14)</option>
+                                <option value="R" {% if config.max_content_rating == 'R' %}selected{% endif %}>Mature (R / TV-MA)</option>
+                                <option value="NC-17" {% if config.max_content_rating == 'NC-17' %}selected{% endif %}>Adult (NC-17)</option>
+                            </select>
+                            <p class="text-[9px] text-gray-500">The scout will filter out anything above this intensity level across movies and shows.</p>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Localization -->
+                    <div class="space-y-4">
+                        <h3 class="text-white font-bold text-sm">Metadata Localization</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">TMDB Region</label>
+                                <select name="tmdb_region" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                                    <option value="US" {% if config.tmdb_region == 'US' %}selected{% endif %}>United States (US)</option>
+                                    <option value="GB" {% if config.tmdb_region == 'GB' %}selected{% endif %}>United Kingdom (GB)</option>
+                                    <option value="CA" {% if config.tmdb_region == 'CA' %}selected{% endif %}>Canada (CA)</option>
+                                    <option value="AU" {% if config.tmdb_region == 'AU' %}selected{% endif %}>Australia (AU)</option>
+                                    <option value="DE" {% if config.tmdb_region == 'DE' %}selected{% endif %}>Germany (DE)</option>
+                                    <option value="FR" {% if config.tmdb_region == 'FR' %}selected{% endif %}>France (FR)</option>
+                                    <option value="ES" {% if config.tmdb_region == 'ES' %}selected{% endif %}>Spain (ES)</option>
+                                    <option value="IT" {% if config.tmdb_region == 'IT' %}selected{% endif %}>Italy (IT)</option>
+                                    <option value="JP" {% if config.tmdb_region == 'JP' %}selected{% endif %}>Japan (JP)</option>
+                                    <option value="KR" {% if config.tmdb_region == 'KR' %}selected{% endif %}>South Korea (KR)</option>
+                                    <option value="BR" {% if config.tmdb_region == 'BR' %}selected{% endif %}>Brazil (BR)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Language</label>
+                                <select name="tmdb_language" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                                    <option value="en-US" {% if config.tmdb_language == 'en-US' %}selected{% endif %}>English (US)</option>
+                                    <option value="en-GB" {% if config.tmdb_language == 'en-GB' %}selected{% endif %}>English (UK)</option>
+                                    <option value="fr-FR" {% if config.tmdb_language == 'fr-FR' %}selected{% endif %}>French (FR)</option>
+                                    <option value="de-DE" {% if config.tmdb_language == 'de-DE' %}selected{% endif %}>German (DE)</option>
+                                    <option value="es-ES" {% if config.tmdb_language == 'es-ES' %}selected{% endif %}>Spanish (ES)</option>
+                                    <option value="it-IT" {% if config.tmdb_language == 'it-IT' %}selected{% endif %}>Italian (IT)</option>
+                                    <option value="ja-JP" {% if config.tmdb_language == 'ja-JP' %}selected{% endif %}>Japanese (JP)</option>
+                                    <option value="ko-KR" {% if config.tmdb_language == 'ko-KR' %}selected{% endif %}>Korean (KR)</option>
+                                    <option value="pt-BR" {% if config.tmdb_language == 'pt-BR' %}selected{% endif %}>Portuguese (BR)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-2 col-span-2">
+                                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Application Timezone</label>
+                                <select name="timezone" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                                    <option value="UTC" {% if config.timezone == 'UTC' %}selected{% endif %}>UTC (Universal)</option>
+                                    <option value="America/New_York" {% if config.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (New York)</option>
+                                    <option value="America/Chicago" {% if config.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (Chicago)</option>
+                                    <option value="America/Denver" {% if config.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (Denver)</option>
+                                    <option value="America/Los_Angeles" {% if config.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (LA)</option>
+                                    <option value="America/Phoenix" {% if config.timezone == 'America/Phoenix' %}selected{% endif %}>Arizona (Phoenix)</option>
+                                    <option value="Europe/London" {% if config.timezone == 'Europe/London' %}selected{% endif %}>United Kingdom (London)</option>
+                                    <option value="Europe/Paris" {% if config.timezone == 'Europe/Paris' %}selected{% endif %}>Central Europe (Paris/Berlin)</option>
+                                    <option value="Australia/Sydney" {% if config.timezone == 'Australia/Sydney' %}selected{% endif %}>Australia (Sydney)</option>
+                                    <option value="Asia/Tokyo" {% if config.timezone == 'Asia/Tokyo' %}selected{% endif %}>Japan (Tokyo)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-[9px] text-gray-500 italic">Determines poster variants, local release dates, and localized ratings.</p>
+                    </div>
+
+                    <!-- Genre Filtering -->
+                    <div class="md:col-span-2 space-y-4 pt-6 border-t border-white/5">
+                        <div class="space-y-2">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ignored Genres (Global)</label>
+                            <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="e.g. Horror, Reality TV" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                            <p class="text-[9px] text-gray-500">Comma-separated list of genres the scout should never suggest.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Advanced Section Toggle -->
         <div x-data="{ showAdvanced: false }" class="space-y-6">
             <button type="button" @click="showAdvanced = !showAdvanced" class="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition uppercase tracking-widest group">
@@ -326,30 +440,14 @@
                 <div class="glass p-8 rounded-3xl space-y-6">
                     <h3 class="text-white font-bold flex items-center gap-2">
                         <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2v.1m2.818-6.308l-1.203 1.203a2 2 0 00-.586 1.414V7a2 2 0 01-2 2h-3"></path></svg>
-                        Regional & Content Filtering
+                        Advanced Filtering & Logic
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase">TMDB Region</label>
-                            <input type="text" name="tmdb_region" value="{{ config.tmdb_region }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase">TMDB Language</label>
-                            <input type="text" name="tmdb_language" value="{{ config.tmdb_language }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        </div>
-                        <div class="space-y-2">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase">Max Content Rating</label>
-                            <input type="text" name="max_content_rating" value="{{ config.max_content_rating }}" placeholder="e.g. TV-14" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        </div>
                         <div class="space-y-2">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Tasting Episode Default</label>
                             <input type="number" name="default_tasting_count" value="{{ config.default_tasting_count }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                         </div>
-                        <div class="space-y-2 md:col-span-2">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase">Ignored Genres (Global)</label>
-                            <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="e.g. Horror, Reality TV" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        </div>
-                        <div class="space-y-2 md:col-span-2">
+                        <div class="space-y-2">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase">Plex User ID Filter (Optional)</label>
                             <input type="text" name="plex_user_filter" value="{{ config.plex_user_filter|default:'' }}" placeholder="Only learn from this user" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                         </div>
@@ -419,6 +517,43 @@
             </button>
         </div>
     </form>
+
+    <!-- Advanced Maintenance -->
+    <section class="mt-12 pt-12 border-t border-white/5 space-y-6">
+        <h2 class="text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center">
+            <span class="w-8 h-[1px] bg-rose-500/30 mr-3"></span>
+            Advanced Maintenance
+        </h2>
+        
+        <div class="glass p-8 rounded-3xl space-y-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-bold text-white">System Repair Tools</h3>
+                    <p class="text-xs text-gray-500 max-w-md">Emergency tools for resolving stuck background processes or database state issues.</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div class="p-6 bg-white/5 rounded-2xl border border-white/5 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-rose-500/10 rounded-lg">
+                            <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                        <h4 class="text-white font-bold">Stuck Sync Recovery</h4>
+                    </div>
+                    <p class="text-[10px] text-gray-400">If the "Synchronizing Libraries" banner is perpetually visible after a server restart or network failure, use this to clear the flag.</p>
+                    <button type="button" 
+                            hx-post="{% url 'reset_sync' %}" 
+                            hx-confirm="Force-reset the synchronization state? Only do this if you are sure no sync is actually running."
+                            hx-target="next div"
+                            class="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-lg transition text-xs uppercase tracking-widest">
+                        Force Reset Sync Status
+                    </button>
+                    <div class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Household Lenses Section -->
     <section class="mt-12 pt-12 border-t border-white/5 space-y-6">

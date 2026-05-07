@@ -17,7 +17,7 @@ class MediaWatchEvent(models.Model):
     )
     tmdb_id = models.IntegerField(null=True, blank=True, db_index=True)
     show = models.ForeignKey(Show, on_delete=models.SET_NULL, null=True, blank=True)
-    show_title = models.CharField(max_length=255, db_index=True)
+    show_title = models.TextField(db_index=True)
     season = models.IntegerField()
     episode = models.IntegerField()
     watched_at = models.DateTimeField(db_index=True)

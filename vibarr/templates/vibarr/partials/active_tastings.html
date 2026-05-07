@@ -1,23 +1,29 @@
 {% for show in tasting %}
-<div class="flip-card h-[420px]" data-flipped="false">
+<div class="flip-card h-[520px] w-64 flex-shrink-0" x-data="{ flipped: false, hidden: false, hovered: false }" 
+     @mouseenter="hovered = true" @mouseleave="hovered = false"
+     x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''">
     <div class="flip-card-inner">
         <!-- FRONT -->
-        <div class="flip-card-front glass p-4 border border-white/5 flex flex-col group">
-            <div class="relative mb-4 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer"
-                 onclick="var fc = this.closest('.flip-card'); fc.classList.add('flipped'); fc.dataset.flipped='true';">
-                <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4 pointer-events-none">
-                    <p class="text-[10px] text-white font-bold uppercase tracking-widest">Click for Vibe Reasoning</p>
+        <div class="flip-card-front glass p-4 border border-white/5 flex flex-col">
+            <div class="relative mb-3 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer flex-shrink-0"
+                 @click="flipped = true">
+                <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" 
+                     class="w-full h-full object-cover transition duration-500"
+                     :class="hovered ? 'scale-110' : 'scale-100'">
+                <!-- Hover hint -->
+                <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none"
+                     :class="hovered ? 'opacity-100' : 'opacity-0'">
+                    <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] animate-pulse">Click poster to see reasoning</p>
                 </div>
             </div>
             
             <div class="flex-grow flex flex-col">
-                <div class="mb-3">
+                <div class="mb-1">
                     <h3 class="text-white font-bold text-sm truncate">{{ show.title }}</h3>
                     <p class="text-[9px] text-gray-500 uppercase tracking-widest">{{ show.media_type }}</p>
                 </div>
                 
-                <div class="mt-auto space-y-3">
+                <div class="mt-auto space-y-2">
                     <div class="space-y-1.5">
                         <div class="flex justify-between text-[9px] font-bold text-gray-500 uppercase tracking-tighter">
                             <span>Tasting Progress</span>
@@ -40,8 +46,9 @@
                             <span class="text-[8px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-black tracking-tighter">In {% if show.media_type == 'MOVIE' %}Radarr{% else %}Sonarr{% endif %}</span>
                         </div>
                         <button hx-post="{% url 'stop_and_delete' show.id %}"
-                                hx-target="closest .flip-card"
-                                hx-swap="outerHTML"
+                                hx-swap="none"
+                                hx-indicator="this"
+                                @htmx:after-request="if(event.detail.successful) hidden = true"
                                 class="p-1.5 rounded-lg text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 transition">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
@@ -52,7 +59,7 @@
 
         <!-- BACK -->
         <div class="flip-card-back glass p-6 border border-rose-500/20 bg-rose-500/5 flex flex-col cursor-pointer"
-             onclick="var fc = this.closest('.flip-card'); fc.classList.remove('flipped'); fc.dataset.flipped='false';">
+             @click="flipped = false">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-rose-500 font-black text-xs uppercase tracking-[0.2em]">Scout Reasoning</h3>
                 <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -83,7 +90,7 @@
     </div>
 </div>
 {% empty %}
-<div class="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
+<div class="w-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl">
     <p class="text-gray-600 text-sm italic">No active tastings. Find something you like below!</p>
 </div>
 {% endfor %}

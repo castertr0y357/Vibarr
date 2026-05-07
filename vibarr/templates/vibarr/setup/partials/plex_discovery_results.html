@@ -1,0 +1,31 @@
+<div class="space-y-4 animate-fade-in">
+    <div class="flex items-center justify-center gap-2 text-green-500 font-bold py-3 bg-green-500/10 rounded-xl border border-green-500/20">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Authentication Successful
+    </div>
+
+    {% if servers %}
+        <div class="space-y-2">
+            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Your Server</label>
+            <div class="grid grid-cols-1 gap-2">
+                {% for server in servers %}
+                <button type="button" 
+                        onclick="document.getElementById('setup_plex_url').value = '{{ server.url }}'; this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('border-rose-500', 'bg-rose-500/10')); this.classList.add('border-rose-500', 'bg-rose-500/10');"
+                        class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-rose-500/50 transition group text-left w-full">
+                    <div>
+                        <div class="text-sm font-bold text-white group-hover:text-rose-500 transition">{{ server.name }}</div>
+                        <div class="text-[10px] text-gray-500">{{ server.url }}</div>
+                    </div>
+                    {% if server.owned %}
+                    <span class="text-[8px] bg-rose-500/20 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-black tracking-tighter">Owner</span>
+                    {% endif %}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="p-4 bg-white/5 border border-white/10 rounded-2xl text-center">
+            <p class="text-xs text-gray-500">No servers discovered yet. You can enter the URL manually below.</p>
+        </div>
+    {% endif %}
+</div>

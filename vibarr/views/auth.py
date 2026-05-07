@@ -8,7 +8,14 @@ class StartPlexAuthView(RedirectView):
         auth = PlexAuthService()
         pin_data = auth.get_pin()
         self.request.session['plex_pin_id'] = pin_data['id']
-        return f"https://app.plex.tv/auth#?clientID={auth.headers['X-Plex-Client-Identifier']}&code={pin_data['code']}&context%5Bdevice%5D%5Bproduct%5D=Vibarr"
+        
+        # Build absolute forward URL for callback
+        from django.urls import reverse
+        import urllib.parse
+        forward_url = self.request.build_absolute_uri(reverse('finish_plex_auth'))
+        encoded_forward = urllib.parse.quote(forward_url)
+        
+        return f"https://app.plex.tv/auth/#!?clientID={auth.headers['X-Plex-Client-Identifier']}&code={pin_data['code']}&context%5Bdevice%5D%5Bproduct%5D=Vibarr&forwardUrl={encoded_forward}"
 
 class FinishPlexAuthView(TemplateView):
     template_name = 'vibarr/plex_auth_waiting.html'

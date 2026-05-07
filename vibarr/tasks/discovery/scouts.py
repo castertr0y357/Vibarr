@@ -60,20 +60,48 @@ def run_bridge_check(show_id):
 
 def background_scout():
     """Periodic task to scan history and find new matches."""
-    from ...models import MediaWatchEvent
+    from ...models import MediaWatchEvent, MediaType
     from .recommendations import generate_recommendations
     from ..media.polling import get_active_providers
+    from django.utils import timezone
+    from django.core.cache import cache
+    import random
     
-    # Get unique titles from history in last 24h
+    # Get all unique titles from history
+    all_titles = list(MediaWatchEvent.objects.values('show_title', 'media_type').distinct())
+    
+    # Priority 1: Recent history (watched in last 24h)
     since = timezone.now() - timezone.timedelta(days=1)
-    recent_titles = MediaWatchEvent.objects.filter(watched_at__gt=since).values('show_title', 'media_type').distinct()
+    recent_qs = MediaWatchEvent.objects.filter(watched_at__gt=since).values_list('show_title', flat=True)
+    recent_titles_set = set(recent_qs)
+    
+    recent_titles = [t for t in all_titles if t['show_title'] in recent_titles_set]
+    historical_titles = [t for t in all_titles if t['show_title'] not in recent_titles_set]
+    
+    candidates = []
+    
+    # Add un-scouted recent titles first
+    for t in recent_titles:
+        cache_key = f"scout_debounce_{t['show_title'].lower()}"
+        if not cache.get(cache_key):
+            candidates.append(t)
+            
+    # Backfill with un-scouted historical titles (batch size of 5 per run)
+    if len(candidates) < 5 and historical_titles:
+        random.shuffle(historical_titles)
+        for t in historical_titles:
+            if len(candidates) >= 5:
+                break
+            cache_key = f"scout_debounce_{t['show_title'].lower()}"
+            if not cache.get(cache_key):
+                candidates.append(t)
     
     # Pre-fetch library titles
     library_titles = []
     for _, provider in get_active_providers():
         library_titles.extend([t.lower() for t in provider.get_library_titles()])
     
-    for event in recent_titles:
+    for event in candidates:
         generate_recommendations(
             event['show_title'], 
             is_movie=(event['media_type'] == MediaType.MOVIE),

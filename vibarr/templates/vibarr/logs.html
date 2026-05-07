@@ -56,11 +56,11 @@
                 <span class="text-green-500 text-xs font-bold">Stable</span>
             </div>
         </div>
-        <div class="glass p-6 rounded-2xl">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Database Size</h3>
+        <div class="glass p-6 rounded-2xl border border-white/5 transition hover:bg-white/5">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Database Stats</h3>
             <div class="flex items-end justify-between">
-                <span class="text-2xl font-bold text-white">1.2 <span class="text-xs font-normal text-gray-500">MB</span></span>
-                <span class="text-gray-500 text-xs font-bold">SQLite</span>
+                <span class="text-2xl font-bold text-white">{{ db_size }}</span>
+                <span class="text-rose-500 text-xs font-black uppercase tracking-tighter bg-rose-500/10 px-2 py-0.5 rounded">{{ db_engine }}</span>
             </div>
         </div>
         <div class="glass p-6 rounded-2xl">

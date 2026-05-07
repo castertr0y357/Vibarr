@@ -9,39 +9,106 @@
         <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">AI Generated Calibration</p>
     </div>
 
-    <div class="flex overflow-x-auto space-x-6 pb-2 scroll-hide">
+    <div class="flex overflow-x-auto space-x-6 pb-6 scroll-hide">
         {% for item in results %}
-        <div class="flex-none w-72 group">
-            <div class="relative rounded-3xl overflow-hidden aspect-[2/3] mb-4 shadow-2xl">
-                {% if item.poster_path %}
-                <img src="https://image.tmdb.org/t/p/w500{{ item.poster_path }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                {% else %}
-                <div class="w-full h-full bg-white/5 flex items-center justify-center text-rose-500 font-black text-4xl">V</div>
-                {% endif %}
-                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                    <form hx-post="{% url 'taste_show' %}" class="w-full">
-                        {% csrf_token %}
-                        <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
-                        <input type="hidden" name="media_type" value="{{ item.media_type }}">
-                        <button type="submit" class="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-rose-500 hover:text-white transition shadow-lg">
-                            Start Tasting
-                        </button>
-                    </form>
+        <div class="flip-card h-[520px] w-64 flex-shrink-0" x-data="{ flipped: false, hidden: false, hovered: false }" 
+             @mouseenter="hovered = true" @mouseleave="hovered = false"
+             x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''">
+            
+            <div class="flip-card-inner">
+                <!-- FRONT -->
+                <div class="flip-card-front glass p-4 border border-white/5 flex flex-col">
+                    <div class="relative mb-3 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer flex-shrink-0"
+                         @click="flipped = true">
+                        {% if item.poster_path %}
+                        <img src="https://image.tmdb.org/t/p/w500{{ item.poster_path }}" alt="{{ item.title }}" 
+                             class="w-full h-full object-cover transition duration-500"
+                             :class="hovered ? 'scale-110' : 'scale-100'">
+                        {% else %}
+                        <div class="w-full h-full bg-white/5 flex items-center justify-center text-rose-500 font-black text-4xl">V</div>
+                        {% endif %}
+                        
+                        <!-- Badges -->
+                        <div class="absolute top-2 left-2 z-10">
+                            <span class="bg-rose-500/80 text-[8px] px-1.5 py-0.5 rounded text-white font-bold uppercase">{{ item.media_type }}</span>
+                        </div>
+
+                        <!-- Hover hint -->
+                        <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none"
+                             :class="hovered ? 'opacity-100' : 'opacity-0'">
+                            <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] animate-pulse">Click poster to see reasoning</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-grow flex flex-col">
+                        <div class="mb-1">
+                            <h3 class="text-white font-bold text-sm truncate">{{ item.title }}</h3>
+                            <p class="text-[9px] text-gray-500 uppercase tracking-widest">{{ item.media_type }}</p>
+                        </div>
+                        
+                        <div class="mt-auto pt-3 border-t border-white/5 space-y-3">
+                            {% if item.providers %}
+                            <div class="flex items-center space-x-2">
+                                <span class="text-[8px] text-gray-500 font-bold uppercase">On:</span>
+                                <p class="text-[9px] text-rose-300/80 font-medium truncate">{{ item.providers|join:", " }}</p>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center gap-3">
+                                <form hx-post="{% url 'taste_from_search' %}" 
+                                      hx-swap="none"
+                                      hx-indicator="this"
+                                      @htmx:after-request="if(event.detail.successful) hidden = true"
+                                      class="flex-grow">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
+                                    <input type="hidden" name="media_type" value="{{ item.media_type }}">
+                                    <input type="hidden" name="title" value="{{ item.title }}">
+                                    <button type="submit" class="w-full bg-rose-500 text-white px-4 py-1.5 rounded-full font-bold text-[10px] hover:bg-rose-600 transition shadow-lg shadow-rose-500/20 uppercase tracking-wider">
+                                        Start Tasting
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BACK -->
+                <div class="flip-card-back glass p-6 border border-rose-500/20 bg-rose-500/5 flex flex-col cursor-pointer"
+                     @click="flipped = false">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-rose-500 font-black text-xs uppercase tracking-[0.2em]">Nightcap Analysis</h3>
+                        <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    
+                    <div class="flex-grow space-y-4">
+                        <p class="text-xs text-gray-300 leading-relaxed italic">
+                            "{{ item.reasoning|default:'Analyzing your viewing patterns... this title shares atmospheric DNA with your recent favorites.' }}"
+                        </p>
+                        
+                        <div class="pt-2">
+                            <h4 class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2">Vibe Signature</h4>
+                            <div class="flex flex-wrap gap-2">
+                                {% for tag in item.vibe_tags %}
+                                <span class="text-[9px] bg-white/5 text-gray-400 px-2 py-1 rounded-lg border border-white/5 font-medium uppercase tracking-wider">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-4 border-t border-white/5">
+                        <div class="flex items-center justify-between text-[9px] text-gray-500">
+                             <span class="text-rose-500 font-bold uppercase tracking-widest">Calibration: {{ mood }}</span>
+                        </div>
+                        <p class="mt-4 text-[10px] text-gray-400 font-medium text-center">↩ Click to return to poster</p>
+                    </div>
                 </div>
             </div>
-            <h4 class="text-white font-bold mb-1 truncate">{{ item.title }}</h4>
-            <p class="text-[10px] text-gray-500 line-clamp-2 leading-relaxed mb-3">{{ item.reasoning }}</p>
-            <div class="flex flex-wrap gap-1">
-                {% for tag in item.vibe_tags %}
-                <span class="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/20 uppercase font-bold tracking-tighter">{{ tag }}</span>
-                {% endfor %}
-            </div>
-            {% if item.providers %}
-            <div class="mt-3 flex items-center space-x-2">
-                <span class="text-[8px] text-gray-500 font-bold uppercase">On:</span>
-                <p class="text-[9px] text-rose-300/80 font-medium truncate">{{ item.providers|join:", " }}</p>
-            </div>
-            {% endif %}
+        </div>
+        {% empty %}
+        <div class="col-span-full py-12 text-center space-y-4 w-full">
+            <p class="text-gray-500 italic">The AI couldn't find anything matching this mood right now.</p>
+            <p class="text-[10px] text-gray-600">Check your AI Scout connection in Settings if this persists.</p>
+            <button hx-get="{% url 'nightcap' %}" hx-target="#nightcap-content" class="text-rose-500 font-bold hover:underline">Try another mood &rarr;</button>
         </div>
         {% endfor %}
     </div>

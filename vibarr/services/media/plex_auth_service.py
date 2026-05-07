@@ -8,22 +8,15 @@ class PlexAuthService:
         from ...models import AppConfig
         config = AppConfig.get_solo()
         
-        # We need a persistent identifier for Plex Auth to work correctly
-        # If we don't have one, we generate it once and save it.
-        # However, AppConfig doesn't have a client_id field yet. 
-        # For simplicity, we can use a hardcoded one for the app or add it to AppConfig.
-        # Let's add it to AppConfig to be proper.
-        client_id = getattr(config, 'plex_client_id', None)
-        if not client_id:
-            client_id = str(uuid.uuid4())
-            # We'll assume we add this field or just use a stable one derived from SECRET_KEY
-            # Actually, let's just use a hash of the SECRET_KEY for now to avoid migration overhead,
-            # or better, just use a stable UUID.
-            pass
+        # We need a persistent identifier for Plex Auth to work correctly.
+        # We derive a stable ID from the app's secret key.
+        import hashlib
+        from django.conf import settings
+        client_id = hashlib.sha256(settings.SECRET_KEY.encode()).hexdigest()[:32]
 
         self.headers = {
             "X-Plex-Product": "Vibarr",
-            "X-Plex-Client-Identifier": "vibarr-unique-client-id-12345", # Stable ID
+            "X-Plex-Client-Identifier": client_id,
             "X-Plex-Device": "Web Dashboard",
             "X-Plex-Version": "1.0",
             "Accept": "application/json",
@@ -31,8 +24,8 @@ class PlexAuthService:
 
     def get_pin(self):
         url = f"{self.BASE_URL}/pins"
-        # We want a standard 4-digit PIN for plex.tv/link
-        payload = {"strong": "false"}
+        # We want a strong PIN for modern Plex Auth flows
+        payload = {"strong": "true"}
         response = requests.post(url, data=payload, headers=self.headers)
         response.raise_for_status()
         try:
@@ -56,3 +49,43 @@ class PlexAuthService:
             import logging
             logging.getLogger(__name__).error(f"Plex PIN Poll JSON Error: {e}. Content: {response.text}")
             return None
+
+    def get_resources(self, token):
+        """Fetches all Plex servers associated with the token."""
+        try:
+            from plexapi.myplex import MyPlexAccount
+            import requests
+            
+            # Use a session that ignores SSL for local discovery if needed
+            session = requests.Session()
+            session.verify = False
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            
+            account = MyPlexAccount(token=token, session=session)
+            resources = account.resources()
+            
+            servers = []
+            for r in resources:
+                if r.provides == 'server':
+                    # Get the best connection (prefer local)
+                    connections = r.connections
+                    best_url = ""
+                    for c in connections:
+                        if c.local:
+                            best_url = c.uri
+                            break
+                    if not best_url and connections:
+                        best_url = connections[0].uri
+                    
+                    servers.append({
+                        'name': r.name,
+                        'url': best_url,
+                        'product': r.product,
+                        'owned': r.owned
+                    })
+            return servers
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Plex Resource Discovery Error: {e}")
+            return []

@@ -1,11 +1,15 @@
 {% for show in suggested %}
-<div class="flip-card h-[420px] w-64 flex-shrink-0" data-flipped="false">
+<div class="flip-card h-[520px] w-64 flex-shrink-0" x-data="{ flipped: false, hidden: false, hovered: false }" 
+     @mouseenter="hovered = true" @mouseleave="hovered = false"
+     x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''">
     <div class="flip-card-inner">
         <!-- FRONT -->
-        <div class="flip-card-front glass p-4 border border-white/5 flex flex-col group">
-            <div class="relative mb-4 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer"
-                 onclick="var fc = this.closest('.flip-card'); fc.classList.add('flipped'); fc.dataset.flipped='true';">
-                <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
+        <div class="flip-card-front glass p-4 border border-white/5 flex flex-col">
+            <div class="relative mb-3 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer flex-shrink-0"
+                 @click="flipped = true">
+                <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" 
+                     class="w-full h-full object-cover transition duration-500"
+                     :class="hovered ? 'scale-110' : 'scale-100'">
                 
                 <!-- Badges -->
                 <div class="absolute top-2 right-2 flex flex-col gap-2 items-end z-10">
@@ -18,48 +22,54 @@
                 </div>
 
                 <!-- Hover hint -->
-                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none">
+                <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none"
+                     :class="hovered ? 'opacity-100' : 'opacity-0'">
                     <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] animate-pulse">Click poster to see reasoning</p>
                 </div>
             </div>
             
             <div class="flex-grow flex flex-col">
-                <div class="mb-2">
+                <div class="mb-1">
                     <h3 class="text-white font-bold text-sm truncate">{{ show.title }}</h3>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-widest">{{ show.media_type }}</p>
+                </div>
+                
+                <div class="mt-auto pt-3 border-t border-white/5 space-y-3">
                     <div class="flex items-center justify-between">
                         <p class="text-[9px] text-gray-500 uppercase tracking-widest">{{ show.runtime }}m</p>
                         <p class="text-[10px] text-rose-500 font-bold">Score: {{ show.recommendations.first.score|floatformat:1 }}</p>
                     </div>
-                </div>
-                
-                <!-- Action Buttons -->
-                <div class="mt-auto flex items-center justify-between pt-2 border-t border-white/5">
-                    <button hx-post="{% url 'taste_show' show.id %}"
-                            hx-target="closest .flip-card"
-                            hx-swap="outerHTML"
-                            class="bg-rose-500 text-white px-4 py-1.5 rounded-full font-bold text-[10px] hover:bg-rose-600 transition shadow-lg shadow-rose-500/20 uppercase tracking-wider">
-                        Taste
-                    </button>
-                    <button hx-post="{% url 'mark_watched' show.id %}"
-                            hx-target="closest .flip-card"
-                            hx-swap="outerHTML"
-                            class="text-rose-400 text-[10px] font-bold hover:text-rose-300 transition uppercase tracking-widest flex items-center">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Seen
-                    </button>
-                    <button hx-post="{% url 'reject_show' show.id %}"
-                            hx-target="closest .flip-card"
-                            hx-swap="outerHTML"
-                            class="text-gray-500 text-[10px] font-bold hover:text-white transition uppercase tracking-widest">
-                        Skip
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <button hx-post="{% url 'taste_show' show.id %}"
+                                hx-swap="none"
+                                hx-indicator="this"
+                                @htmx:after-request="if(event.detail.successful) hidden = true"
+                                class="flex-grow bg-rose-500 text-white px-4 py-1.5 rounded-full font-bold text-[10px] hover:bg-rose-600 transition shadow-lg shadow-rose-500/20 uppercase tracking-wider">
+                            Taste
+                        </button>
+                        <button hx-post="{% url 'mark_watched' show.id %}"
+                                hx-swap="none"
+                                hx-indicator="this"
+                                @htmx:after-request="if(event.detail.successful) hidden = true"
+                                class="flex-shrink-0 text-rose-400 text-[10px] font-bold hover:text-rose-300 transition uppercase tracking-widest flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Seen
+                        </button>
+                        <button hx-post="{% url 'reject_show' show.id %}"
+                                hx-swap="none"
+                                hx-indicator="this"
+                                @htmx:after-request="if(event.detail.successful) hidden = true"
+                                class="flex-shrink-0 text-gray-500 text-[10px] font-bold hover:text-white transition uppercase tracking-widest">
+                            Skip
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- BACK -->
         <div class="flip-card-back glass p-6 border border-rose-500/20 bg-rose-500/5 flex flex-col cursor-pointer"
-             onclick="var fc = this.closest('.flip-card'); fc.classList.remove('flipped'); fc.dataset.flipped='false';">
+             @click="flipped = false">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-rose-500 font-black text-xs uppercase tracking-[0.2em]">Scout Reasoning</h3>
                 <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

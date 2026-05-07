@@ -9,12 +9,42 @@ class LogsView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Logs
         log_file = os.path.join('logs', 'vibarr.log')
         lines = []
         if os.path.exists(log_file):
             with open(log_file, 'r') as f:
                 lines = f.readlines()[-200:]
         context['logs'] = lines
+        
+        # DB Stats
+        from django.db import connection
+        engine = connection.vendor
+        size = "0.0 MB"
+        
+        try:
+            if engine == 'postgresql':
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_database_size(current_database())")
+                    size_bytes = cursor.fetchone()[0]
+                    size = f"{size_bytes / (1024 * 1024):.1f} MB"
+                engine_display = "PostgreSQL"
+            elif engine == 'sqlite':
+                db_path = connection.settings_dict['NAME']
+                if os.path.exists(db_path):
+                    size_bytes = os.path.getsize(db_path)
+                    size = f"{size_bytes / (1024 * 1024):.1f} MB"
+                engine_display = "SQLite"
+            else:
+                engine_display = engine.capitalize()
+        except Exception:
+            engine_display = "Unknown"
+            size = "Error"
+            
+        context['db_engine'] = engine_display
+        context['db_size'] = size
+        
         return context
 
 class DownloadLogsView(View):

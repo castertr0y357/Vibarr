@@ -15,11 +15,12 @@ def get_tasting_count(runtime):
 
 def generate_recommendations(title, is_movie=False, library_titles=None):
     # Debounce: Don't re-run for the same title within 24 hours
-    from datetime import timedelta
-    recent_threshold = timezone.now() - timedelta(hours=24)
-    if Recommendation.objects.filter(source_title=title, created_at__gt=recent_threshold).exists():
-        logger.info(f"Skipping redundant recommendation for '{title}' (already processed recently).")
+    from django.core.cache import cache
+    cache_key = f"scout_debounce_{title.lower()}"
+    if cache.get(cache_key):
+        logger.info(f"Skipping redundant recommendation for '{title}' (debounced by cache).")
         return
+    cache.set(cache_key, True, 86400) # 24 hours
 
     tmdb = TMDBService()
     ai = AIService()
@@ -30,11 +31,17 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
 
     tmdb_id = search_result['id']
     if is_movie:
-        candidates_raw = tmdb.get_similar_movies(tmdb_id)[:30]
-        candidates_raw.extend(tmdb.get_cross_recommendations(tmdb_id, source_is_movie=True)[:20])
+        similar = tmdb.get_similar_movies(tmdb_id)[:30]
+        for c in similar: c['_media_type'] = MediaType.MOVIE
+        cross = tmdb.get_cross_recommendations(tmdb_id, source_is_movie=True)[:20]
+        for c in cross: c['_media_type'] = MediaType.SHOW
+        candidates_raw = similar + cross
     else:
-        candidates_raw = tmdb.get_similar_shows(tmdb_id)[:30]
-        candidates_raw.extend(tmdb.get_cross_recommendations(tmdb_id, source_is_movie=False)[:20])
+        similar = tmdb.get_similar_shows(tmdb_id)[:30]
+        for c in similar: c['_media_type'] = MediaType.SHOW
+        cross = tmdb.get_cross_recommendations(tmdb_id, source_is_movie=False)[:20]
+        for c in cross: c['_media_type'] = MediaType.MOVIE
+        candidates_raw = similar + cross
         
     if library_titles is None:
         from ..media.polling import get_active_providers
@@ -75,7 +82,8 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
             'overview': c.get('overview', ''),
             'poster_path': c.get('poster_path'),
             'vote_average': c.get('vote_average', 0),
-            'genre_ids': c.get('genre_ids', [])
+            'genre_ids': c.get('genre_ids', []),
+            '_media_type': c.get('_media_type')
         })
 
     if not candidates: return
@@ -104,11 +112,12 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
         match = next((c for c in candidates if c['title'].lower() == ranked['title'].lower()), None)
         if not match: continue
             
-        details = tmdb.get_movie_details(match['id']) if is_movie else tmdb.get_show_details(match['id'])
+        is_candidate_movie = match['_media_type'] == MediaType.MOVIE
+        details = tmdb.get_movie_details(match['id']) if is_candidate_movie else tmdb.get_show_details(match['id'])
         if not details: continue
         
         avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
-        rating, advisory = tmdb.parse_advisory(details, is_movie=is_movie)
+        rating, advisory = tmdb.parse_advisory(details, is_movie=is_candidate_movie)
         
         # Household Lens: Detailed Rating Check
         if active_persona:
@@ -119,15 +128,15 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
 
         show, created = Show.objects.get_or_create(
             tmdb_id=match['id'],
+            media_type=match['_media_type'],
             defaults={
                 'title': match['title'],
-                'media_type': MediaType.MOVIE if is_movie else MediaType.SHOW,
                 'poster_path': match['poster_path'],
                 'runtime': avg_runtime,
                 'content_rating': rating,
                 'content_advisory': advisory,
-                'streaming_providers': ", ".join(tmdb.get_watch_providers(match['id'], is_movie=is_movie)),
-                'tasting_episodes_count': 1 if is_movie else get_tasting_count(avg_runtime),
+                'streaming_providers': ", ".join(tmdb.get_watch_providers(match['id'], is_movie=is_candidate_movie)),
+                'tasting_episodes_count': 1 if is_candidate_movie else get_tasting_count(avg_runtime),
                 'state': ShowState.SUGGESTED
             }
         )

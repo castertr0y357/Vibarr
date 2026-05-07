@@ -3,8 +3,8 @@ from .enums import ShowState, MediaType
 from .config import AppConfig
 
 class Show(models.Model):
-    title = models.CharField(max_length=255)
-    tmdb_id = models.IntegerField(unique=True)
+    title = models.TextField()
+    tmdb_id = models.IntegerField(db_index=True)
     media_type = models.CharField(
         max_length=10,
         choices=MediaType.choices,
@@ -13,12 +13,12 @@ class Show(models.Model):
     )
     sonarr_id = models.IntegerField(null=True, blank=True)
     radarr_id = models.IntegerField(null=True, blank=True)
-    poster_path = models.CharField(max_length=500, null=True, blank=True)
+    poster_path = models.TextField(null=True, blank=True)
     runtime = models.IntegerField(null=True, blank=True, help_text="Average episode runtime in minutes")
-    content_rating = models.CharField(max_length=20, null=True, blank=True)
-    content_advisory = models.CharField(max_length=500, null=True, blank=True, help_text="Keywords like Violence, Nudity, etc.")
+    content_rating = models.TextField(null=True, blank=True)
+    content_advisory = models.TextField(null=True, blank=True, help_text="Keywords like Violence, Nudity, etc.")
     state = models.CharField(
-        max_length=20,
+        max_length=50,
         choices=ShowState.choices,
         default=ShowState.SUGGESTED,
         db_index=True
@@ -26,9 +26,14 @@ class Show(models.Model):
     is_pinned = models.BooleanField(default=False, db_index=True)
     has_notified_ready = models.BooleanField(default=False)
     tasting_episodes_count = models.IntegerField(default=3, help_text="Number of episodes to download for tasting")
-    streaming_providers = models.CharField(max_length=500, null=True, blank=True)
+    streaming_providers = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['tmdb_id', 'media_type'], name='unique_tmdb_id_media_type')
+        ]
 
     def __str__(self):
         return self.title
@@ -53,12 +58,16 @@ class Show(models.Model):
     @property
     def tasting_progress_percent(self):
         if self.media_type == MediaType.MOVIE:
-            # Note: We should ideally prefetch_related 'mediawatchevent_set' to avoid N+1
-            event = self.mediawatchevent_set.last()
-            if event and event.duration:
+            # Use all() to leverage prefetch_related if available
+            events = self.mediawatchevent_set.all()
+            if not events: return 0
+            event = events[len(events)-1] # Equivalent to last() but uses cache
+            if event.duration:
                 return min(100, int((event.view_offset / event.duration) * 100))
             return 0
         else:
-            # Optimization: count() is better than values().distinct().count() if we don't have many events
-            watched = self.mediawatchevent_set.values('season', 'episode').distinct().count()
+            # Use all() to leverage prefetch_related if available
+            watched_events = self.mediawatchevent_set.all()
+            unique_episodes = set((e.season, e.episode) for e in watched_events)
+            watched = len(unique_episodes)
             return min(100, int((watched / self.tasting_episodes_count) * 100))

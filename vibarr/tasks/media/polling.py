@@ -1,9 +1,12 @@
-from ...models import AppConfig, MediaWatchEvent, MediaServerType
+from ...models import AppConfig, MediaWatchEvent, MediaServerType, Show, MediaType
 from ...services.media.plex_service import PlexService
 from ...services.media.jellyfin_service import JellyfinService
 from ..discovery.recommendations import generate_recommendations
 from ..managers.actions import check_tasting_progress, trigger_auto_purge
+from datetime import timedelta
+from django.utils import timezone
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +21,17 @@ def get_active_providers():
 
 def poll_media_servers(hours=1):
     config = AppConfig.get_solo()
+    now = timezone.now()
+    
+    # Robust lock: Allow if not syncing, OR if backfill (>24h), OR if stuck > 1 min
+    stuck_threshold = 60 if hours > 24 else 900
+    if config.is_syncing and config.last_sync and (now - config.last_sync).total_seconds() < stuck_threshold:
+        logger.info(f"Scout sync in progress ({int((now - config.last_sync).total_seconds())}s ago). Skipping.")
+        return
+
     config.is_syncing = True
     config.sync_status = "Starting library synchronization..."
+    config.last_sync = now
     config.save()
 
     try:
@@ -29,7 +41,6 @@ def poll_media_servers(hours=1):
             config.save()
             poll_provider_history(server_type, hours=hours)
         
-        from django.utils import timezone
         config.last_sync = timezone.now()
         config.is_syncing = False
         config.sync_status = "Sync complete."
@@ -85,39 +96,102 @@ def poll_provider_history(server_type, hours=1):
     if not events:
         return
 
-    # Optimization: Pre-fetch library titles once for this poll
+    # Optimization: Pre-fetch library titles and existing Show mappings once
     library_titles = [t.lower() for t in provider.get_library_titles()]
-        
+    show_id_map = {s.title.lower(): s.tmdb_id for s in Show.objects.exclude(tmdb_id__isnull=True)}
+    
+    # In-memory cache for TMDB IDs to avoid redundant API calls
+    tmdb_cache = show_id_map.copy()
+    total_events = len(events)
+    processed = 0
+    skipped = 0
+    new_events = []
+    
+    recent_threshold = timezone.now() - timedelta(hours=24)
+    
     for event in events:
-        is_movie = event['type'] == 'movie'
-        tmdb_id = resolve_tmdb_id(event['title'], is_movie=is_movie)
+        processed += 1
+        event_id = f"{server_type}_{event['history_id']}"
         
-        obj, created = MediaWatchEvent.objects.get_or_create(
-            event_id=f"{server_type}_{event['history_id']}",
-            defaults={
-                'source_server': server_type,
-                'show_title': event['title'],
-                'tmdb_id': tmdb_id,
-                'media_type': MediaType.MOVIE if is_movie else MediaType.SHOW,
-                'season': event['season'],
-                'episode': event['episode'],
-                'watched_at': event['watched_at'],
-                'view_offset': event.get('view_offset'),
-                'duration': event.get('duration'),
-            }
-        )
+        # Ensure watched_at is timezone-aware
+        watched_at = event['watched_at']
+        if watched_at and timezone.is_naive(watched_at):
+            watched_at = timezone.make_aware(watched_at)
         
-        # Always attempt recommendation generation - generate_recommendations has its own internal debounce
-        from ..discovery.recommendations import generate_recommendations
         try:
-            generate_recommendations(event['title'], is_movie=is_movie, library_titles=library_titles)
-        except Exception as e:
-            logger.error(f"Failed to generate recommendations for {event['title']}: {e}")
-        
-        if created:
-            # Update event dict for consistency in progress check
-            event['tmdb_id'] = tmdb_id
-            check_tasting_progress(event)
+            # 1. Skip if already exists
+            if MediaWatchEvent.objects.filter(event_id=event_id).exists():
+                skipped += 1
+                continue
+                
+            is_movie = event['type'] == 'movie'
+            title = event['title']
             
-        if event.get('rating') and event['rating'] <= 2.0:
-            trigger_auto_purge(event['title'], tmdb_id=tmdb_id)
+            # 2. Check local cache for TMDB ID
+            cache_key = title.lower()
+            if cache_key in tmdb_cache:
+                tmdb_id = tmdb_cache[cache_key]
+            else:
+                tmdb_id = resolve_tmdb_id(title, is_movie=is_movie)
+                tmdb_cache[cache_key] = tmdb_id
+                # Tiny sleep to respect TMDB rate limits if we are hammering them
+                time.sleep(0.05)
+                
+            # 3. Update status for UI feedback
+            if processed % 10 == 0:
+                percent = int((processed / max(1, total_events)) * 100)
+                config.sync_status = f"Processing {server_type} history: {processed}/{total_events} ({percent}%)"
+                config.save()
+
+            new_event = MediaWatchEvent(
+                event_id=event_id,
+                source_server=server_type,
+                show_title=title,
+                tmdb_id=tmdb_id,
+                media_type=MediaType.MOVIE if is_movie else MediaType.SHOW,
+                season=event['season'],
+                episode=event['episode'],
+                watched_at=watched_at,
+                view_offset=event.get('view_offset'),
+                duration=event.get('duration'),
+            )
+            new_events.append(new_event)
+            
+            # 4. Only trigger "Active" logic for very recent events
+            is_recent = watched_at > recent_threshold
+            if is_recent:
+                # We can't use bulk_create for these yet, so we handle them carefully
+                event['tmdb_id'] = tmdb_id
+                check_tasting_progress(event)
+                
+                if event.get('rating') and event['rating'] <= 2.0:
+                    trigger_auto_purge(title, tmdb_id=tmdb_id)
+                    
+        except Exception as e:
+            logger.error(f"Error processing history item '{event.get('title')}': {e}")
+            continue
+
+    # 5. Bulk Create all new events in one transaction
+    if new_events:
+        logger.info(f"[{server_type}] Bulk inserting {len(new_events)} new history events (Skipped {skipped} existing).")
+        MediaWatchEvent.objects.bulk_create(new_events, ignore_conflicts=True)
+    else:
+        logger.info(f"[{server_type}] No new events to add. (Processed {total_events}, Skipped {skipped} existing).")
+
+    # After processing all history events, trigger recommendation generation 
+    # for the most recent unique titles found in this poll.
+    from ..discovery.recommendations import generate_recommendations
+    from django_q.tasks import async_task
+    
+    unique_shows = {} # title -> is_movie
+    for event in events:
+        unique_shows[event['title']] = (event['type'] == 'movie')
+    
+    # We limit to the top 5 most recent unique shows
+    # Optimization: Only trigger recommendations if NOT in a deep backfill (> 24 hours)
+    # to ensure the AI has the most complete taste profile first.
+    if hours <= 24:
+        for title, is_movie in list(unique_shows.items())[:5]:
+            async_task(generate_recommendations, title, is_movie=is_movie, library_titles=library_titles)
+    else:
+        logger.info(f"[{server_type}] Deep backfill detected ({hours}h). Skipping immediate recommendations.")

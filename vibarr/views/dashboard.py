@@ -62,5 +62,11 @@ from ..models import AppConfig
 
 class SyncStatusView(ConfigMixin, View):
     def get(self, request):
+        import re
         config = AppConfig.get_solo()
-        return render(request, 'vibarr/partials/sync_status.html', {'config': config})
+        sync_percent = 0
+        if config.sync_status:
+            match = re.search(r'\((\d+)%\)', config.sync_status)
+            if match:
+                sync_percent = int(match.group(1))
+        return render(request, 'vibarr/partials/sync_status.html', {'config': config, 'sync_percent': sync_percent})

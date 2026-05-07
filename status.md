@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
 ## Current State: INTERACTIVE DASHBOARD (v1.1)
-**Last Checkpoint**: 2026-05-06 (Dashboard UX Overhaul & HTMX/Alpine Hardening)
+**Last Checkpoint**: 2026-05-06 (TMDB ID Namespace Fix & Deep History Profiling)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -37,22 +37,45 @@
 - [x] **Duplicate Prevention**: Discovery pipeline cross-references watch history and library scans before suggesting.
 - [x] **Monitored Libraries**: Inclusion-based library selection (replaced exclusion model for clarity).
 - [x] **Inline Sidebar Navigation**: Icons and text on same line for clean visual hierarchy.
+- [x] **Hardened Skills**: Fully automated `doctor`, `smoke_test`, and `rebuild` workflows with PowerShell/Docker Desktop compatibility.
+- [x] **Self-Healing Diagnostics**: Automatic CRLF-to-LF conversion and migration checks.
+- [x] **Zero-Config Plex Discovery**: Automated server discovery via token (no manual URL/IP guessing).
+- [x] **Settings UX Hardening**: Auto-save before authentication and live unsaved library scanning.
 
 ## Recent Changes (v1.1)
 ### Dashboard UX Overhaul
-- **Flip-Card Architecture**: Discovery and Tasting cards use CSS 3D flip animation (vanilla JS, no Alpine) to reveal AI reasoning on click.
+- **Flip-Card Architecture**: Discovery and Tasting cards use CSS 3D flip animation powered by Alpine.js to reveal AI reasoning on click, ensuring state consistency during HTMX swaps.
 - **Action Buttons**: Taste / Seen / Skip buttons visible at card footer; Delete button inline on tasting cards.
-- **WATCHED State**: New `ShowState.WATCHED` enum; `MarkWatchedView` creates manual watch events for AI learning.
+- **WATCHED State**: New `ShowState.WATCHED` enum; `MarkWatchedView` creates manual watch events for AI learning (defaults `season: 0` and `episode: 0` to satisfy database constraints).
 - **Recommendation Model**: Added `vibe_tags_list` property for clean template rendering.
+- **Seamless State Transitions**: Clicking "Taste" immediately moves the show to the Active Tastings grid via an HTMX Out-of-Band (`hx-swap-oob`) swap, while Alpine fades it out of the Discovery Feed without resetting the user's scroll position.
+- **Discovery Feed Navigation**: Added frosted-glass hover navigation arrows (scroll left/right) and exposed native smooth scrollbars for desktop users.
+- **Tasting Section Horizontal Scroll**: Synchronized the Active Tastings grid into a horizontal scrolling layout (`flex-nowrap`) with navigation buttons, consistent with the Discovery section.
+- **Card Design Standardized**: Unified all dashboard card heights to `h-[460px]` and tightened internal padding (title/progress) to prevent poster cropping while maintaining a clean vertical alignment across the feed.
+- **Hover Hint Sync**: Ported the pulsing "Click poster to see reasoning" hint and dimmed overlay from Discovery cards to the Tasting cards for a unified interactive language.
 
 ### HTMX + Alpine.js Hardening
-- **Alpine/HTMX Conflict Resolved**: Removed Alpine `x-data`/`@click` from all card templates. Flip logic uses pure vanilla JS `onclick` + `classList.toggle`. This prevents Alpine from stripping HTMX's event bindings during deferred initialization.
-- **Empty Response Crash Fixed**: HTMX 1.9.10 crashes on `outerHTML` swap with empty `HttpResponse("")`. All action views now return `HTMX_REMOVE` — a self-collapsing invisible `<div>` that HTMX can safely swap.
+- **Card Interactivity Rebuilt**: Replaced fragile vanilla JS `onclick` event handlers with robust Alpine.js state (`x-data="{ flipped: false, hidden: false }"`) for flip-cards.
+- **Null Indicator Crash Fixed**: Resolved a stubborn `htmx-internal-data` crash caused by an invalid inherited `hx-indicator="closest section h2 img"` selector. This invalid selector evaluated to `null`, causing HTMX to abort AJAX requests entirely. Indicators now use explicit IDs (`#tasting-indicator`) and buttons isolate themselves with `hx-indicator="this"`.
+- **Safe DOM Teardown**: Action buttons on cards use `hx-swap="none"` and rely on Alpine's `@htmx:after-request` event to trigger a visual fade-out. This explicitly prevents HTMX from trying to attach events to deleted DOM nodes, eliminating edge-case swap crashes.
+- **Aggressive Polling Removed**: Removed `hx-trigger="every 15s"` and `every 30s` from the dashboard containers. Background polling was destroying the DOM while users were interacting with cards, leading to crashes. The dashboard now gracefully updates via `sync-complete from:body` events.
 - **CSRF Token Handling**: Global `htmx:configRequest` listener reads from hidden `{% csrf_token %}` input (not cookies) for reliable cross-container auth.
+
+### Discovery Pipeline Hardening
+- **TMDB ID Namespace Fix**: Corrected a critical schema flaw where TMDB IDs overlapped between Movies and TV Shows. Changed `tmdb_id` from a global `unique=True` field to a `UniqueConstraint` on `(tmdb_id, media_type)`. This prevents "collisions" where a TV show recommendation would incorrectly pull an existing movie record with the same ID.
+- **Cross-Media Intelligence**: Updated the recommendation engine to correctly track and preserve the `media_type` of cross-recommended items (e.g., suggesting a show based on a movie), ensuring correct metadata tagging.
+- **Cache-Based Debouncing**: Replaced the record-dependent debounce with a global `cache`-based debounce. This ensures that even if a title results in no recommendations (e.g., all matches already owned), the scout will not repeatedly re-process it until the 24-hour window expires.
+- **Deep History Profiling**: Updated the `background_scout` to crawl the user's *entire* watch history over time in batches of 5. The system now systematically backfills un-scouted historical titles, building a complete taste profile beyond the immediate 24-hour recent viewing window.
 
 ### Settings & Sync
 - **Library Checklist Template Fix**: Replaced Python-style ternary in Django template with proper `{% if %}` tag syntax.
 - **Discovery Dedup**: Pipeline now checks `MediaWatchEvent` by TMDB ID in addition to `Show` and library title matching.
+
+### Agentic Hardening (v1.2)
+- **CRLF Line Ending Fix**: Automated conversion of `entrypoint.sh` to ensure Linux compatibility on Windows host.
+- **Skill Automation**: Converted manual markdown instructions into executable scripts (`smoke_test.py`, `verify_connections_logic.py`).
+- **Agency Rules Updated**: Mandatory container rebuilds on code changes enforced via `AGENCY.md`.
+- **Gitignore Protection**: Specific patterns implemented to prevent accidental exclusion of the `media` service module.
 
 ## Quality Gates
 - **Security**: Non-root container execution & Token-based API Auth.
@@ -62,8 +85,8 @@
 
 ## Known Technical Debt
 - `docker-compose.yml` uses deprecated `version` attribute (cosmetic warning only).
-- Flip-card height is fixed at `h-[420px]` — needs responsive testing on smaller screens.
-- Alpine.js is still loaded globally but only used for toasts and persona dropdown; cards use vanilla JS.
+- Card heights are now standardized at `h-[460px]` but still need responsive testing on smaller mobile viewports.
+- Alpine.js is loaded globally and effectively powers the interactive card states, toasts, and persona dropdowns.
 
 ## Next Steps
 - Advanced Purge Rules (e.g. "Delete if not watched in 30 days").

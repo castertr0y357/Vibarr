@@ -114,12 +114,15 @@ class PlexPinPollView(View):
             config = AppConfig.get_solo()
             config.plex_token = token
             config.save()
-            return HttpResponse(f"""
-                <div class="flex items-center justify-center gap-2 text-green-500 font-bold py-2 bg-green-500/10 rounded-xl border border-green-500/20 animate-fade-in">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    Authenticated!
-                </div>
-            """)
+            
+            # Auto-discover servers
+            auth = PlexAuthService()
+            servers = auth.get_resources(token)
+            
+            return render(request, 'vibarr/setup/partials/plex_discovery_results.html', {
+                'servers': servers,
+                'status': 'success'
+            })
         
         # Still waiting - explicitly target the status div to avoid over-swapping
         return HttpResponse(f"""

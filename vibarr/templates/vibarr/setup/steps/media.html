@@ -36,7 +36,7 @@
 
             <div class="space-y-3 mb-4">
                 <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Plex URL (Optional)</label>
-                <input type="text" name="plex_url" value="{{ config.plex_url|default:'' }}" placeholder="http://localhost:32400" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                <input type="text" id="setup_plex_url" name="plex_url" value="{{ config.plex_url|default:'' }}" placeholder="http://localhost:32400" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
             </div>
 
             <div id="plex-auth-container" class="pt-2">

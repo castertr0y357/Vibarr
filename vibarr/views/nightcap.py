@@ -38,10 +38,21 @@ class NightcapActionView(View):
         # Get recent history for context
         history = MediaWatchEvent.objects.order_by('-watched_at').values_list('show_title', flat=True).distinct()[:10]
         
+        # Get library titles to filter out owned content
+        from ..tasks.media.polling import get_active_providers
+        library_titles = []
+        for _, provider in get_active_providers():
+            library_titles.extend([t.lower() for t in provider.get_library_titles()])
+        library_titles = list(set(library_titles))
+        
         recommendations = ai.get_mood_recommendations(list(history), mood)
         
         results = []
         for rec in recommendations:
+            # Filter out if already in library
+            if rec['title'].lower() in library_titles:
+                continue
+                
             # Try to get TMDB details for posters
             is_movie = rec['media_type'] == 'MOVIE'
             search = tmdb.search_movie(rec['title']) if is_movie else tmdb.search_show(rec['title'])

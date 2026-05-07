@@ -1,6 +1,7 @@
 from plexapi.server import PlexServer
 from django.conf import settings
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
+from django.utils import timezone
 from .media_provider import MediaProvider
 from ...models import AppConfig
 import logging
@@ -20,10 +21,20 @@ class PlexService(MediaProvider):
         if self._plex is None and self.baseurl and self.token:
             try:
                 from plexapi.server import PlexServer
-                self._plex = PlexServer(self.baseurl, self.token)
+                import requests
+                
+                # Setup session to allow insecure local connections if needed
+                session = requests.Session()
+                import re
+                is_ip = re.match(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", self.baseurl)
+                if is_ip:
+                    session.verify = False
+                    import urllib3
+                    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                
+                self._plex = PlexServer(self.baseurl, self.token, session=session)
             except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"Plex Connection Error to {self.baseurl}: {e}")
+                logger.error(f"Plex Connection Error to {self.baseurl}: {e}")
                 return None
         return self._plex
 
@@ -43,38 +54,62 @@ class PlexService(MediaProvider):
         monitored = [i.strip().lower() for i in config.monitored_libraries.split(',')] if config and config.monitored_libraries else []
         
         try:
-            params = {'sort': 'viewedAt:desc'}
-            if config.plex_user_filter:
-                params['accountID'] = config.plex_user_filter
-
-            history = self.plex.query('/status/sessions/history/all', params=params)
-            since_time = datetime.now(timezone.utc) - timedelta(hours=hours)
-            
+            since_time = datetime.now(dt_timezone.utc) - timedelta(hours=hours)
             events = []
-            for entry in history.findall('Metadata'):
-                viewed_at = datetime.fromtimestamp(int(entry.attrib.get('viewedAt', 0)), tz=timezone.utc)
-                if viewed_at < since_time:
-                    break # Since we sorted by viewedAt:desc, we can stop early
+            
+            # Use paginated history to avoid memory exhaustion on large libraries
+            page_size = 100
+            offset = 0
+            
+            while True:
+                logger.info(f"Plex: Fetching history page (offset: {offset}, limit: {page_size})")
                 
-                library_name = entry.attrib.get('librarySectionTitle')
-                if library_name and library_name.lower() in ignored:
-                    continue
+                params = {'sort': 'viewedAt:desc'}
+                if config.plex_user_filter:
+                    params['accountID'] = config.plex_user_filter
+                
+                headers = {
+                    'X-Plex-Container-Start': str(offset),
+                    'X-Plex-Container-Size': str(page_size)
+                }
+                
+                history_xml = self.plex.query('/status/sessions/history/all', params=params, headers=headers)
+                
+                metadata_items = history_xml.findall('Metadata')
+                if not metadata_items:
+                    break
+                
+                for entry in metadata_items:
+                    viewed_at = datetime.fromtimestamp(int(entry.attrib.get('viewedAt', 0)), tz=dt_timezone.utc)
+                    if viewed_at < since_time:
+                        return events # Done
+                    
+                    library_name = entry.attrib.get('librarySectionTitle')
+                    if monitored and library_name and library_name.lower() not in monitored:
+                        continue
 
-                m_type = entry.attrib.get('type')
-                if m_type in ['episode', 'movie']:
-                    event = {
-                        'history_id': entry.attrib.get('historyKey'),
-                        'type': m_type,
-                        'title': entry.attrib.get('grandparentTitle') if m_type == 'episode' else entry.attrib.get('title'),
-                        'season': int(entry.attrib.get('parentIndex', 0)) if m_type == 'episode' else 0,
-                        'episode': int(entry.attrib.get('index', 0)) if m_type == 'episode' else 0,
-                        'watched_at': viewed_at,
-                        'user_id': entry.attrib.get('accountID'),
-                        'rating': float(entry.attrib.get('userRating', 10.0)),
-                        'view_offset': int(entry.attrib.get('viewOffset', 0)),
-                        'duration': int(entry.attrib.get('duration', 0))
-                    }
-                    events.append(event)
+                    m_type = entry.attrib.get('type')
+                    if m_type in ['episode', 'movie']:
+                        event = {
+                            'history_id': entry.attrib.get('historyKey'),
+                            'type': m_type,
+                            'title': entry.attrib.get('grandparentTitle') if m_type == 'episode' else entry.attrib.get('title'),
+                            'season': int(entry.attrib.get('parentIndex', 0)) if m_type == 'episode' else 0,
+                            'episode': int(entry.attrib.get('index', 0)) if m_type == 'episode' else 0,
+                            'watched_at': viewed_at,
+                            'user_id': entry.attrib.get('accountID', 'admin'),
+                            'rating': float(entry.attrib.get('userRating', 10.0)),
+                            'view_offset': int(entry.attrib.get('viewOffset', 0)),
+                            'duration': int(entry.attrib.get('duration', 0))
+                        }
+                        events.append(event)
+                
+                offset += page_size
+                if len(events) > 5000: # Safety cap per provider
+
+                    logger.warning("Plex: Reached safety cap of 5000 history items per poll.")
+                    break
+            
             if not events:
                 # Fallback: Scan libraries for watched items
                 logger.info("Plex history endpoint returned 0. Falling back to library scan...")
@@ -84,16 +119,29 @@ class PlexService(MediaProvider):
                     if section.type not in ['show', 'movie']: continue
                     
                     # Search for watched items
-                    watched_items = section.search(unwatched=False)
-                    logger.info(f"Scanning section {section.title}: Found {len(watched_items)} watched items.")
-                    for item in watched_items[:20]: # Limit to 20 per section to avoid flooding
+                    libtype = 'episode' if section.type == 'show' else None
+                    watched_items = section.search(unwatched=False, libtype=libtype)
+                    
+                    # Determine limit based on backfill
+                    limit = None if hours > 24 else 50
+                    items_to_process = watched_items if limit is None else watched_items[:limit]
+                    
+                    logger.info(f"Scanning section {section.title}: Found {len(watched_items)} watched items. Processing {len(items_to_process)}.")
+                    for item in items_to_process:
+                        last_viewed = getattr(item, 'lastViewedAt', None)
+                        if last_viewed and last_viewed.tzinfo is None:
+                            last_viewed = timezone.make_aware(last_viewed)
+                        
+                        if not last_viewed:
+                            last_viewed = timezone.now()
+                            
                         event = {
                             'history_id': f"fallback_{item.ratingKey}",
-                            'type': 'movie' if section.type == 'movie' else 'show',
-                            'title': item.title,
-                            'season': 0,
-                            'episode': 0,
-                            'watched_at': getattr(item, 'lastViewedAt', datetime.now(timezone.utc)),
+                            'type': 'movie' if item.type == 'movie' else 'episode',
+                            'title': item.grandparentTitle if item.type == 'episode' else item.title,
+                            'season': int(item.parentIndex if item.type == 'episode' else 0),
+                            'episode': int(item.index if item.type == 'episode' else 0),
+                            'watched_at': last_viewed,
                             'user_id': 'admin',
                             'rating': float(item.userRating if item.userRating is not None else 10.0),
                             'view_offset': 0,

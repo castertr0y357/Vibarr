@@ -15,14 +15,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# HTMX outerHTML swap crashes on empty responses. Return a self-removing element instead.
-HTMX_REMOVE = (
-    '<div style="transition:all .5s ease;opacity:0;max-height:0;overflow:hidden;'
-    'margin:0;padding:0;border:none;width:0;" '
-    'onanimationend="this.remove()"></div>'
-)
+# Return an empty string, allowing hx-swap="delete" to remove the element without DOM clutter
+HTMX_REMOVE = ""
 
-class RejectShowView(APIMixin, View):
+class RejectShowView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
         show.state = ShowState.REJECTED
@@ -55,11 +51,12 @@ class StopAndDeleteShowView(View):
         
         show.state = ShowState.REJECTED
         show.save()
+        messages.success(request, f"Removed '{show.title}' from tastings.")
         if request.headers.get('HX-Request'):
             return HttpResponse(HTMX_REMOVE)
         return redirect('dashboard')
 
-class MarkWatchedView(APIMixin, View):
+class MarkWatchedView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
         show.state = ShowState.WATCHED
@@ -75,6 +72,8 @@ class MarkWatchedView(APIMixin, View):
                 'tmdb_id': show.tmdb_id,
                 'media_type': show.media_type,
                 'watched_at': timezone.now(),
+                'season': 0,
+                'episode': 0,
             }
         )
         
@@ -82,16 +81,25 @@ class MarkWatchedView(APIMixin, View):
             return HttpResponse(HTMX_REMOVE)
         return redirect('dashboard')
 
-class TasteShowView(APIMixin, View):
+class TasteShowView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
+        show.state = ShowState.TASTING
+        show.save()
+        
         from ..tasks import start_tasting
         async_task(start_tasting, show.id)
-        messages.info(request, f"Started tasting for '{show.title}'.")
+        
         if request.headers.get('HX-Request'):
-            return HttpResponse(HTMX_REMOVE)
-        if getattr(request, 'is_api_request', False):
-            return JsonResponse({'status': 'success', 'message': f'Started tasting for {show.title}'})
+            from django.template.loader import render_to_string
+            tasting_shows = Show.objects.filter(state=ShowState.TASTING).order_by('-updated_at')
+            html = render_to_string('vibarr/partials/active_tastings.html', {'tasting': tasting_shows}, request=request)
+            from django.urls import reverse
+            dashboard_url = reverse('dashboard') + '?partial=tasting'
+            oob = f'<div id="active-tastings-container" hx-swap-oob="true" hx-get="{dashboard_url}" hx-trigger="sync-complete from:body" hx-sync="this:replace" hx-indicator="#tasting-indicator" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">{html}</div>'
+            return HttpResponse(oob)
+            
+        messages.info(request, f"Started tasting for '{show.title}'.")
         return redirect('dashboard')
 
 class ManualSyncView(APIMixin, RedirectView):
@@ -152,6 +160,19 @@ class HealthCheckView(View):
         if mini:
             color = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" if success else "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
             return HttpResponse(f'<div class="w-1.5 h-1.5 rounded-full {color}"></div>')
-        
+            
         status_html = '<span class="text-green-500 font-bold flex items-center">Success</span>' if success else '<span class="text-rose-500 font-bold flex items-center">Error</span>'
         return HttpResponse(status_html)
+        
+class ResetSyncStatusView(APIMixin, View):
+    def post(self, request):
+        config = AppConfig.get_solo()
+        config.is_syncing = False
+        config.sync_status = "Sync reset by administrator."
+        config.save()
+        messages.success(request, "Sync status has been force-reset.")
+        if request.headers.get('HX-Request'):
+            return HttpResponse('<p class="text-green-500 text-xs font-bold">Status Reset Successfully</p>')
+        if getattr(request, 'is_api_request', False):
+            return JsonResponse({'status': 'success', 'message': 'Sync status reset'})
+        return redirect('settings')

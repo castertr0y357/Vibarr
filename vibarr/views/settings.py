@@ -14,31 +14,64 @@ import logging
 logger = logging.getLogger(__name__)
 
 class GetLibrariesView(View):
-    def get(self, request):
+    def post(self, request):
+        # Allow overrides from POST for live scanning
+        plex_url = request.POST.get('plex_url')
+        plex_token = request.POST.get('plex_token')
+        jellyfin_url = request.POST.get('jellyfin_url')
+        jellyfin_key = request.POST.get('jellyfin_api_key')
+        
         config = AppConfig.get_solo()
         providers = []
+        
+        # Use provided URL/Token if present, else fall back to saved config
         if config.media_server_type in [MediaServerType.PLEX, MediaServerType.BOTH]:
-            providers.append(PlexService())
+            providers.append(PlexService(url=plex_url, token=plex_token))
         if config.media_server_type in [MediaServerType.JELLYFIN, MediaServerType.BOTH]:
-            providers.append(JellyfinService())
+            providers.append(JellyfinService(url=jellyfin_url, api_key=jellyfin_key))
             
-        libraries = []
+        libraries_by_server = {}
         for p in providers:
             try:
-                libraries.extend(p.get_available_libraries())
+                server_name = "Plex" if "Plex" in p.__class__.__name__ else "Jellyfin"
+                libs = p.get_available_libraries()
+                if libs:
+                    # Merge if same server type but different instances? 
+                    # Usually there is only one per type in this app.
+                    if server_name not in libraries_by_server:
+                        libraries_by_server[server_name] = []
+                    libraries_by_server[server_name].extend(libs)
             except Exception as e:
                 logger.error(f"Error fetching libraries from provider: {e}")
         
-        # Unique and sorted
-        libraries = sorted(list(set(libraries)))
+        # Sort libraries in each group
+        for server in libraries_by_server:
+            libraries_by_server[server] = sorted(list(set(libraries_by_server[server])))
+
         monitored = [i.strip() for i in config.monitored_libraries.split(',')] if config and config.monitored_libraries else []
         
         return render(request, 'vibarr/partials/library_checklist.html', {
-            'libraries': libraries,
+            'libraries_by_server': libraries_by_server,
             'monitored': monitored
         })
 
+    def get(self, request):
+        return self.post(request)
+
+class DiscoverPlexServersView(View):
+    def get(self, request):
+        config = AppConfig.get_solo()
+        token = config.plex_token
+        if not token:
+            return HttpResponse('<div class="text-xs text-rose-500 p-2">Authenticate with Plex first!</div>')
+            
+        from ..services.media.plex_auth_service import PlexAuthService
+        auth = PlexAuthService()
+        servers = auth.get_resources(token)
+        return render(request, 'vibarr/partials/plex_server_picker.html', {'servers': servers})
+
 class SettingsView(ConfigMixin, TemplateView):
+    # ... (remains same)
     template_name = 'vibarr/settings.html'
 
     def get_context_data(self, **kwargs):
@@ -74,13 +107,20 @@ class UpdateSettingsView(View):
         
         if form.is_valid():
             form.save()
-            # Handle monitored libraries specially if they aren't part of the main form fields
+            
+            # Handle monitored libraries
             if 'libraries_loaded' in request.POST:
                 monitored_list = request.POST.getlist('monitored_libs')
                 config.monitored_libraries = ",".join(monitored_list)
                 config.save()
                 
             messages.success(request, "Settings updated successfully.")
+            
+            # Check for special actions
+            action = request.POST.get('action')
+            if action == 'plex_auth':
+                return redirect('start_plex_auth')
+                
             logger.info("Application settings updated via form.")
         else:
             messages.error(request, f"Error saving settings: {form.errors}")

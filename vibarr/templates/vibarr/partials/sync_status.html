@@ -1,17 +1,50 @@
 {% if config.is_syncing %}
-<div hx-get="{% url 'sync_status' %}" hx-trigger="every 3s" hx-swap="outerHTML" class="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-between animate-pulse">
-    <div class="flex items-center space-x-4">
-        <div class="w-2 h-2 bg-rose-500 rounded-full animate-ping"></div>
-        <div>
-            <p class="text-sm font-bold text-white">{{ config.sync_status|default:"Synchronizing libraries..." }}</p>
-            <p class="text-[10px] text-rose-400 uppercase tracking-widest font-bold">Background Scout Active</p>
+<div id="sync-banner" 
+     hx-get="{% url 'sync_status' %}" 
+     hx-trigger="every 5s" 
+     hx-swap="outerHTML" 
+     class="mb-8 p-6 glass border border-rose-500/30 rounded-3xl relative overflow-hidden group">
+    
+    <!-- Animated background gradient -->
+    <div class="absolute inset-0 bg-gradient-to-r from-rose-500/5 via-transparent to-transparent animate-pulse"></div>
+    
+    <div class="relative flex items-center justify-between">
+        <div class="flex items-center space-x-5">
+            <div class="relative">
+                <div class="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center border border-rose-500/30">
+                    <svg class="w-6 h-6 text-rose-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-black animate-ping"></div>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-black text-white tracking-tight uppercase">{{ config.sync_status|default:"Scouting Media..." }}</h3>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span class="text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Syncing</span>
+                    <span class="text-xs text-gray-400 font-medium">Vibarr is mapping your library history. Recommendations are paused for accuracy.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col items-end">
+            <div class="text-2xl font-black text-white/20 group-hover:text-rose-500/40 transition-colors">
+                {% if "Processing" in config.sync_status %}
+                    {{ sync_percent|default:0 }}%
+                {% else %}
+                    INIT
+                {% endif %}
+            </div>
         </div>
     </div>
-    <div class="flex items-center space-x-2">
-        <img class="w-4 h-4 opacity-50" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+
+    <!-- Progress Bar Backdrop -->
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-white/5">
+        <div class="h-full bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)] transition-all duration-1000" 
+             style="width: {% if 'Processing' in config.sync_status %}{{ sync_percent|default:0 }}%{% else %}10%{% endif %};"></div>
     </div>
 </div>
 {% else %}
-<div hx-get="{% url 'sync_status' %}" hx-trigger="every 15s" hx-swap="outerHTML" class="hidden" 
-     x-data x-init="document.body.dispatchEvent(new Event('sync-complete'))"></div>
+<div hx-get="{% url 'sync_status' %}" hx-trigger="every 15s" hx-swap="outerHTML" class="hidden"></div>
 {% endif %}
