@@ -1,10 +1,15 @@
 import logging
+import random
 from django.utils import timezone
+from django.core.cache import cache
+
 from ...models import Show, MediaWatchEvent, ShowState, MediaType, Recommendation
 from ...services.discovery.tmdb_service import TMDBService
 from ...services.discovery.ai_service import AIService
 from ...services.comms.notification_service import NotificationService
 from ..managers.actions import start_tasting
+from .recommendations import generate_recommendations
+from ...utils.providers import get_active_providers
 
 logger = logging.getLogger(__name__)
 
@@ -60,13 +65,6 @@ def run_bridge_check(show_id):
 
 def background_scout():
     """Periodic task to scan history and find new matches."""
-    from ...models import MediaWatchEvent, MediaType
-    from .recommendations import generate_recommendations
-    from ..media.polling import get_active_providers
-    from django.utils import timezone
-    from django.core.cache import cache
-    import random
-    
     # Get all unique titles from history
     all_titles = list(MediaWatchEvent.objects.values('show_title', 'media_type').distinct())
     
@@ -107,3 +105,4 @@ def background_scout():
             is_movie=(event['media_type'] == MediaType.MOVIE),
             library_titles=library_titles
         )
+

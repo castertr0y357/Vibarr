@@ -3,7 +3,7 @@ from ...services.discovery.ai_service import AIService
 from ...services.discovery.tmdb_service import TMDBService
 from ...services.managers.sonarr_service import SonarrService
 from ...services.managers.radarr_service import RadarrService
-from ..media.polling import get_active_providers
+from ...utils.providers import get_active_providers
 import logging
 
 logger = logging.getLogger(__name__)

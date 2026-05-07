@@ -1,16 +1,28 @@
 from django.views.generic import View, RedirectView
 from django.utils import timezone
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.db import transaction
+
 from django_q.tasks import async_task
-from ..models import Show, ShowState, AppConfig, MediaServerType
+
+from ..models import Show, ShowState, AppConfig, MediaServerType, MediaWatchEvent
 from ..services.managers.sonarr_service import SonarrService
 from ..services.managers.radarr_service import RadarrService
 from ..services.media.plex_service import PlexService
 from ..services.media.jellyfin_service import JellyfinService
 from ..services.discovery.ai_service import AIService
+from ..tasks import (
+    start_tasting, 
+    poll_media_servers, 
+    sync_external_states, 
+    batch_universe_sync
+)
 from .mixins import ConfigMixin, APIMixin
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,22 +47,27 @@ class TogglePinShowView(View):
         show.is_pinned = not show.is_pinned
         show.save()
         if request.headers.get('HX-Request'):
-            from django.shortcuts import render
             return render(request, 'vibarr/partials/pin_button.html', {'show': show})
         return redirect('dashboard')
 
 class StopAndDeleteShowView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
-        if show.sonarr_id:
-            try: SonarrService().delete_series(show.sonarr_id)
-            except Exception as e: logger.error(f"Sonarr delete error: {e}")
-        if show.radarr_id:
-            try: RadarrService().delete_movie(show.radarr_id)
-            except Exception as e: logger.error(f"Radarr delete error: {e}")
+        
+        # Hardening: Only progress if deletion is successful or not applicable
+        try:
+            if show.sonarr_id:
+                SonarrService().delete_series(show.sonarr_id)
+            if show.radarr_id:
+                RadarrService().delete_movie(show.radarr_id)
+        except Exception as e:
+            logger.error(f"External service delete error: {e}")
+            messages.error(request, f"Failed to remove '{show.title}' from manager. Is the service online?")
+            return redirect('dashboard')
         
         show.state = ShowState.REJECTED
         show.save()
+        
         messages.success(request, f"Removed '{show.title}' from tastings.")
         if request.headers.get('HX-Request'):
             return HttpResponse(HTMX_REMOVE)
@@ -59,23 +76,25 @@ class StopAndDeleteShowView(View):
 class MarkWatchedView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
-        show.state = ShowState.WATCHED
-        show.save()
         
-        # Inform history to avoid re-suggesting
-        from ..models import MediaWatchEvent
-        MediaWatchEvent.objects.get_or_create(
-            event_id=f"MANUAL_{show.tmdb_id}",
-            defaults={
-                'source_server': 'MANUAL',
-                'show_title': show.title,
-                'tmdb_id': show.tmdb_id,
-                'media_type': show.media_type,
-                'watched_at': timezone.now(),
-                'season': 0,
-                'episode': 0,
-            }
-        )
+        # Hardening: Use transaction to ensure both operations succeed
+        with transaction.atomic():
+            show.state = ShowState.WATCHED
+            show.save()
+            
+            # Inform history to avoid re-suggesting
+            MediaWatchEvent.objects.get_or_create(
+                event_id=f"MANUAL_{show.tmdb_id}",
+                defaults={
+                    'source_server': 'MANUAL',
+                    'show_title': show.title,
+                    'tmdb_id': show.tmdb_id,
+                    'media_type': show.media_type,
+                    'watched_at': timezone.now(),
+                    'season': 0,
+                    'episode': 0,
+                }
+            )
         
         if request.headers.get('HX-Request'):
             return HttpResponse(HTMX_REMOVE)
@@ -87,14 +106,11 @@ class TasteShowView(View):
         show.state = ShowState.TASTING
         show.save()
         
-        from ..tasks import start_tasting
         async_task(start_tasting, show.id)
         
         if request.headers.get('HX-Request'):
-            from django.template.loader import render_to_string
             tasting_shows = Show.objects.filter(state=ShowState.TASTING).order_by('-updated_at')
             html = render_to_string('vibarr/partials/active_tastings.html', {'tasting': tasting_shows}, request=request)
-            from django.urls import reverse
             dashboard_url = reverse('dashboard') + '?partial=tasting'
             oob = f'<div id="active-tastings-container" hx-swap-oob="true" hx-get="{dashboard_url}" hx-trigger="sync-complete from:body" hx-sync="this:replace" hx-indicator="#tasting-indicator" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">{html}</div>'
             return HttpResponse(oob)
@@ -105,7 +121,6 @@ class TasteShowView(View):
 class ManualSyncView(APIMixin, RedirectView):
     pattern_name = 'dashboard'
     def get(self, request, *args, **kwargs):
-        from ..tasks import poll_media_servers, sync_external_states
         config = AppConfig.get_solo()
         config.is_syncing = True
         config.sync_status = "Sync task queued..."
@@ -121,7 +136,6 @@ class ManualSyncView(APIMixin, RedirectView):
 class UniverseSyncView(APIMixin, RedirectView):
     pattern_name = 'dashboard'
     def get(self, request, *args, **kwargs):
-        from ..tasks.managers.sync import batch_universe_sync
         async_task(batch_universe_sync)
         messages.success(request, "Universe Architect: Batch sync triggered for all committed items.")
         if getattr(request, 'is_api_request', False):
@@ -141,11 +155,10 @@ class HealthCheckView(View):
             elif service_type == 'jellyfin':
                 success = JellyfinService().test_connection()
             elif service_type == 'ai':
-                # Simplified check
                 AIService()
-                success = True # or actual ping
+                success = True 
             elif service_type == 'media':
-                config = AppConfig.objects.first()
+                config = AppConfig.get_solo()
                 providers = []
                 if config.media_server_type in [MediaServerType.PLEX, MediaServerType.BOTH]:
                     providers.append(PlexService())
@@ -158,8 +171,7 @@ class HealthCheckView(View):
             success = False
 
         if mini:
-            color = "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" if success else "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"
-            return HttpResponse(f'<div class="w-1.5 h-1.5 rounded-full {color}"></div>')
+            return render(request, 'vibarr/partials/status_badge.html', {'success': success})
             
         status_html = '<span class="text-green-500 font-bold flex items-center">Success</span>' if success else '<span class="text-rose-500 font-bold flex items-center">Error</span>'
         return HttpResponse(status_html)
@@ -176,3 +188,4 @@ class ResetSyncStatusView(APIMixin, View):
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': 'Sync status reset'})
         return redirect('settings')
+

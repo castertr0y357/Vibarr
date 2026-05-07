@@ -1,11 +1,13 @@
+import re
+from django.views import View
 from django.views.generic import TemplateView
-from .mixins import ConfigMixin
-from ..models import Show, ShowState, MediaServerType
+from django.shortcuts import render
+
+from .mixins import ConfigMixin, APIMixin
+from ..models import Show, ShowState, MediaServerType, Persona, AppConfig
 from ..services.managers.sonarr_service import SonarrService
 from ..services.managers.radarr_service import RadarrService
 from ..services.media.jellyfin_service import JellyfinService
-
-from .mixins import APIMixin
 
 class DashboardView(APIMixin, ConfigMixin, TemplateView):
     template_name = 'vibarr/dashboard.html'
@@ -47,7 +49,6 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
         elif partial == 'sync':
             self.template_name = 'vibarr/partials/sync_status.html'
             
-        from ..models import Persona
         context['personas'] = Persona.objects.all()
         return context
 
@@ -56,13 +57,8 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
         context = self.get_context_data(**kwargs)
         return self.render_to_response(context)
 
-from django.views import View
-from django.shortcuts import render
-from ..models import AppConfig
-
 class SyncStatusView(ConfigMixin, View):
     def get(self, request):
-        import re
         config = AppConfig.get_solo()
         sync_percent = 0
         if config.sync_status:
@@ -70,3 +66,4 @@ class SyncStatusView(ConfigMixin, View):
             if match:
                 sync_percent = int(match.group(1))
         return render(request, 'vibarr/partials/sync_status.html', {'config': config, 'sync_percent': sync_percent})
+

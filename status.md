@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
 ## Current State: INTERACTIVE DASHBOARD (v1.1)
-**Last Checkpoint**: 2026-05-06 (TMDB ID Namespace Fix & Deep History Profiling)
+**Last Checkpoint**: 2026-05-07 (Production-Grade Watch History & Sync Optimization)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -70,6 +70,16 @@
 ### Settings & Sync
 - **Library Checklist Template Fix**: Replaced Python-style ternary in Django template with proper `{% if %}` tag syntax.
 - **Discovery Dedup**: Pipeline now checks `MediaWatchEvent` by TMDB ID in addition to `Show` and library title matching.
+
+### Production-Grade Watch History & Sync
+- **Database Hardening**: Migrated all critical `CharField` strings to PostgreSQL-native `TextField` to eliminate `DataError` crashes from character limits.
+- **Bulk Insertions**: History polling now uses `bulk_create` for massive 99% reduction in I/O overhead during backfills.
+- **Memory-Safe Pagination**: Replaced the "all-at-once" Plex history grab with a safe 100-item paginated API strategy, preventing OOM worker crashes on 10-year backfills.
+- **Uncapped Fallback Scans**: Removed the artificial 50-item limit on fallback scans during deep backfills, ensuring users without Plex Pass can still fully index their watch history.
+- **N+1 Query Elimination**: Optimized the Dashboard progress bars to utilize Django's `prefetch_related` cache, keeping the UI perfectly responsive while thousands of history items sync in the background.
+- **Dynamic Sync Banner**: Added a premium, pulsing sync banner to the History page that tracks live progression.
+- **True Percentage Parsing**: The banner parses the exact synchronization percentage rather than relying on string-slicing hacks.
+- **Consolidated History UI**: History items are now cleanly grouped by Show Title with dynamic episode counts, and navigated via an advanced "elided" pagination system (e.g., `1 2 ... 14 15`).
 
 ### Agentic Hardening (v1.2)
 - **CRLF Line Ending Fix**: Automated conversion of `entrypoint.sh` to ensure Linux compatibility on Windows host.

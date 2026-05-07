@@ -1,8 +1,14 @@
+import logging
+from django.utils import timezone
+from django.core.cache import cache
+from django_q.tasks import async_task
+
 from ...models import Show, Recommendation, MediaWatchEvent, ShowState, MediaType, AppConfig
+from ...models.enums import RATING_SCALE
 from ...services.discovery.tmdb_service import TMDBService
 from ...services.discovery.ai_service import AIService
-from django.utils import timezone
-import logging
+from ...utils.providers import get_active_providers
+from ..managers.actions import start_tasting
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +21,6 @@ def get_tasting_count(runtime):
 
 def generate_recommendations(title, is_movie=False, library_titles=None):
     # Debounce: Don't re-run for the same title within 24 hours
-    from django.core.cache import cache
     cache_key = f"scout_debounce_{title.lower()}"
     if cache.get(cache_key):
         logger.info(f"Skipping redundant recommendation for '{title}' (debounced by cache).")
@@ -44,7 +49,6 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
         candidates_raw = similar + cross
         
     if library_titles is None:
-        from ..media.polling import get_active_providers
         library_titles = []
         for _, provider in get_active_providers():
             library_titles.extend([t.lower() for t in provider.get_library_titles()])
@@ -58,7 +62,6 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
     persona_blacklist = [g.strip().lower() for g in active_persona.ignored_genres.split(',')] if active_persona and active_persona.ignored_genres else []
     ignored_genres = list(set(global_blacklist + persona_blacklist))
 
-    from ...models.enums import RATING_SCALE
     if active_persona:
         max_rating_val = RATING_SCALE.get(active_persona.max_content_rating, 10)
     else:
@@ -107,7 +110,6 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
         context = "Weekend" if now.weekday() >= 5 else "Weekday"
         ranked_results = ai.rank_shows(list(recent_history), candidates, context=context)
     
-    from ..managers.actions import start_tasting
     for ranked in ranked_results[:5]: 
         match = next((c for c in candidates if c['title'].lower() == ranked['title'].lower()), None)
         if not match: continue
@@ -155,5 +157,6 @@ def generate_recommendations(title, is_movie=False, library_titles=None):
         # Autonomous Tasting Check
         if config and ai_score >= config.auto_tasting_threshold:
             logger.info(f"Autonomous Scout: High confidence match ({ai_score}/10) for '{show.title}'. Starting Tasting.")
-            from django_q.tasks import async_task
             async_task(start_tasting, show.id)
+
+

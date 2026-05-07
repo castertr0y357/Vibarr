@@ -1,23 +1,20 @@
-from ...models import AppConfig, MediaWatchEvent, MediaServerType, Show, MediaType
-from ...services.media.plex_service import PlexService
-from ...services.media.jellyfin_service import JellyfinService
-from ..discovery.recommendations import generate_recommendations
-from ..managers.actions import check_tasting_progress, trigger_auto_purge
-from datetime import timedelta
-from django.utils import timezone
 import logging
 import time
+from datetime import timedelta
+
+from django.utils import timezone
+from django_q.tasks import async_task
+
+from ...models import AppConfig, MediaWatchEvent, MediaServerType, Show, MediaType, ShowState
+from ...services.media.plex_service import PlexService
+from ...services.media.jellyfin_service import JellyfinService
+from ...services.discovery.tmdb_service import TMDBService
+from ...services.comms.notification_service import NotificationService
+from ...utils.providers import get_active_providers
+from ..discovery.recommendations import generate_recommendations
+from ..managers.actions import check_tasting_progress, trigger_auto_purge
 
 logger = logging.getLogger(__name__)
-
-def get_active_providers():
-    config = AppConfig.get_solo()
-    providers = []
-    if config.media_server_type in [MediaServerType.PLEX, MediaServerType.BOTH]:
-        providers.append(('PLEX', PlexService()))
-    if config.media_server_type in [MediaServerType.JELLYFIN, MediaServerType.BOTH]:
-        providers.append(('JELLYFIN', JellyfinService()))
-    return providers
 
 def poll_media_servers(hours=1):
     config = AppConfig.get_solo()
@@ -52,9 +49,6 @@ def poll_media_servers(hours=1):
         config.save()
     
     # Check for newly arrived tastings
-    from ...models import Show, ShowState
-    from ...services.comms.notification_service import NotificationService
-    
     library_titles = []
     for _, provider in providers:
         library_titles.extend([t.lower() for t in provider.get_library_titles()])
@@ -69,16 +63,11 @@ def poll_media_servers(hours=1):
             show.save()
 
 def resolve_tmdb_id(title, is_movie=False):
-    from ...services.discovery.tmdb_service import TMDBService
     tmdb = TMDBService()
     result = tmdb.search_movie(title) if is_movie else tmdb.search_show(title)
     return result['id'] if result else None
 
 def poll_provider_history(server_type, hours=1):
-    from ...services.media.plex_service import PlexService
-    from ...services.media.jellyfin_service import JellyfinService
-    from ...models import AppConfig, MediaWatchEvent, MediaType
-    
     config = AppConfig.get_solo()
     provider = PlexService() if server_type == 'PLEX' else JellyfinService()
     
@@ -134,8 +123,6 @@ def poll_provider_history(server_type, hours=1):
             else:
                 tmdb_id = resolve_tmdb_id(title, is_movie=is_movie)
                 tmdb_cache[cache_key] = tmdb_id
-                # Tiny sleep to respect TMDB rate limits if we are hammering them
-                time.sleep(0.05)
                 
             # 3. Update status for UI feedback
             if processed % 10 == 0:
@@ -180,9 +167,6 @@ def poll_provider_history(server_type, hours=1):
 
     # After processing all history events, trigger recommendation generation 
     # for the most recent unique titles found in this poll.
-    from ..discovery.recommendations import generate_recommendations
-    from django_q.tasks import async_task
-    
     unique_shows = {} # title -> is_movie
     for event in events:
         unique_shows[event['title']] = (event['type'] == 'movie')
@@ -195,3 +179,4 @@ def poll_provider_history(server_type, hours=1):
             async_task(generate_recommendations, title, is_movie=is_movie, library_titles=library_titles)
     else:
         logger.info(f"[{server_type}] Deep backfill detected ({hours}h). Skipping immediate recommendations.")
+
