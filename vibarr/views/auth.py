@@ -4,6 +4,8 @@ from django.urls import reverse
 import urllib.parse
 from ..services.media.plex_auth_service import PlexAuthService
 from ..models import AppConfig
+from django.contrib.auth.hashers import check_password
+from django.views import View
 
 class StartPlexAuthView(RedirectView):
     def get_redirect_url(self, *args, **kwargs):
@@ -35,3 +37,31 @@ class FinishPlexAuthView(TemplateView):
             return redirect('dashboard')
         
         return super().get(request, *args, **kwargs)
+
+class LoginView(View):
+    def get(self, request):
+        if request.session.get('vibarr_auth'):
+            return redirect('dashboard')
+        return render(request, 'vibarr/login.html')
+
+    def post(self, request):
+        password = request.POST.get('password')
+        config = AppConfig.get_solo()
+        
+        if not config.auth_password:
+            return render(request, 'vibarr/login.html', {
+                'error': 'Authentication is enabled but no access code has been set. Use the Django admin or CLI to set a password.'
+            })
+
+        if check_password(password, config.auth_password):
+            request.session['vibarr_auth'] = True
+            request.session.set_expiry(0) # Browser close or standard session timeout
+            return redirect('dashboard')
+        else:
+            return render(request, 'vibarr/login.html', {'error': 'Invalid password'})
+
+class LogoutView(View):
+    def post(self, request):
+        if 'vibarr_auth' in request.session:
+            del request.session['vibarr_auth']
+        return redirect('login')

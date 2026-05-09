@@ -88,6 +88,24 @@ class RadarrService:
         response.raise_for_status()
         return response.json()
 
+    def update_movie(self, movie_data):
+        url = f"{self.base_url}/api/v3/movie/{movie_data['id']}"
+        response = requests.put(url, json=movie_data, headers=self.headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
+    def get_full_queue(self):
+        """Fetches the entire active queue from Radarr."""
+        if not self.base_url: return []
+        try:
+            url = f"{self.base_url}/api/v3/queue"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return response.json().get('records', [])
+        except Exception as e:
+            logger.error(f"Radarr: Failed to fetch full queue: {e}")
+            return []
+
     def get_all_tmdb_ids(self):
         if not self.base_url: return set()
         try:

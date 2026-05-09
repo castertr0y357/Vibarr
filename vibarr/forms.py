@@ -4,7 +4,7 @@ from .models import AppConfig
 class AppConfigForm(forms.ModelForm):
     class Meta:
         model = AppConfig
-        exclude = ['last_sync', 'monitored_libraries']
+        exclude = ['last_sync', 'monitored_libraries', 'auth_password']
         widgets = {
             'plex_token': forms.PasswordInput(render_value=True),
             'jellyfin_api_key': forms.PasswordInput(render_value=True),

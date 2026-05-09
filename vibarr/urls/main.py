@@ -10,6 +10,7 @@ from ..views.personas import SwitchPersonaView, CreatePersonaView
 from ..views.history import HistoryView, BackfillHistoryView
 from ..views.media_views import DiscoveryListView, TastingListView, CommittedListView
 from ..views.universe import UniverseListView
+from ..views.auth import LoginView, LogoutView
 
 urlpatterns = [
     path('universes/', UniverseListView.as_view(), name='universe_architect_list'),
@@ -52,4 +53,6 @@ urlpatterns = [
     path('personas/switch/<int:persona_id>/', SwitchPersonaView.as_view(), name='switch_persona'),
     path('logs/', LogsView.as_view(), name='logs_view'),
     path('logs/download/', DownloadLogsView.as_view(), name='download_logs'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]

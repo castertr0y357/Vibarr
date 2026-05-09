@@ -16,6 +16,11 @@ class MediaServerType(models.TextChoices):
     JELLYFIN = 'JELLYFIN', 'Jellyfin'
     BOTH = 'BOTH', 'Plex & Jellyfin'
 
+class AuthMode(models.TextChoices):
+    NONE = 'NONE', 'None'
+    EXTERNAL = 'EXTERNAL', 'External IPs Only'
+    ALWAYS = 'ALWAYS', 'Always'
+
 RATING_SCALE = {
     'G': 1, 'TV-G': 1, 
     'PG': 2, 'TV-PG': 2, 

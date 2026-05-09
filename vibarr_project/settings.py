@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'vibarr.middleware.timezone.TimezoneMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'vibarr.middleware.auth.VibarrAuthMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -71,6 +72,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'vibarr.context_processors.config_processor',
             ],
         },
     },
@@ -132,8 +134,8 @@ LOGS_DIR.mkdir(exist_ok=True)
 Q_CLUSTER = {
     'name': 'Vibarr-Worker',
     'workers': 4,
-    'timeout': 90,
-    'retry': 120,
+    'timeout': 300,
+    'retry': 360,
     'queue_limit': 50,
     'bulk': 10,
     'redis': env('REDIS_URL', default='redis://localhost:6379/0')

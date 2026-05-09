@@ -65,29 +65,27 @@ def run_bridge_check(show_id):
 
 def background_scout():
     """Periodic task to scan history and find new matches."""
-    # Get all unique titles from history
-    all_titles = list(MediaWatchEvent.objects.values('show_title', 'media_type').distinct())
-    
-    # Priority 1: Recent history (watched in last 24h)
     since = timezone.now() - timezone.timedelta(days=1)
-    recent_qs = MediaWatchEvent.objects.filter(watched_at__gt=since).values_list('show_title', flat=True)
-    recent_titles_set = set(recent_qs)
     
-    recent_titles = [t for t in all_titles if t['show_title'] in recent_titles_set]
-    historical_titles = [t for t in all_titles if t['show_title'] not in recent_titles_set]
+    # 1. Fetch Recent History (Last 24h) - High Priority
+    recent_events = list(MediaWatchEvent.objects.filter(watched_at__gt=since).values('show_title', 'media_type').distinct())
+    
+    # 2. Fetch Historical Titles (Sample of older events) - Lower Priority
+    # We limit the pool of historical titles to avoid memory bloat
+    historical_events = list(MediaWatchEvent.objects.filter(watched_at__lte=since).values('show_title', 'media_type').distinct()[:100])
     
     candidates = []
     
     # Add un-scouted recent titles first
-    for t in recent_titles:
+    for t in recent_events:
         cache_key = f"scout_debounce_{t['show_title'].lower()}"
         if not cache.get(cache_key):
             candidates.append(t)
             
-    # Backfill with un-scouted historical titles (batch size of 5 per run)
-    if len(candidates) < 5 and historical_titles:
-        random.shuffle(historical_titles)
-        for t in historical_titles:
+    # Backfill with un-scouted historical titles (up to 5 per run)
+    if len(candidates) < 5 and historical_events:
+        random.shuffle(historical_events)
+        for t in historical_events:
             if len(candidates) >= 5:
                 break
             cache_key = f"scout_debounce_{t['show_title'].lower()}"

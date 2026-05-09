@@ -1,3 +1,4 @@
+from django.db.models import Max
 from ..models import MediaWatchEvent, AppConfig, MediaType
 
 def get_weighted_history_profile(target_type):
@@ -16,15 +17,19 @@ def get_weighted_history_profile(target_type):
         secondary_type = MediaType.MOVIE
         influence_weight = config.movie_influence_on_shows
 
-    # Get Primary History (Full weight)
+    # Get Primary History (Full weight) - Unique titles ordered by latest watch
     primary_history = list(MediaWatchEvent.objects.filter(
         media_type=primary_type
-    ).order_by('-watched_at').values_list('show_title', flat=True).distinct()[:20])
+    ).values('show_title').annotate(
+        latest_watch=Max('watched_at')
+    ).order_by('-latest_watch').values_list('show_title', flat=True)[:20])
 
     # Get Influencer History (Weighted subset)
     influence_count = max(1, int(20 * (influence_weight / 100)))
     influencer_history = list(MediaWatchEvent.objects.filter(
         media_type=secondary_type
-    ).order_by('-watched_at').values_list('show_title', flat=True).distinct()[:influence_count])
+    ).values('show_title').annotate(
+        latest_watch=Max('watched_at')
+    ).order_by('-latest_watch').values_list('show_title', flat=True)[:influence_count])
 
     return primary_history + influencer_history

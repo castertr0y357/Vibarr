@@ -1,4 +1,4 @@
-from .enums import ShowState, MediaType, MediaServerType
+from .enums import ShowState, MediaType, MediaServerType, AuthMode
 from .config import AppConfig, Persona
 from .shows import Show
 from .recommendations import Recommendation

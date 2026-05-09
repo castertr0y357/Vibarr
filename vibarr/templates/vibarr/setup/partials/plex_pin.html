@@ -1,12 +1,15 @@
-<div class="mt-2 p-4 bg-white/5 rounded-2xl border border-white/10 space-y-4 animate-fade-in">
+<div class="mt-4 p-6 bg-rose-500/10 rounded-2xl border border-rose-500/20 space-y-4 animate-fade-in">
     <div class="flex items-center justify-between">
         <div class="space-y-1">
-            <div class="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Plex PIN</div>
-            <div class="text-2xl font-black text-rose-500 tracking-widest">{{ pin_code }}</div>
+            <div class="text-[10px] font-bold text-rose-500 uppercase tracking-widest">Plex Link Code</div>
+            <div class="text-3xl font-black text-white tracking-[0.2em]">{{ pin_code }}</div>
         </div>
-        <a href="https://plex.tv/link" target="_blank" class="px-4 py-2 bg-rose-500 text-white text-[10px] font-bold rounded-lg hover:bg-rose-600 transition shadow-lg shadow-rose-500/20">
-            Go to plex.tv/link
-        </a>
+        <div class="text-right">
+            <div class="text-[10px] text-gray-400 mb-2">Code expires in 15m</div>
+            <a href="https://plex.tv/link" target="_blank" class="px-4 py-2 bg-rose-500 text-white text-[10px] font-bold rounded-lg hover:bg-rose-600 transition shadow-lg shadow-rose-500/20">
+                Go to plex.tv/link
+            </a>
+        </div>
     </div>
 
     <div id="pin-poll-target" 
@@ -14,8 +17,8 @@
          hx-trigger="load delay:3s" 
          hx-target="#pin-poll-target"
          hx-swap="outerHTML" 
-         class="text-[10px] text-gray-500 flex items-center justify-center gap-2 pt-2 border-t border-white/5">
-        <div class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></div>
-        Waiting for authorization...
+         class="text-[10px] text-gray-400 flex items-center justify-center gap-2 pt-4 border-t border-white/5">
+        <div class="w-2 h-2 bg-rose-500 rounded-full animate-ping"></div>
+        Waiting for you to link your account...
     </div>
 </div>

@@ -89,6 +89,10 @@ def poll_provider_history(server_type, hours=1):
     library_titles = set(t.lower() for t in provider.get_library_titles())
     show_id_map = {s.title.lower(): s.tmdb_id for s in Show.objects.exclude(tmdb_id__isnull=True)}
     
+    # Pre-fetch existing event_ids to eliminate N+1 existence checks
+    incoming_event_ids = [f"{server_type}_{e['history_id']}" for e in events]
+    existing_event_ids = set(MediaWatchEvent.objects.filter(event_id__in=incoming_event_ids).values_list('event_id', flat=True))
+
     # In-memory cache for TMDB IDs to avoid redundant API calls
     tmdb_cache = show_id_map.copy()
     total_events = len(events)
@@ -97,6 +101,9 @@ def poll_provider_history(server_type, hours=1):
     new_events = []
     
     recent_threshold = timezone.now() - timedelta(hours=24)
+    recent_movie_events = {} # tmdb_id -> event
+    recent_show_ids = set() # tmdb_id
+    shows_to_purge = set() # (tmdb_id, title)
     
     for event in events:
         processed += 1
@@ -108,8 +115,8 @@ def poll_provider_history(server_type, hours=1):
             watched_at = timezone.make_aware(watched_at)
         
         try:
-            # 1. Skip if already exists
-            if MediaWatchEvent.objects.filter(event_id=event_id).exists():
+            # 1. Skip if already exists (Using pre-fetched set)
+            if event_id in existing_event_ids:
                 skipped += 1
                 continue
                 
@@ -145,15 +152,19 @@ def poll_provider_history(server_type, hours=1):
             )
             new_events.append(new_event)
             
-            # 4. Only trigger "Active" logic for very recent events
+            # 4. Collect "Active" logic targets for recent events
             is_recent = watched_at > recent_threshold
             if is_recent:
-                # We can't use bulk_create for these yet, so we handle them carefully
                 event['tmdb_id'] = tmdb_id
-                check_tasting_progress(event)
+                if is_movie:
+                    # Keep the latest movie event for progress calculation
+                    if tmdb_id not in recent_movie_events or watched_at > recent_movie_events[tmdb_id]['watched_at']:
+                        recent_movie_events[tmdb_id] = event
+                else:
+                    recent_show_ids.add(tmdb_id)
                 
                 if event.get('rating') and event['rating'] <= 2.0:
-                    trigger_auto_purge(title, tmdb_id=tmdb_id)
+                    shows_to_purge.add((tmdb_id, title))
                     
         except Exception as e:
             logger.error(f"Error processing history item '{event.get('title')}': {e}")
@@ -165,6 +176,14 @@ def poll_provider_history(server_type, hours=1):
         MediaWatchEvent.objects.bulk_create(new_events, ignore_conflicts=True)
     else:
         logger.info(f"[Library Sync] No new events to add for {server_type}. (Processed {total_events}, Skipped {skipped} existing).")
+
+    # 6. Process "Active" logic outside the loop to minimize redundant queries
+    for tmdb_id, event in recent_movie_events.items():
+        check_tasting_progress(event)
+    for tmdb_id in recent_show_ids:
+        check_tasting_progress({'tmdb_id': tmdb_id})
+    for tmdb_id, title in shows_to_purge:
+        trigger_auto_purge(title, tmdb_id=tmdb_id)
 
     # After processing all history events, trigger recommendation generation 
     # for the most recent unique titles found in this poll.

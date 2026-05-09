@@ -1,4 +1,4 @@
-<div class="space-y-4 animate-fade-in">
+<div class="space-y-4">
     <div class="flex items-center justify-center gap-2 text-green-500 font-bold py-3 bg-green-500/10 rounded-xl border border-green-500/20">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         Authentication Successful
@@ -10,7 +10,7 @@
             <div class="grid grid-cols-1 gap-2">
                 {% for server in servers %}
                 <button type="button" 
-                        onclick="document.getElementById('setup_plex_url').value = '{{ server.url }}'; this.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('border-rose-500', 'bg-rose-500/10')); this.classList.add('border-rose-500', 'bg-rose-500/10');"
+                        onclick="const urlInput = document.getElementById('setup_plex_url') || document.getElementById('plex_url_input') || document.querySelector('input[name=\'plex_url\']'); if(urlInput) { urlInput.value = '{{ server.url }}'; urlInput.dispatchEvent(new Event('change', { bubbles: true })); } this.closest('.grid').querySelectorAll('button').forEach(b => b.classList.remove('border-rose-500', 'bg-rose-500/10')); this.classList.add('border-rose-500', 'bg-rose-500/10'); htmx.ajax('POST', '{% url 'get_libraries' %}', {target: '#library-list', values: {plex_url: '{{ server.url }}', plex_token: document.getElementById('plex_token_hidden').value}});"
                         class="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl hover:border-rose-500/50 transition group text-left w-full">
                     <div>
                         <div class="text-sm font-bold text-white group-hover:text-rose-500 transition">{{ server.name }}</div>
@@ -29,3 +29,8 @@
         </div>
     {% endif %}
 </div>
+
+<!-- OOB update for the hidden token field in settings -->
+{% if config.plex_token %}
+<input type="hidden" id="plex_token_hidden" name="plex_token" value="{{ config.plex_token }}" hx-swap-oob="outerHTML">
+{% endif %}

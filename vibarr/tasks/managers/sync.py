@@ -226,6 +226,10 @@ def batch_universe_sync():
         async_task(discover_universe_and_sync, show.id)
 
 def sync_external_states():
+    """
+    Periodic maintenance task to ensure Vibarr's state matches Sonarr/Radarr.
+    Fixes monitoring issues and handles cases where items were deleted externally.
+    """
     active_items = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED])
     sonarr = SonarrService()
     radarr = RadarrService()
@@ -233,13 +237,61 @@ def sync_external_states():
     for item in active_items:
         try:
             if item.media_type == MediaType.SHOW and item.sonarr_id:
-                if not sonarr.get_series(item.sonarr_id):
+                s_details = sonarr.get_series(item.sonarr_id)
+                if not s_details:
+                    logger.warning(f"[Sync] Show '{item.title}' (ID: {item.sonarr_id}) not found in Sonarr. Marking as REJECTED.")
                     item.state = ShowState.REJECTED
                     item.save()
-            elif item.radarr_id:
-                if not radarr.get_movie(item.radarr_id):
+                    continue
+
+                # 1. Health Check: Monitoring Status
+                is_monitored = s_details.get('monitored', False)
+                
+                if item.state == ShowState.COMMITTED:
+                    # For committed shows, series AND all seasons should be monitored
+                    has_unmonitored_season = any(not s.get('monitored') for s in s_details.get('seasons', []))
+                    if not is_monitored or has_unmonitored_season:
+                        logger.info(f"[Sync] Healing monitoring for committed show: {item.title} (Series: {is_monitored}, Seasons: {not has_unmonitored_season})")
+                        sonarr.commit_series(item.sonarr_id)
+                
+                elif item.state == ShowState.TASTING:
+                    # For tasting, series must be monitored
+                    if not is_monitored:
+                        logger.info(f"[Sync] Healing series-level monitoring for tasting show: {item.title}")
+                        s_details['monitored'] = True
+                        sonarr.update_series(s_details)
+                        # Re-run granular monitoring to be safe
+                        sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
+                    else:
+                        # Even if series is monitored, ensure Season 1 and some episodes are
+                        has_monitored_season = any(s.get('monitored') and s.get('seasonNumber') == 1 for s in s_details.get('seasons', []))
+                        if not has_monitored_season:
+                            logger.info(f"[Sync] Healing season-level monitoring for tasting show: {item.title}")
+                            sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
+
+                # 2. Check if it's actually downloading
+                queue = sonarr.get_series_queue(item.sonarr_id)
+                if not queue and item.state == ShowState.TASTING:
+                    logger.debug(f"[Sync] Tasting '{item.title}' is monitored in Sonarr but nothing in queue.")
+
+            elif item.media_type == MediaType.MOVIE and item.radarr_id:
+                m_details = radarr.get_movie(item.radarr_id)
+                if not m_details:
+                    logger.warning(f"[Sync] Movie '{item.title}' (ID: {item.radarr_id}) not found in Radarr. Marking as REJECTED.")
                     item.state = ShowState.REJECTED
                     item.save()
+                    continue
+                
+                # Ensure it is monitored
+                if not m_details.get('monitored'):
+                    logger.info(f"[Sync] Healing monitoring for movie in Radarr: {item.title}")
+                    m_details['monitored'] = True
+                    radarr.update_movie(m_details)
+
+                # Queue check for Radarr
+                # (I haven't implemented get_movie_queue yet, so we'll just check full queue if needed)
+                # For now, Radarr is usually more straightforward.
+
         except Exception as e:
-            logger.error(f"[Universe Architect] Error syncing external state for {item.title}: {e}")
+            logger.error(f"[Sync] Error maintaining state for {item.title}: {e}")
             continue

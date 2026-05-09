@@ -26,30 +26,61 @@ class AIBaseService:
 
     def _parse_json_response(self, content, default):
         """Helper to extract and parse JSON from AI response."""
+        if not content:
+            return default
+            
+        # 1. Try finding JSON inside code blocks first
+        if "```" in content:
+            parts = content.split("```")
+            for part in parts:
+                clean_part = part.strip()
+                if not clean_part:
+                    continue
+                
+                # Strip language identifiers like 'json' or 'json_object'
+                if clean_part.startswith("json"):
+                    clean_part = clean_part[4:].strip()
+                
+                try:
+                    return json.loads(clean_part)
+                except json.JSONDecodeError:
+                    continue
+
+        # 2. Try finding JSON by looking for braces/brackets if not already found in blocks
         try:
-            if not content:
-                return default
+            # Find the first { or [ and last } or ]
+            start_obj = content.find('{')
+            start_arr = content.find('[')
             
-            # Extract from code blocks if present
-            if "```" in content:
-                # Try to find JSON block
-                parts = content.split("```")
-                for part in parts:
-                    clean_part = part.strip()
-                    if clean_part.startswith("json"):
-                        clean_part = clean_part[4:].strip()
+            # Determine which comes first
+            start = -1
+            if start_obj != -1 and start_arr != -1:
+                start = min(start_obj, start_arr)
+            elif start_obj != -1:
+                start = start_obj
+            elif start_arr != -1:
+                start = start_arr
+                
+            if start != -1:
+                end_obj = content.rfind('}')
+                end_arr = content.rfind(']')
+                end = max(end_obj, end_arr)
+                
+                if end != -1 and end > start:
+                    json_str = content[start:end+1]
                     try:
-                        return json.loads(clean_part)
+                        return json.loads(json_str)
                     except json.JSONDecodeError:
-                        continue
+                        pass # Fall through to whole thing
             
-            # Try parsing the whole thing
+            # 3. Fallback: Try parsing the whole thing (if no braces found or extraction failed)
             return json.loads(content.strip())
         except Exception as e:
-            logger.error(f"AI JSON Parse Error: {e}. Raw content (truncated): {content[:200]}")
+            # Only log if we couldn't find ANY valid JSON
+            logger.error(f"AI JSON Parse Error: {e}. Raw content (truncated): {content[:500]}")
             return default
 
-    def _post(self, prompt, temperature=0.3, timeout=30, json_mode=False):
+    def _post(self, prompt, temperature=0.3, timeout=60, json_mode=False):
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],

@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.cache import cache
-from .enums import MediaServerType
+from .enums import MediaServerType, AuthMode
 
 class Persona(models.Model):
     name = models.CharField(max_length=50)
@@ -108,9 +108,18 @@ class AppConfig(models.Model):
     auto_collection_sync = models.BooleanField(default=False, help_text="Automatically create collections in Plex/Jellyfin for detected universes.")
     universe_page_enabled = models.BooleanField(default=True)
 
+    # Security
+    auth_mode = models.CharField(max_length=10, choices=AuthMode.choices, default=AuthMode.NONE)
+    auth_password = models.TextField(null=True, blank=True, help_text="Hashed application password.")
+
+    setup_complete = models.BooleanField(default=False)
+
     @property
     def is_configured(self):
-        """Checks if the minimum required settings are present."""
+        """Checks if the minimum required settings are present or wizard was skipped."""
+        if self.setup_complete:
+            return True
+            
         has_media_server = bool(self.plex_token or self.jellyfin_api_key)
         has_manager = bool(self.sonarr_url or self.radarr_url)
         return has_media_server and has_manager

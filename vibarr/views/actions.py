@@ -199,3 +199,17 @@ class ResetSyncStatusView(APIMixin, View):
             return JsonResponse({'status': 'success', 'message': 'Sync status reset'})
         return redirect('settings')
 
+class ExternalSyncView(APIMixin, View):
+    def get(self, request, *args, **kwargs):
+        async_task(sync_external_states)
+        
+        if request.headers.get('HX-Request'):
+            response = HttpResponse("")
+            response['HX-Trigger'] = '{"show-toast": "Manager Health Sync: Task queued."}'
+            return response
+
+        messages.success(request, "Sonarr/Radarr monitoring health check triggered.")
+        if getattr(request, 'is_api_request', False):
+            return JsonResponse({'status': 'success', 'message': 'External sync triggered'})
+        return redirect('settings_automation')
+

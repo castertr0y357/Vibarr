@@ -29,21 +29,26 @@ def refresh_discovery_tracks():
     config = AppConfig.get_solo()
     tmdb = TMDBService()
     
+    # Fetch library titles once to pass to scouts
+    library_titles = set()
+    for _, provider in get_active_providers():
+        library_titles.update([t.lower() for t in provider.get_library_titles()])
+
     # 1. Refresh Movies
     current_movies = Show.objects.filter(state=ShowState.SUGGESTED, media_type=MediaType.MOVIE).count()
     if current_movies < config.max_discovered_movies:
         needed = config.max_discovered_movies - current_movies
         logger.info(f"[AI Scout] Movie backlog at {current_movies}/{config.max_discovered_movies}. Refreshing...")
-        scout_for_media_type(MediaType.MOVIE, limit=min(needed, 10))
+        scout_for_media_type(MediaType.MOVIE, limit=min(needed, 10), library_titles=library_titles)
 
     # 2. Refresh Shows
     current_shows = Show.objects.filter(state=ShowState.SUGGESTED, media_type=MediaType.SHOW).count()
     if current_shows < config.max_discovered_shows:
         needed = config.max_discovered_shows - current_shows
         logger.info(f"[AI Scout] Show backlog at {current_shows}/{config.max_discovered_shows}. Refreshing...")
-        scout_for_media_type(MediaType.SHOW, limit=min(needed, 10))
+        scout_for_media_type(MediaType.SHOW, limit=min(needed, 10), library_titles=library_titles)
 
-def scout_for_media_type(target_type, limit=5):
+def scout_for_media_type(target_type, limit=5, library_titles=None):
     """
     Finds and ranks new recommendations specifically for a media type.
     """
@@ -73,15 +78,19 @@ def scout_for_media_type(target_type, limit=5):
         for c in candidates_raw: c['_media_type'] = MediaType.SHOW
 
     # Filter candidates
-    library_titles = set()
-    for _, provider in get_active_providers():
-        library_titles.update([t.lower() for t in provider.get_library_titles()])
+    existing_show_ids = set(Show.objects.filter(media_type=target_type).values_list('tmdb_id', flat=True))
+    existing_event_ids = set(MediaWatchEvent.objects.filter(media_type=target_type).values_list('tmdb_id', flat=True))
+
+    if library_titles is None:
+        library_titles = set()
+        for _, provider in get_active_providers():
+            library_titles.update([t.lower() for t in provider.get_library_titles()])
 
     candidates = []
     for c in candidates_raw:
         title_lower = (c.get('name') or c.get('title', '')).lower()
-        if Show.objects.filter(tmdb_id=c['id'], media_type=target_type).exists(): continue
-        if MediaWatchEvent.objects.filter(tmdb_id=c['id'], media_type=target_type).exists(): continue
+        if c['id'] in existing_show_ids: continue
+        if c['id'] in existing_event_ids: continue
         if title_lower in library_titles: continue
         
         candidates.append({
@@ -251,7 +260,7 @@ def revaluate_all_recommendations():
     # We re-evaluate SUGGESTED and TASTING items
     items_to_score = Show.objects.filter(
         state__in=[ShowState.SUGGESTED, ShowState.TASTING]
-    ).order_by('-updated_at')
+    ).prefetch_related('recommendations').order_by('-updated_at')
     
     if not items_to_score.exists():
         return
@@ -263,20 +272,24 @@ def revaluate_all_recommendations():
     show_profile = get_weighted_history_profile(MediaType.SHOW)
     full_profile = list(set(movie_profile + show_profile))
 
-    # Batch process 15 items at a time
+    # Batch process 8 items at a time (smaller batches prevent AI response truncation)
     items_list = list(items_to_score)
     updated_count = 0
     promoted_count = 0
     
-    for i in range(0, len(items_list), 15):
-        batch = items_list[i:i+15]
+    for i in range(0, len(items_list), 8):
+        batch = items_list[i:i+8]
         candidates = []
         for item in batch:
             # We need title and overview for the AI
-            # We'll try to find an existing recommendation to get source_title or just use title
+            # Truncate reasoning/overview to save tokens
+            all_recs = list(item.recommendations.all())
+            raw_overview = all_recs[0].reasoning if all_recs else ""
+            overview = (raw_overview[:300] + '...') if len(raw_overview) > 300 else raw_overview
+            
             candidates.append({
                 'title': item.title,
-                'overview': item.recommendations.first().reasoning if item.recommendations.exists() else ""
+                'overview': overview
             })
             
         if config.use_ai_recommendations:
@@ -303,8 +316,9 @@ def revaluate_all_recommendations():
             new_tags = ", ".join(ai_data.get('vibe_tags', [])) if isinstance(ai_data.get('vibe_tags'), list) else ""
             
             # Update Recommendation
-            rec = item.recommendations.first()
-            if rec:
+            all_recs = list(item.recommendations.all())
+            if all_recs:
+                rec = all_recs[0]
                 rec.score = new_score
                 rec.reasoning = new_reasoning
                 rec.vibe_tags = new_tags

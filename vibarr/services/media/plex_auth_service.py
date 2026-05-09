@@ -16,7 +16,8 @@ class PlexAuthService:
         
         # We need a persistent identifier for Plex Auth to work correctly.
         # We derive a stable ID from the app's secret key.
-        client_id = hashlib.sha256(settings.SECRET_KEY.encode()).hexdigest()[:32]
+        # Reverting to a simpler, more stable identifier if the hashed secret caused issues
+        client_id = "vibarr-client-id" 
 
         self.headers = {
             "X-Plex-Product": "Vibarr",
@@ -28,8 +29,8 @@ class PlexAuthService:
 
     def get_pin(self):
         url = f"{self.BASE_URL}/pins"
-        # We want a strong PIN for modern Plex Auth flows
-        payload = {"strong": "true"}
+        # Using a standard PIN flow (not enforced strong)
+        payload = {"strong": "false"}
         response = requests.post(url, data=payload, headers=self.headers)
         response.raise_for_status()
         try:

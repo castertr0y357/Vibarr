@@ -17,8 +17,14 @@
                         {{ show.content_rating|default:"NR" }}
                     </span>
                 </div>
-                <div class="absolute top-2 left-2 z-10">
+                <div class="absolute top-2 left-2 z-10 flex gap-2">
                     <span class="{% if show.media_type == 'MOVIE' %}bg-amber-500/80{% else %}bg-blue-500/80{% endif %} text-[8px] px-1.5 py-0.5 rounded text-white font-bold uppercase">{{ show.media_type }}</span>
+                    {% if show.is_downloading %}
+                    <span class="bg-rose-500 text-[8px] px-1.5 py-0.5 rounded text-white font-black uppercase animate-pulse flex items-center gap-1 shadow-[0_0_10px_rgba(244,63,94,0.5)]">
+                        <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        Downloading
+                    </span>
+                    {% endif %}
                 </div>
 
                 <!-- Hover hint -->

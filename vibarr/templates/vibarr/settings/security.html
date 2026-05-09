@@ -1,55 +1,59 @@
 {% extends 'vibarr/settings_layout.html' %}
 
 {% block settings_title %}Security{% endblock %}
-{% block section_name %}System Access Keys{% endblock %}
+{% block section_name %}Application Security{% endblock %}
 
 {% block settings_section %}
 <div class="space-y-8">
-    <section class="glass p-8 rounded-3xl space-y-8">
-        <div class="flex justify-between items-center">
-            <div>
-                <h3 class="text-white font-bold">API Integration Keys</h3>
-                <p class="text-xs text-gray-500">Manage keys for external API access to the Vibarr scout.</p>
+    <div class="glass p-8 rounded-3xl space-y-8" x-data="{ mode: '{{ config.auth_mode }}' }">
+        <!-- Authentication Mechanism -->
+        <div class="space-y-6">
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-white">Authentication Mechanism</h3>
+                <p class="text-xs text-gray-500">Control who can access the Vibarr dashboard.</p>
             </div>
-            <a href="{% url 'create_api_key' %}" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-xl text-xs font-bold hover:bg-rose-500/20 transition">Generate New Key</a>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auth Mode</label>
+                    <select name="auth_mode" x-model="mode" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                        <option value="NONE" {% if config.auth_mode == 'NONE' %}selected{% endif %}>None (Public)</option>
+                        <option value="EXTERNAL" {% if config.auth_mode == 'EXTERNAL' %}selected{% endif %}>External IPs Only</option>
+                        <option value="ALWAYS" {% if config.auth_mode == 'ALWAYS' %}selected{% endif %}>Always (Internal & External)</option>
+                    </select>
+                    <p class="text-[9px] text-gray-500 italic" x-show="mode == 'EXTERNAL'">Local networks (192.168.x.x, etc.) bypass authentication.</p>
+                    <p class="text-[9px] text-gray-500 italic" x-show="mode == 'ALWAYS'">Authentication is required for every request.</p>
+                </div>
+
+                <div class="space-y-2" x-show="mode != 'NONE'">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">New Access Code</label>
+                    <input type="password" name="auth_password" placeholder="Leave blank to keep current" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                    <p class="text-[9px] text-gray-500 italic">This code will be hashed before being stored.</p>
+                </div>
+            </div>
+            
+            {% if not config.auth_password and config.auth_mode != 'NONE' %}
+            <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-4">
+                <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <p class="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Warning: Authentication is enabled but no access code is set. You will be locked out!</p>
+            </div>
+            {% endif %}
         </div>
 
-        <div class="space-y-4">
-            {% for key in api_keys %}
-            <div class="p-6 bg-white/5 rounded-2xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <div class="flex items-center gap-2 mb-1">
-                        <span class="text-white font-bold">{{ key.name }}</span>
-                        {% if not key.is_revoked %}
-                        <span class="text-[8px] bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded border border-green-500/20 font-black uppercase">Active</span>
-                        {% else %}
-                        <span class="text-[8px] bg-rose-500/20 text-rose-500 px-1.5 py-0.5 rounded border border-rose-500/20 font-black uppercase">Revoked</span>
-                        {% endif %}
-                    </div>
-                    <code class="text-[10px] text-gray-500 font-mono">{{ key.prefix }}...</code>
+        <!-- API Keys -->
+        <div class="pt-8 border-t border-white/5 space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="space-y-1">
+                    <h3 class="text-xl font-bold text-white">API Keys</h3>
+                    <p class="text-xs text-gray-500">Manage external access for automation scripts.</p>
                 </div>
-                
-                <div class="flex items-center gap-6">
-                    <div class="text-right">
-                        <p class="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Created</p>
-                        <p class="text-[10px] text-white font-medium">{{ key.created_at|date:"M d, Y" }}</p>
-                    </div>
-                    {% if not key.is_revoked %}
-                    <form hx-post="{% url 'revoke_api_key' key.id %}" hx-confirm="Revoke this API key permanently?" hx-target="body">
-                        {% csrf_token %}
-                        <button type="submit" class="p-2 text-gray-500 hover:text-rose-500 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
+                <button type="button" hx-post="{% url 'create_api_key' %}" hx-target="#api-key-list" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-500 hover:text-white transition-all">Generate New Key</button>
             </div>
-            {% empty %}
-            <div class="py-12 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <p class="text-gray-500 text-sm">No API keys generated yet.</p>
+            
+            <div id="api-key-list" class="space-y-3">
+                {% include 'vibarr/partials/api_key_list.html' %}
             </div>
-            {% endfor %}
         </div>
-    </section>
+    </div>
 </div>
 {% endblock %}

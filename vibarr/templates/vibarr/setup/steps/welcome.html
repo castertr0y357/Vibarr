@@ -7,12 +7,20 @@
         <p class="text-gray-400 text-lg">Your autonomous AI talent scout for Plex and Jellyfin. Let's get your stack connected.</p>
     </div>
     
-    <div class="pt-8">
+    <div class="pt-8 space-y-4">
         <button hx-get="{% url 'setup_wizard' %}?step=media" 
                 hx-target="#setup-content" 
                 hx-push-url="true"
                 class="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl transition shadow-2xl shadow-rose-500/20 text-lg">
             Begin Calibration
         </button>
+        
+        <form method="POST" action="{% url 'setup_action' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="skip">
+            <button type="submit" class="w-full py-2 text-gray-500 hover:text-white transition text-xs font-bold uppercase tracking-widest">
+                Skip for now
+            </button>
+        </form>
     </div>
 </div>

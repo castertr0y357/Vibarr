@@ -57,10 +57,33 @@ class DashboardView(APIMixin, ConfigMixin, TemplateView):
             tastings_qs = tastings_qs.filter(media_type=media_type_filter.upper())
             
         all_tastings = list(tastings_qs.prefetch_related('mediawatchevent_set', 'recommendations'))
+        
+        # Enrich with download status from Managers
+        sonarr = SonarrService()
+        radarr = RadarrService()
+        s_queue = sonarr.get_full_queue()
+        r_queue = radarr.get_full_queue()
+        
+        s_queued_ids = {item.get('seriesId') for item in s_queue if item.get('seriesId')}
+        r_queued_ids = {item.get('movieId') for item in r_queue if item.get('movieId')}
+        
+        for t in all_tastings:
+            if t.media_type == MediaType.SHOW:
+                t.is_downloading = t.sonarr_id in s_queued_ids
+            else:
+                t.is_downloading = t.radarr_id in r_queued_ids
+
         all_tastings.sort(key=lambda s: (s.tasting_progress_percent, s.recommendations.first().score if s.recommendations.exists() else 0), reverse=True)
         context['tasting'] = all_tastings[:5]
         
-        context['committed'] = Show.objects.filter(state=ShowState.COMMITTED, media_type=MediaType.SHOW).order_by('-updated_at')[:5]
+        committed_qs = Show.objects.filter(
+            state=ShowState.COMMITTED, 
+            media_type=MediaType.SHOW
+        ).prefetch_related('recommendations').order_by('-updated_at')
+        
+        context['committed'] = list(committed_qs[:5])
+        for c in context['committed']:
+            c.is_downloading = c.sonarr_id in s_queued_ids
         
         # Determine if we should render a partial
         partial = self.request.GET.get('partial')

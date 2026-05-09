@@ -1,5 +1,6 @@
 import requests
 import logging
+import time
 from django.conf import settings
 from ...models import AppConfig
 
@@ -70,12 +71,29 @@ class SonarrService:
 
         series_data["rootFolderPath"] = root_path
         series_data["qualityProfileId"] = profile_id
+        # For tasting, we want the series to be monitored, 
+        # but we only want Season 1 to be monitored initially so we can refine it.
         series_data["monitored"] = True
-        series_data["addOptions"] = {"searchForMissingEpisodes": True}
         
-        # Set all episodes to unmonitored by default in the add request
+        # Sonarr v3 requires seasons to be explicitly set
+        has_season_1 = False
         for season in series_data.get("seasons", []):
-            season["monitored"] = False
+            if season.get("seasonNumber") == 1:
+                season["monitored"] = True
+                has_season_1 = True
+            else:
+                season["monitored"] = False
+        
+        # Fallback to first available season if no Season 1
+        if not has_season_1 and series_data.get("seasons"):
+            valid_seasons = sorted([s for s in series_data["seasons"] if s.get("seasonNumber", 0) > 0], 
+                                 key=lambda x: x.get("seasonNumber", 0))
+            if valid_seasons:
+                valid_seasons[0]["monitored"] = True
+
+        # We set searchForMissingEpisodes to False here because we'll trigger 
+        # a targeted search for only the tasting episodes in monitor_episodes.
+        series_data["addOptions"] = {"searchForMissingEpisodes": False}
 
         add_url = f"{self.base_url}/api/v3/series"
         response = requests.post(add_url, json=series_data, headers=self.headers, timeout=15)
@@ -83,7 +101,7 @@ class SonarrService:
         added_series = response.json()
         series_id = added_series["id"]
 
-        # Now monitor the first X episodes
+        # Now monitor only the first X episodes and search for them
         self.monitor_episodes(series_id, tasting_count)
         
         return added_series
@@ -92,9 +110,20 @@ class SonarrService:
         # Get episode list for the series
         ep_url = f"{self.base_url}/api/v3/episode"
         params = {"seriesId": series_id}
-        ep_res = requests.get(ep_url, params=params, headers=self.headers)
-        ep_res.raise_for_status()
-        episodes = ep_res.json()
+        
+        # Sonarr may take a few seconds to populate episodes after adding a series
+        episodes = []
+        for _ in range(5):
+            ep_res = requests.get(ep_url, params=params, headers=self.headers)
+            ep_res.raise_for_status()
+            episodes = ep_res.json()
+            if episodes:
+                break
+            time.sleep(1)
+
+        if not episodes:
+            logger.warning(f"Sonarr: No episodes found for series {series_id} after retries.")
+            return
 
         # Sort episodes by season and number
         episodes.sort(key=lambda x: (x['seasonNumber'], x['episodeNumber']))
@@ -102,14 +131,42 @@ class SonarrService:
         # Filter out specials (Season 0)
         regular_episodes = [e for e in episodes if e['seasonNumber'] > 0]
         
-        target_ids = [e['id'] for e in regular_episodes[:count]]
+        target_episodes = regular_episodes[:count]
+        other_episodes = regular_episodes[count:]
         
+        target_ids = [e['id'] for e in target_episodes]
+        other_ids = [e['id'] for e in other_episodes]
+        
+        # We MUST ensure the seasons for these episodes are monitored as well
+        target_season_numbers = {e['seasonNumber'] for e in target_episodes}
+        if target_season_numbers:
+            series_data = self.get_series(series_id)
+            if series_data:
+                changed = False
+                for season in series_data.get('seasons', []):
+                    if season['seasonNumber'] in target_season_numbers:
+                        if not season['monitored']:
+                            season['monitored'] = True
+                            changed = True
+                if changed:
+                    self.update_series(series_data)
+
         monitor_url = f"{self.base_url}/api/v3/episode/monitor"
-        payload = {
-            "episodeIds": target_ids,
-            "monitored": True
-        }
-        requests.put(monitor_url, json=payload, headers=self.headers).raise_for_status()
+        
+        # Monitor target episodes
+        if target_ids:
+            payload = {"episodeIds": target_ids, "monitored": True}
+            requests.put(monitor_url, json=payload, headers=self.headers).raise_for_status()
+            
+            # Trigger search for the tasting episodes
+            search_url = f"{self.base_url}/api/v3/command"
+            search_payload = {"name": "EpisodeSearch", "episodeIds": target_ids}
+            requests.post(search_url, json=search_payload, headers=self.headers)
+            
+        # Unmonitor all other episodes (this ensures only the taste is active)
+        if other_ids:
+            payload = {"episodeIds": other_ids, "monitored": False}
+            requests.put(monitor_url, json=payload, headers=self.headers).raise_for_status()
 
     def commit_series(self, series_id):
         # Monitor all episodes and the series itself
@@ -142,6 +199,37 @@ class SonarrService:
             return None
         response.raise_for_status()
         return response.json()
+
+    def update_series(self, series_data):
+        url = f"{self.base_url}/api/v3/series/{series_data['id']}"
+        response = requests.put(url, json=series_data, headers=self.headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
+    def get_series_queue(self, series_id):
+        """Checks if there are any active downloads for this series in the Sonarr queue."""
+        if not self.base_url: return []
+        try:
+            url = f"{self.base_url}/api/v3/queue"
+            params = {"seriesId": series_id}
+            response = requests.get(url, params=params, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return response.json().get('records', [])
+        except Exception as e:
+            logger.error(f"Sonarr: Failed to fetch queue for series {series_id}: {e}")
+            return []
+
+    def get_full_queue(self):
+        """Fetches the entire active queue from Sonarr."""
+        if not self.base_url: return []
+        try:
+            url = f"{self.base_url}/api/v3/queue"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return response.json().get('records', [])
+        except Exception as e:
+            logger.error(f"Sonarr: Failed to fetch full queue: {e}")
+            return []
 
     def get_all_tvdb_ids(self):
         if not self.base_url: return set()

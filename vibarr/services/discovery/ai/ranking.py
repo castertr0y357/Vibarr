@@ -49,7 +49,7 @@ class AIRankingService(AIBaseService):
         if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
 
         try:
-            response = requests.post(self.url, headers=self.headers, json=payload, timeout=60)
+            response = requests.post(self.url, headers=self.headers, json=payload, timeout=120)
             response.raise_for_status()
             content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
             data = self._parse_json_response(content, [])
@@ -104,7 +104,7 @@ class AIRankingService(AIBaseService):
         if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
 
         try:
-            response = requests.post(self.url, headers=self.headers, json=payload, timeout=90)
+            response = requests.post(self.url, headers=self.headers, json=payload, timeout=180)
             response.raise_for_status()
             content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
             data = self._parse_json_response(content, {})

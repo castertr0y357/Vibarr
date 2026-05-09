@@ -57,16 +57,50 @@
         </div>
     </section>
 
-    <!-- Networking -->
+    <!-- Networking & Tautulli -->
     <section class="glass p-8 rounded-3xl space-y-6">
         <h3 class="text-white font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.826a4 4 0 005.656 0l4-4a4 4 0 00-5.656 0l4 4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            Networking & Proxy
+            Networking & Tautulli
         </h3>
-        <div class="space-y-2">
-            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base URL Path</label>
-            <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="e.g. /vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-            <p class="text-[9px] text-gray-500">Only needed if running Vibarr behind a reverse proxy subfolder.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2 col-span-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base URL Path</label>
+                <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="e.g. /vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <p class="text-[9px] text-gray-500">Only needed if running Vibarr behind a reverse proxy subfolder.</p>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tautulli URL</label>
+                <input type="text" name="tautulli_url" value="{{ config.tautulli_url|default:'' }}" placeholder="http://ip:8181" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tautulli API Key</label>
+                <input type="password" name="tautulli_api_key" value="{{ config.tautulli_api_key|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            </div>
+        </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <h3 class="text-white font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            External Notifications
+        </h3>
+        <div class="space-y-4">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Discord Webhook URL</label>
+                <input type="text" name="discord_webhook_url" value="{{ config.discord_webhook_url|default:'' }}" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Telegram Bot Token</label>
+                    <input type="password" name="telegram_bot_token" value="{{ config.telegram_bot_token|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Telegram Chat ID</label>
+                    <input type="text" name="telegram_chat_id" value="{{ config.telegram_chat_id|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
+            </div>
         </div>
     </section>
 

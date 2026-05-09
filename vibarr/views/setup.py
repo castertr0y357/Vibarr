@@ -85,8 +85,14 @@ class SetupActionView(View):
             config.use_ai_recommendations = request.POST.get('use_ai') == 'on'
             config.ai_api_url = request.POST.get('ai_url')
             config.ai_model = request.POST.get('ai_model')
+            config.setup_complete = True
             config.save()
             return render(request, 'vibarr/setup/steps/finish.html', {'config': config})
+            
+        elif action == 'skip':
+            config.setup_complete = True
+            config.save()
+            return redirect('dashboard')
             
         return redirect('dashboard')
 
@@ -124,7 +130,8 @@ class PlexPinPollView(View):
             
             return render(request, 'vibarr/setup/partials/plex_discovery_results.html', {
                 'servers': servers,
-                'status': 'success'
+                'status': 'success',
+                'config': config
             })
         
         # Still waiting - explicitly target the status div to avoid over-swapping
@@ -143,9 +150,8 @@ class PlexPinPollView(View):
 class ResetSetupView(View):
     def post(self, request):
         config = AppConfig.get_solo()
-        # Optional: reset fields? Or just redirect.
-        # config.plex_token = None ...
-        # config.save()
+        config.setup_complete = False
+        config.save()
         return redirect('setup_wizard')
 
 class TestAutomationView(View):
