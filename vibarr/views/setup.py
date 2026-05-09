@@ -8,6 +8,9 @@ from ..services.managers.radarr_service import RadarrService
 from ..services.media.plex_service import PlexService
 from ..services.media.jellyfin_service import JellyfinService
 from ..services.media.plex_auth_service import PlexAuthService
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SetupWizardView(TemplateView):
     template_name = 'vibarr/setup/wizard.html'
@@ -179,6 +182,5 @@ class TestAutomationView(View):
             
             return HttpResponse(response_html)
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Wizard Automation Test Error: {e}")
+            logger.error(f"Wizard Automation Test Error: {e}")
             return HttpResponse(f'<span class="text-rose-500 font-bold text-xs">Connection Failed: {str(e)[:40]}...</span>')

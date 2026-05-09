@@ -118,8 +118,7 @@ class TasteShowView(View):
         messages.info(request, f"Started tasting for '{show.title}'.")
         return redirect('dashboard')
 
-class ManualSyncView(APIMixin, RedirectView):
-    pattern_name = 'dashboard'
+class ManualSyncView(APIMixin, View):
     def get(self, request, *args, **kwargs):
         config = AppConfig.get_solo()
         config.is_syncing = True
@@ -128,19 +127,30 @@ class ManualSyncView(APIMixin, RedirectView):
         
         async_task(poll_media_servers, hours=72)
         async_task(sync_external_states)
+        
+        if request.headers.get('HX-Request'):
+            response = HttpResponse("")
+            response['HX-Trigger'] = '{"show-toast": "Manual sync triggered."}'
+            return response
+
         messages.success(request, "Manual sync triggered.")
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': 'Manual sync triggered'})
-        return super().get(request, *args, **kwargs)
+        return redirect('dashboard')
 
-class UniverseSyncView(APIMixin, RedirectView):
-    pattern_name = 'dashboard'
+class UniverseSyncView(APIMixin, View):
     def get(self, request, *args, **kwargs):
         async_task(batch_universe_sync)
+        
+        if request.headers.get('HX-Request'):
+            response = HttpResponse("")
+            response['HX-Trigger'] = '{"show-toast": "Universe Architect: Batch sync triggered."}'
+            return response
+
         messages.success(request, "Universe Architect: Batch sync triggered for all committed items.")
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': 'Batch universe sync triggered'})
-        return super().get(request, *args, **kwargs)
+        return redirect('dashboard')
 
 class HealthCheckView(View):
     def get(self, request, service_type):

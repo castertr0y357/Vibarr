@@ -6,3 +6,4 @@ from .views.search import VibeSearchView, VibeSearchActionView, TasteFromSearchV
 from .views.actions import RejectShowView, TasteShowView, ManualSyncView, UniverseSyncView, HealthCheckView, StopAndDeleteShowView
 from .views.auth import StartPlexAuthView, FinishPlexAuthView
 from .views.diagnostics import LogsView, DownloadLogsView
+from .views.media_views import DiscoveryListView, TastingListView, CommittedListView

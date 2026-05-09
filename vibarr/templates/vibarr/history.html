@@ -23,7 +23,7 @@
     </div>
 
     <!-- HISTORY TABLE -->
-    <section class="glass rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
+    <section id="history-container" class="glass rounded-3xl overflow-hidden border border-white/5 shadow-2xl">
         <table class="w-full text-left border-collapse">
             <thead class="bg-black/40 text-[10px] text-gray-500 font-bold uppercase tracking-widest border-b border-white/5">
                 <tr>
@@ -46,9 +46,13 @@
         {% if is_paginated %}
         <div class="px-6 py-4 bg-black/20 flex items-center justify-between border-t border-white/5">
             <p class="text-xs text-gray-500">Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ paginator.count }} events</p>
-            <div class="flex space-x-1 items-center">
+            <div class="flex space-x-1 items-center"
+                 hx-target="#history-container"
+                 hx-select="#history-container"
+                 hx-swap="outerHTML"
+                 hx-push-url="true">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 glass rounded-lg text-xs text-white hover:bg-white/10 transition mr-2">Previous</a>
+                <a hx-get="?page={{ page_obj.previous_page_number }}" href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1.5 glass rounded-lg text-xs text-white hover:bg-white/10 transition mr-2">Previous</a>
                 {% endif %}
                 
                 {% for i in page_range %}
@@ -57,12 +61,12 @@
                     {% elif i == page_obj.number %}
                         <span class="px-3 py-1.5 bg-rose-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-rose-500/20">{{ i }}</span>
                     {% else %}
-                        <a href="?page={{ i }}" class="px-3 py-1.5 glass rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/10 transition">{{ i }}</a>
+                        <a hx-get="?page={{ i }}" href="?page={{ i }}" class="px-3 py-1.5 glass rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/10 transition">{{ i }}</a>
                     {% endif %}
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 glass rounded-lg text-xs text-white hover:bg-white/10 transition ml-2">Next</a>
+                <a hx-get="?page={{ page_obj.next_page_number }}" href="?page={{ page_obj.next_page_number }}" class="px-3 py-1.5 glass rounded-lg text-xs text-white hover:bg-white/10 transition ml-2">Next</a>
                 {% endif %}
             </div>
         </div>

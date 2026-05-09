@@ -1,5 +1,7 @@
 from django.views.generic import RedirectView, TemplateView
 from django.shortcuts import redirect, render
+from django.urls import reverse
+import urllib.parse
 from ..services.media.plex_auth_service import PlexAuthService
 from ..models import AppConfig
 
@@ -10,8 +12,6 @@ class StartPlexAuthView(RedirectView):
         self.request.session['plex_pin_id'] = pin_data['id']
         
         # Build absolute forward URL for callback
-        from django.urls import reverse
-        import urllib.parse
         forward_url = self.request.build_absolute_uri(reverse('finish_plex_auth'))
         encoded_forward = urllib.parse.quote(forward_url)
         

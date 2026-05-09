@@ -24,5 +24,8 @@ class AIService:
     def rank_shows(self, history_titles, candidates, context=None):
         return self.ranking.rank_shows(history_titles, candidates, context)
 
+    def score_candidates(self, history_titles, candidates):
+        return self.ranking.score_candidates(history_titles, candidates)
+
     def get_mood_recommendations(self, history_titles, mood):
         return self.ranking.get_mood_recommendations(history_titles, mood)

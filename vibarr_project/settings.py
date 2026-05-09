@@ -130,7 +130,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 
 # Django-Q2 Configuration
 Q_CLUSTER = {
-    'name': 'VibarrCluster',
+    'name': 'Vibarr-Worker',
     'workers': 4,
     'timeout': 90,
     'retry': 120,
@@ -148,20 +148,22 @@ LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+        'human': {
+            'format': '[{asctime}] {levelname:7} | {name:25} | {message}',
             'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'human',
         },
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': 'logs/vibarr.log',
-            'formatter': 'verbose',
+            'formatter': 'human',
         },
     },
     'root': {
@@ -177,6 +179,11 @@ LOGGING = {
         'vibarr': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django_q': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

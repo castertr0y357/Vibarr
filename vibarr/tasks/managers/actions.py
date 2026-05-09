@@ -1,6 +1,9 @@
-from ...models import Show, ShowState, MediaType, MediaWatchEvent
+from ...models import Show, ShowState, MediaType, MediaWatchEvent, AppConfig
 from ...services.managers.sonarr_service import SonarrService
 from ...services.managers.radarr_service import RadarrService
+from ...services.comms.notification_service import NotificationService
+from .sync import discover_universe_and_sync
+from ..discovery.scouts import run_bridge_check
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +17,7 @@ def start_tasting(show_id):
             show.radarr_id = added['id']
         else:
             sonarr = SonarrService()
-            added = sonarr.add_series(show.tmdb_id, show.title, show.tasting_episodes_count)
+            added = sonarr.add_series(show.tmdb_id, show.title, show.tasting_episodes_count, tvdb_id=show.tvdb_id)
             show.sonarr_id = added['id']
         show.state = ShowState.TASTING
         show.save()
@@ -36,12 +39,9 @@ def check_tasting_progress(event):
             if progress >= 40:
                 show.state = ShowState.COMMITTED
                 show.save()
-                from ...models import AppConfig
                 config = AppConfig.get_solo()
                 if config.auto_universe_discovery:
-                    from .sync import discover_universe_and_sync
                     discover_universe_and_sync(show.id)
-                from ..discovery.scouts import run_bridge_check
                 run_bridge_check(show.id)
     else:
         # Use TMDB ID for counting if available
@@ -57,14 +57,10 @@ def check_tasting_progress(event):
                 sonarr.commit_series(show.sonarr_id)
                 show.state = ShowState.COMMITTED
                 show.save()
-                from ...models import AppConfig
                 config = AppConfig.get_solo()
                 if config.auto_universe_discovery:
-                    from .sync import discover_universe_and_sync
                     discover_universe_and_sync(show.id)
-                from ..discovery.scouts import run_bridge_check
                 run_bridge_check(show.id)
-                from ...services.comms.notification_service import NotificationService
                 NotificationService().send_message(f"🏆 Tasting Complete! You've committed to the full series: <b>{show.title}</b>.", title="Series Committed")
             except Exception: pass
 
@@ -91,5 +87,4 @@ def trigger_auto_purge(title, tmdb_id=None):
                 show.save()
             except Exception: pass
             
-        from ...services.comms.notification_service import NotificationService
         NotificationService().notify_purge(show.title, "Low user rating / Negative vibe.")

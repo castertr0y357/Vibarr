@@ -1,6 +1,6 @@
 import requests
 import logging
-from ...models import AppConfig
+from ..models import AppConfig
 
 logger = logging.getLogger(__name__)
 

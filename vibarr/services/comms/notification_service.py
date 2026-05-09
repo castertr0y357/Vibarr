@@ -1,3 +1,4 @@
+from django_q.tasks import async_task
 import logging
 from ...models import AppConfig
 
@@ -9,7 +10,6 @@ class NotificationService:
 
     def send_message(self, text, title=None):
         """Offloads notification sending to a background task."""
-        from django_q.tasks import async_task
         try:
             async_task('vibarr.tasks.notifications.send_async_notification', text, title=title)
         except Exception as e:

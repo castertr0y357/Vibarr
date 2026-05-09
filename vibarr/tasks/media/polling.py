@@ -23,7 +23,7 @@ def poll_media_servers(hours=1):
     # Robust lock: Allow if not syncing, OR if backfill (>24h), OR if stuck > 1 min
     stuck_threshold = 60 if hours > 24 else 900
     if config.is_syncing and config.last_sync and (now - config.last_sync).total_seconds() < stuck_threshold:
-        logger.info(f"Scout sync in progress ({int((now - config.last_sync).total_seconds())}s ago). Skipping.")
+        logger.info(f"[Library Sync] Scout sync already in progress ({int((now - config.last_sync).total_seconds())}s ago). Skipping.")
         return
 
     config.is_syncing = True
@@ -74,19 +74,19 @@ def poll_provider_history(server_type, hours=1):
     config.sync_status = f"Polling {server_type} for watch events (last {hours}h)..."
     config.save()
     
-    logger.info(f"Polling {server_type} for new watch events (last {hours}h)...")
+    logger.info(f"[Library Sync] Polling {server_type} for new watch events (last {hours}h)...")
     try:
         events = provider.get_recent_history(hours=hours)
-        logger.info(f"[{server_type}] Found {len(events)} events in last {hours}h.")
+        logger.info(f"[Library Sync] Found {len(events)} events for {server_type} in last {hours}h.")
     except Exception as e:
-        logger.error(f"[{server_type}] Failed to get history: {e}")
+        logger.error(f"[Library Sync] Failed to get history for {server_type}: {e}")
         return
     
     if not events:
         return
 
     # Optimization: Pre-fetch library titles and existing Show mappings once
-    library_titles = [t.lower() for t in provider.get_library_titles()]
+    library_titles = set(t.lower() for t in provider.get_library_titles())
     show_id_map = {s.title.lower(): s.tmdb_id for s in Show.objects.exclude(tmdb_id__isnull=True)}
     
     # In-memory cache for TMDB IDs to avoid redundant API calls
@@ -121,6 +121,7 @@ def poll_provider_history(server_type, hours=1):
             if cache_key in tmdb_cache:
                 tmdb_id = tmdb_cache[cache_key]
             else:
+                time.sleep(0.3) # Throttle history resolutions to prevent TMDB 429s
                 tmdb_id = resolve_tmdb_id(title, is_movie=is_movie)
                 tmdb_cache[cache_key] = tmdb_id
                 
@@ -160,10 +161,10 @@ def poll_provider_history(server_type, hours=1):
 
     # 5. Bulk Create all new events in one transaction
     if new_events:
-        logger.info(f"[{server_type}] Bulk inserting {len(new_events)} new history events (Skipped {skipped} existing).")
+        logger.info(f"[Library Sync] Bulk inserting {len(new_events)} new history events for {server_type} (Skipped {skipped} existing).")
         MediaWatchEvent.objects.bulk_create(new_events, ignore_conflicts=True)
     else:
-        logger.info(f"[{server_type}] No new events to add. (Processed {total_events}, Skipped {skipped} existing).")
+        logger.info(f"[Library Sync] No new events to add for {server_type}. (Processed {total_events}, Skipped {skipped} existing).")
 
     # After processing all history events, trigger recommendation generation 
     # for the most recent unique titles found in this poll.
@@ -176,7 +177,8 @@ def poll_provider_history(server_type, hours=1):
     # to ensure the AI has the most complete taste profile first.
     if hours <= 24:
         for title, is_movie in list(unique_shows.items())[:5]:
-            async_task(generate_recommendations, title, is_movie=is_movie, library_titles=library_titles)
+            # Removed library_titles from payload to prevent Redis bloat
+            async_task(generate_recommendations, title, is_movie=is_movie)
     else:
         logger.info(f"[{server_type}] Deep backfill detected ({hours}h). Skipping immediate recommendations.")
 

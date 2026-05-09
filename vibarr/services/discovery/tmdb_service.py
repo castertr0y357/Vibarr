@@ -1,7 +1,10 @@
+from ...models import AppConfig
 import requests
 from django.conf import settings
 from django.core.cache import cache
 import logging
+import time
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +13,6 @@ class TMDBService:
     _session = None
     
     def __init__(self, api_key=None):
-        from ...models import AppConfig
         config = AppConfig.get_solo()
         self.api_key = api_key or config.tmdb_api_key or getattr(settings, 'TMDB_API_KEY', '')
         self.region = config.tmdb_region or "US"
@@ -31,6 +33,8 @@ class TMDBService:
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):
         if cache_key:
+            # Sanitize cache key for backends like memcached
+            cache_key = cache_key.replace(':', '_').replace(' ', '_').replace('(', '').replace(')', '')
             cached = cache.get(cache_key)
             if cached: return cached
 
@@ -38,25 +42,65 @@ class TMDBService:
         final_params = {"api_key": self.api_key}
         if params: final_params.update(params)
         
-        try:
-            response = self._session.get(url, params=final_params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
-            if cache_key: cache.set(cache_key, data, ttl)
-            return data
-        except Exception as e:
-            logger.error(f"TMDB Error [{endpoint}]: {e}")
-            return None
+        logger.debug(f"TMDB Request: {endpoint} (params: {params})")
+        
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                response = self._session.get(url, params=final_params, timeout=10)
+                
+                # If we get a 50x error, retry after a short delay
+                if response.status_code in [502, 503, 504] and attempt < max_retries:
+                    time.sleep(1)
+                    continue
+                    
+                response.raise_for_status()
+                data = response.json()
+                if cache_key: cache.set(cache_key, data, ttl)
+                return data
+            except Exception as e:
+                status_code = getattr(e, 'response', None)
+                if status_code:
+                    status_code = status_code.status_code
+                
+                if attempt == max_retries:
+                    logger.error(f"TMDB Final Error [{endpoint}] after {max_retries} retries. Status: {status_code}. Error: {e}")
+                    return None
+                
+                wait = (attempt + 1) * 2
+                logger.warning(f"TMDB Retry {attempt+1}/{max_retries} for [{endpoint}] due to: {e}. Waiting {wait}s...")
+                time.sleep(wait)
+        return None
 
     def search_show(self, title):
-        cache_key = f"tmdb_tv_search_{title.lower()}"
-        data = self._get("search/tv", {"query": title}, cache_key=cache_key)
+        year = None
+        clean_title = title
+        match = re.search(r'\((?:.*?)((?:19|20)\d{2})(?:.*?)\)', title)
+        if match:
+            year = match.group(1)
+            clean_title = title.replace(match.group(0), '').strip()
+
+        cache_key = f"tmdb_tv_search_{clean_title.lower()}_{year}"
+        params = {"query": clean_title}
+        if year: params["first_air_date_year"] = year
+        
+        data = self._get("search/tv", params, cache_key=cache_key)
         results = data.get("results", []) if data else []
         return results[0] if results else None
 
     def search_movie(self, title):
-        cache_key = f"tmdb_movie_search_{title.lower()}"
-        data = self._get("search/movie", {"query": title}, cache_key=cache_key)
+        year = None
+        clean_title = title
+        match = re.search(r'\((?:.*?)((?:19|20)\d{2})(?:.*?)\)', title)
+        if match:
+            year = match.group(1)
+            clean_title = title.replace(match.group(0), '').strip()
+
+        cache_key = f"tmdb_movie_search_{clean_title.lower()}_{year}"
+        params = {"query": clean_title}
+        if year: params["year"] = year
+
+        data = self._get("search/movie", params, cache_key=cache_key)
         results = data.get("results", []) if data else []
         return results[0] if results else None
 
@@ -72,13 +116,17 @@ class TMDBService:
 
     def get_show_details(self, tmdb_id):
         cache_key = f"tmdb_tv_details_{tmdb_id}"
-        params = {"append_to_response": "content_ratings,keywords,watch/providers"}
+        params = {"append_to_response": "content_ratings,keywords,watch/providers,external_ids"}
         return self._get(f"tv/{tmdb_id}", params=params, cache_key=cache_key)
 
     def get_movie_details(self, tmdb_id):
         cache_key = f"tmdb_movie_details_{tmdb_id}"
-        params = {"append_to_response": "release_dates,keywords,watch/providers"}
+        params = {"append_to_response": "release_dates,keywords,watch/providers,external_ids"}
         return self._get(f"movie/{tmdb_id}", params=params, cache_key=cache_key)
+
+    def get_collection(self, collection_id):
+        cache_key = f"tmdb_collection_{collection_id}"
+        return self._get(f"collection/{collection_id}", cache_key=cache_key)
 
     def get_watch_providers(self, tmdb_id, is_movie=False):
         details = self.get_movie_details(tmdb_id) if is_movie else self.get_show_details(tmdb_id)

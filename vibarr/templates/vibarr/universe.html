@@ -1,0 +1,46 @@
+{% extends 'vibarr/base.html' %}
+
+{% block title %}Universe Architect{% endblock %}
+
+{% block content %}
+<style>
+    .scroll-hide::-webkit-scrollbar {
+        height: 5px;
+    }
+    .scroll-hide::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+    }
+    .scroll-hide::-webkit-scrollbar-thumb {
+        background: rgba(244, 63, 94, 0.1);
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+    .scroll-hide:hover::-webkit-scrollbar-thumb {
+        background: rgba(244, 63, 94, 0.4);
+    }
+    .universe-row {
+        scroll-margin-top: 100px;
+    }
+</style>
+
+<div class="space-y-12">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-4xl font-black text-white tracking-tight">Universe <span class="text-rose-500">Architect</span></h2>
+            <p class="text-gray-400 mt-1">AI-detected franchises and cinematic continuities across your library.</p>
+        </div>
+        <button hx-get="{% url 'universe_sync' %}" hx-swap="none" 
+                class="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-xs font-bold text-white hover:bg-white/10 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            Trigger Discovery
+        </button>
+    </div>
+    
+    <div id="universe-list-container" 
+         hx-get="{% url 'universe_architect_list' %}?partial=true" 
+         hx-trigger="sync-complete from:body">
+        {% include 'vibarr/partials/universe_list.html' %}
+    </div>
+</div>
+{% endblock %}

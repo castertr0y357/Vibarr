@@ -1,0 +1,213 @@
+{% extends 'vibarr/settings_layout.html' %}
+
+{% block settings_title %}Intelligence{% endblock %}
+{% block section_name %}Intelligence Profile{% endblock %}
+
+{% block settings_section %}
+<div class="space-y-8">
+    <div class="glass p-8 rounded-3xl space-y-8" x-data="{ useAI: {% if config.use_ai_recommendations %}true{% else %}false{% endif %} }">
+        <!-- TMDB -->
+        <div class="space-y-4">
+            <h3 class="text-xl font-bold text-white">TMDB Integration</h3>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">API Key</label>
+                <div class="flex gap-2">
+                    <input type="password" id="tmdb_key_input" name="tmdb_api_key" value="{{ config.tmdb_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "tmdb"}' hx-include="#tmdb_key_input" hx-target="#tmdb-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                </div>
+                <div id="tmdb-status"></div>
+            </div>
+        </div>
+        
+        <!-- TVDB -->
+        <div class="space-y-4 pt-8 border-t border-white/5">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-bold text-white">TVDB Integration <span class="text-xs text-gray-500 font-normal ml-2">(Optional / Advanced)</span></h3>
+            </div>
+            <p class="text-[10px] text-gray-500 italic bg-white/5 p-3 rounded-xl border border-white/5">
+                <svg class="w-3 h-3 inline mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Note: Vibarr already pulls TVDB IDs via TMDB. If you don't have an API key, we will automatically "proxy" metadata through Sonarr/Radarr for shows in your library.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">API Key</label>
+                    <input type="password" id="tvdb_key_input" name="tvdb_api_key" value="{{ config.tvdb_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">PIN (Optional)</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="tvdb_pin_input" name="tvdb_pin" value="{{ config.tvdb_pin|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "tvdb"}' hx-include="#tvdb_key_input, #tvdb_pin_input" hx-target="#tvdb-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                    </div>
+                </div>
+            </div>
+            <div id="tvdb-status"></div>
+        </div>
+
+        <!-- AI Engine -->
+        <div class="pt-8 border-t border-white/5 space-y-6">
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div>
+                    <h4 class="text-white font-bold">Use AI for Recommendations</h4>
+                    <p class="text-xs text-gray-500">Enable advanced semantic matching for discovery.</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="use_ai_recommendations" class="sr-only peer" x-model="useAI" {% if config.use_ai_recommendations %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                </label>
+            </div>
+
+            <div x-show="useAI" x-transition class="space-y-6 pt-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">AI API URL (OpenAI Compatible)</label>
+                        <input type="text" id="ai_url_input" name="ai_api_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Model Identifier</label>
+                        <input type="text" id="ai_model_input" name="ai_model" value="{{ config.ai_model }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">API Key (Optional)</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="ai_key_input" name="ai_api_key" value="{{ config.ai_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "ai"}' hx-include="#ai_url_input, #ai_model_input, #ai_key_input" hx-target="#ai-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="ai-status"></div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase">Auto-Tasting Threshold (0-10)</label>
+                        <input type="number" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" step="0.1" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    </div>
+                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <h4 class="text-white font-bold text-sm">Auto Universe Discovery</h4>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="auto_universe_discovery" class="sr-only peer" {% if config.auto_universe_discovery %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heuristic Matcher Tuning -->
+        <div x-show="!useAI" x-transition class="pt-8 border-t border-white/5 space-y-8">
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-white">Heuristic Matcher Tuning</h3>
+                <p class="text-xs text-gray-500">Tune the non-AI recommendation engine. Define which metrics matter most for your discovery feed.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                <!-- Rating Weight -->
+                <div class="space-y-4" x-data="{ val: {{ config.h_rating_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Critic/User Ratings</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_rating_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+
+                <!-- Popularity Weight -->
+                <div class="space-y-4" x-data="{ val: {{ config.h_popularity_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Popularity / Trending</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_popularity_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+
+                <!-- Genre Weight -->
+                <div class="space-y-4" x-data="{ val: {{ config.h_genre_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Genre Match</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_genre_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+
+                <!-- Keyword Weight -->
+                <div class="space-y-4" x-data="{ val: {{ config.h_keyword_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thematic DNA / Keywords</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_keyword_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+
+                <!-- Collection Weight -->
+                <div class="space-y-4" x-data="{ val: {{ config.h_collection_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Franchise / Collection</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_collection_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+
+                <!-- Seerr Weight -->
+                <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request History</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_seerr_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dual-Track Intelligence Influence -->
+        <div class="pt-8 border-t border-white/5 space-y-8">
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-white">Cross-Media Influence</h3>
+                <p class="text-xs text-gray-500">Fine-tune how much your taste in one media type "leaks" into the suggestions for the other.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- Film -> TV -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Film Taste Influence on TV</label>
+                        <span class="text-xl font-black text-blue-500" x-text="filmToTv + '%'"></span>
+                    </div>
+                    <div class="relative pt-1" x-data="{ filmToTv: {{ config.movie_influence_on_shows }} }">
+                        <input type="range" name="movie_influence_on_shows" x-model="filmToTv" min="0" max="100" 
+                               class="w-full h-2 bg-gradient-to-r from-amber-500/20 to-blue-500 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
+                            <span>Pure TV Profile</span>
+                            <span>Hybrid Habit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TV -> Film -->
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">TV Taste Influence on Film</label>
+                        <span class="text-xl font-black text-amber-500" x-text="tvToFilm + '%'"></span>
+                    </div>
+                    <div class="relative pt-1" x-data="{ tvToFilm: {{ config.show_influence_on_movies }} }">
+                        <input type="range" name="show_influence_on_movies" x-model="tvToFilm" min="0" max="100" 
+                               class="w-full h-2 bg-gradient-to-r from-blue-500/20 to-amber-500 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                        <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
+                            <span>Pure Film Profile</span>
+                            <span>Hybrid Habit</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Genres -->
+        <div class="pt-8 border-t border-white/5 space-y-4">
+            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Genre Filtering</h3>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">Ignored Genres</label>
+                <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="e.g. Horror, Reality TV" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <p class="text-[9px] text-gray-500">Comma-separated list of genres to never recommend.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

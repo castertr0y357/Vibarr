@@ -25,6 +25,26 @@ class SeerrService:
             logger.error(f"Seerr Connection Error: {e}")
             return False
 
+    def get_requests(self):
+        """Fetches the list of requests from Overseerr/Jellyseerr."""
+        if not self.base_url or not self.api_key:
+            return []
+        
+        try:
+            url = f"{self.base_url.rstrip('/')}/api/v1/request"
+            params = {
+                "take": 100,
+                "skip": 0,
+                "sort": "added"
+            }
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
+            if response.status_code == 200:
+                return response.json().get('results', [])
+            return []
+        except Exception as e:
+            logger.error(f"Seerr Get Requests Error: {e}")
+            return []
+
     def request_media(self, tmdb_id, media_type="tv"):
         """Requests media in Overseerr/Jellyseerr."""
         if not self.base_url or not self.api_key:

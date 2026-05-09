@@ -1,7 +1,8 @@
 from django.urls import path, include
+from . import main, auth, api
 
 urlpatterns = [
-    path('', include('vibarr.urls.main')),
-    path('auth/', include('vibarr.urls.auth')),
-    path('api/', include('vibarr.urls.api')),
+    path('', include(main)),
+    path('auth/', include(auth)),
+    path('api/', include(api)),
 ]

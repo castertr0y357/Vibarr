@@ -6,6 +6,8 @@ from ....models import AppConfig
 logger = logging.getLogger(__name__)
 
 class AIBaseService:
+    _session = None
+
     def __init__(self, config=None):
         if not config:
             config = AppConfig.get_solo()
@@ -18,6 +20,9 @@ class AIBaseService:
         }
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
+            
+        if AIBaseService._session is None:
+            AIBaseService._session = requests.Session()
 
     def _parse_json_response(self, content, default):
         """Helper to extract and parse JSON from AI response."""
@@ -58,7 +63,7 @@ class AIBaseService:
                 payload["format"] = "json"
 
         try:
-            response = requests.post(self.url, headers=self.headers, json=payload, timeout=timeout)
+            response = self._session.post(self.url, headers=self.headers, json=payload, timeout=timeout)
             response.raise_for_status()
             return response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
         except Exception as e:

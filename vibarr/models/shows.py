@@ -1,5 +1,5 @@
 from django.db import models
-from .enums import ShowState, MediaType
+from .enums import ShowState, MediaType, RATING_SCALE
 from .config import AppConfig
 
 class Show(models.Model):
@@ -14,6 +14,9 @@ class Show(models.Model):
     sonarr_id = models.IntegerField(null=True, blank=True)
     radarr_id = models.IntegerField(null=True, blank=True)
     poster_path = models.TextField(null=True, blank=True)
+    imdb_id = models.TextField(null=True, blank=True, db_index=True)
+    tvdb_id = models.IntegerField(null=True, blank=True, db_index=True)
+    imdb_rating = models.FloatField(null=True, blank=True)
     runtime = models.IntegerField(null=True, blank=True, help_text="Average episode runtime in minutes")
     content_rating = models.TextField(null=True, blank=True)
     content_advisory = models.TextField(null=True, blank=True, help_text="Keywords like Violence, Nudity, etc.")
@@ -27,6 +30,7 @@ class Show(models.Model):
     has_notified_ready = models.BooleanField(default=False)
     tasting_episodes_count = models.IntegerField(default=3, help_text="Number of episodes to download for tasting")
     streaming_providers = models.TextField(null=True, blank=True)
+    universe_name = models.TextField(null=True, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -44,7 +48,6 @@ class Show(models.Model):
         if not config or not self.content_rating:
             return False
             
-        from .enums import RATING_SCALE
         current = RATING_SCALE.get(self.content_rating, 0)
         
         # Priority: Active Persona > Global Config
@@ -61,13 +64,22 @@ class Show(models.Model):
             # Use all() to leverage prefetch_related if available
             events = self.mediawatchevent_set.all()
             if not events: return 0
-            event = events[len(events)-1] # Equivalent to last() but uses cache
-            if event.duration:
-                return min(100, int((event.view_offset / event.duration) * 100))
+            
+            # Safely get the last event
+            event = events[len(events)-1] 
+            
+            if event.duration and event.view_offset is not None:
+                try:
+                    return min(100, int((event.view_offset / event.duration) * 100))
+                except (ZeroDivisionError, TypeError):
+                    return 0
             return 0
         else:
             # Use all() to leverage prefetch_related if available
             watched_events = self.mediawatchevent_set.all()
-            unique_episodes = set((e.season, e.episode) for e in watched_events)
+            unique_episodes = set((e.season, e.episode) for e in watched_events if e.season is not None and e.episode is not None)
             watched = len(unique_episodes)
-            return min(100, int((watched / self.tasting_episodes_count) * 100))
+            
+            if self.tasting_episodes_count > 0:
+                return min(100, int((watched / self.tasting_episodes_count) * 100))
+            return 0

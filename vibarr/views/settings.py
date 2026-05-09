@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.template.loader import render_to_string
 
 from .mixins import ConfigMixin
-from ..models import AppConfig, MediaServerType, APIKey
+from ..models import AppConfig, MediaServerType, APIKey, Persona
 from ..forms import AppConfigForm
 from ..services.managers.sonarr_service import SonarrService
 from ..services.managers.radarr_service import RadarrService
@@ -14,6 +14,9 @@ from ..services.media.plex_service import PlexService
 from ..services.media.plex_auth_service import PlexAuthService
 from ..services.media.jellyfin_service import JellyfinService
 from ..services.discovery.tmdb_service import TMDBService
+from ..services.discovery.tvdb_service import TVDBService
+from django_q.tasks import async_task
+from ..tasks.discovery.recommendations import refresh_metadata_backlog
 
 import logging
 
@@ -21,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 class GetLibrariesView(View):
     def post(self, request):
-        # Allow overrides from POST for live scanning
         plex_url = request.POST.get('plex_url')
         plex_token = request.POST.get('plex_token')
         jellyfin_url = request.POST.get('jellyfin_url')
@@ -30,7 +32,6 @@ class GetLibrariesView(View):
         config = AppConfig.get_solo()
         providers = []
         
-        # Use provided URL/Token if present, else fall back to saved config
         if config.media_server_type in [MediaServerType.PLEX, MediaServerType.BOTH]:
             providers.append(PlexService(url=plex_url, token=plex_token))
         if config.media_server_type in [MediaServerType.JELLYFIN, MediaServerType.BOTH]:
@@ -48,7 +49,6 @@ class GetLibrariesView(View):
             except Exception as e:
                 logger.error(f"Error fetching libraries from provider: {e}")
         
-        # Sort libraries in each group
         for server in libraries_by_server:
             libraries_by_server[server] = sorted(list(set(libraries_by_server[server])))
 
@@ -74,31 +74,41 @@ class DiscoverPlexServersView(View):
         return render(request, 'vibarr/partials/plex_server_picker.html', {'servers': servers})
 
 class SettingsView(ConfigMixin, TemplateView):
-    template_name = 'vibarr/settings.html'
+    def get_template_names(self):
+        section = self.kwargs.get('section', 'general')
+        return [f'vibarr/settings/{section}.html']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         config = AppConfig.get_solo()
+        section = self.kwargs.get('section', 'general')
+        context['section'] = section
+        context['config'] = config
         context['form'] = AppConfigForm(instance=config)
         
-        sonarr = SonarrService()
-        radarr = RadarrService()
+        if section == 'automation':
+            sonarr = SonarrService()
+            radarr = RadarrService()
+            try:
+                context['sonarr_folders'] = sonarr.get_root_folders()
+                context['sonarr_profiles'] = sonarr.get_quality_profiles()
+            except Exception:
+                context['sonarr_folders'] = []
+                context['sonarr_profiles'] = []
+
+            try:
+                context['radarr_folders'] = radarr.get_root_folders()
+                context['radarr_profiles'] = radarr.get_quality_profiles()
+            except Exception:
+                context['radarr_folders'] = []
+                context['radarr_profiles'] = []
         
-        try:
-            context['sonarr_folders'] = sonarr.get_root_folders()
-            context['sonarr_profiles'] = sonarr.get_quality_profiles()
-        except Exception:
-            context['sonarr_folders'] = []
-            context['sonarr_profiles'] = []
-
-        try:
-            context['radarr_folders'] = radarr.get_root_folders()
-            context['radarr_profiles'] = radarr.get_quality_profiles()
-        except Exception:
-            context['radarr_folders'] = []
-            context['radarr_profiles'] = []
-
-        context['api_keys'] = APIKey.objects.all()
+        elif section == 'household':
+            context['personas'] = Persona.objects.all()
+            
+        elif section == 'security':
+            context['api_keys'] = APIKey.objects.all()
+            
         return context
 
 class UpdateSettingsView(View):
@@ -108,26 +118,29 @@ class UpdateSettingsView(View):
         
         if form.is_valid():
             form.save()
-            
-            # Handle monitored libraries
             if 'libraries_loaded' in request.POST:
                 monitored_list = request.POST.getlist('monitored_libs')
                 config.monitored_libraries = ",".join(monitored_list)
                 config.save()
-                
             messages.success(request, "Settings updated successfully.")
-            
-            # Check for special actions
-            action = request.POST.get('action')
-            if action == 'plex_auth':
-                return redirect('start_plex_auth')
-                
-            logger.info("Application settings updated via form.")
         else:
             messages.error(request, f"Error saving settings: {form.errors}")
-            logger.error(f"Settings update error: {form.errors}")
             
-        return redirect('settings')
+        section = request.POST.get('section', 'general')
+        
+        if request.headers.get('HX-Request'):
+            response = HttpResponse("")
+            if form.is_valid():
+                response['HX-Trigger'] = '{"show-toast": "Settings updated successfully"}'
+            else:
+                response['HX-Trigger'] = f'{{"show-toast": "Error saving settings: {form.errors}"}}'
+            return response
+
+        url_name = f'settings_{section}'
+        try:
+            return redirect(url_name)
+        except Exception:
+            return redirect('settings_general')
 
 class TestSettingsView(View):
     def post(self, request):
@@ -153,8 +166,10 @@ class TestSettingsView(View):
                 success = SeerrService(url=url, api_key=key).test_connection()
             elif service_type == 'tmdb':
                 success = TMDBService(api_key=key).test_connection()
+            elif service_type == 'tvdb':
+                pin = request.POST.get('pin')
+                success = TVDBService(api_key=key, pin=pin).test_connection()
             elif service_type == 'ai':
-                # AI test placeholder
                 success = True
             else:
                 return HttpResponse('<span class="text-rose-500 font-bold text-[10px]">Unknown Type</span>')
@@ -168,3 +183,14 @@ class TestSettingsView(View):
             'error': error_msg
         })
 
+class RefreshMetadataView(View):
+    def post(self, request):
+        
+        is_full = request.POST.get('full') == 'true' or request.GET.get('full') == 'true'
+        
+        if is_full:
+            async_task('vibarr.tasks.discovery.recommendations.refresh_metadata_backlog', full_sweep=True)
+            return HttpResponse('<span class="text-amber-500 font-bold text-[10px]">Deep Refresh Started in Background</span>')
+        
+        count = refresh_metadata_backlog(full_sweep=False)
+        return HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Refreshed {count} items</span>')

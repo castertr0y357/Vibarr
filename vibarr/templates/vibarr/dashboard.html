@@ -38,55 +38,120 @@
                 {% endif %}
             </div>
         </div>
-        <div class="flex space-x-3">
-            <a href="{% url 'manual_sync' %}" class="px-6 py-3 glass rounded-2xl hover:bg-white/5 transition flex items-center text-sm font-medium">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                Sync Now
-            </a>
-            <a href="{% url 'universe_sync' %}" class="px-6 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl transition shadow-lg shadow-rose-500/20 flex items-center text-sm font-bold">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                Reconcile Universe
-            </a>
-        </div>
     </div>
 
-    <!-- THE NIGHTCAP -->
-    <div id="nightcap-container" hx-get="{% url 'nightcap' %}" hx-trigger="load">
-        <!-- Will be populated by HTMX -->
-    </div>
+
+    <!-- DISCOVERY FEED -->
+    <section x-data="{ mediaType: 'ALL' }">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-6">
+                <h2 class="text-xl font-semibold text-white flex items-center">
+                    Discovery Feed
+                    <img id="discovery-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+                </h2>
+                
+                <!-- Media Type Toggle -->
+                <div class="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                    <input type="hidden" name="media_type" x-model="mediaType">
+                    <button type="button" @click="mediaType = 'ALL'" 
+                            hx-get="{% url 'dashboard' %}?partial=discovery" 
+                            hx-target="#discovery-feed-container"
+                            hx-indicator="#discovery-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="mediaType === 'ALL' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-gray-500 hover:text-white'">
+                        All
+                    </button>
+                    <button type="button" @click="mediaType = 'MOVIE'" 
+                            hx-get="{% url 'dashboard' %}?partial=discovery&media_type=MOVIE" 
+                            hx-target="#discovery-feed-container"
+                            hx-indicator="#discovery-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="mediaType === 'MOVIE' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-gray-500 hover:text-white'">
+                        Movies
+                    </button>
+                    <button type="button" @click="mediaType = 'SHOW'" 
+                            hx-get="{% url 'dashboard' %}?partial=discovery&media_type=SHOW" 
+                            hx-target="#discovery-feed-container"
+                            hx-indicator="#discovery-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="mediaType === 'SHOW' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'">
+                        Shows
+                    </button>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'discoveries_list' %}" class="text-[10px] text-rose-500 font-bold uppercase tracking-widest hover:underline flex items-center">
+                    Explore Full Feed
+                    <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </a>
+            </div>
+        </div>
+
+        <div id="discovery-feed-container" 
+             hx-get="{% url 'dashboard' %}?partial=discovery" 
+             hx-trigger="sync-complete from:body"
+             hx-include="closest section [name='media_type']"
+             hx-sync="this:replace"
+             hx-indicator="#discovery-indicator" 
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+            {% include 'vibarr/partials/discovery_feed.html' %}
+        </div>
+    </section>
 
     <!-- ACTIVE TASTINGS -->
     {% if tasting %}
-    <section>
+    <section x-data="{ tastingType: 'ALL' }">
         <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-white flex items-center">
-                <span class="w-2 h-2 bg-rose-500 rounded-full mr-3 animate-pulse"></span>
-                Active Tastings
-                <img id="tasting-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
-            </h2>
-            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Polling every 15s</span>
-        </div>
-        <div class="relative" x-data="{ showControls: false }" @mouseenter="showControls = true" @mouseleave="showControls = false">
-            <button class="absolute left-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-r-xl transition duration-300 backdrop-blur-sm shadow-2xl"
-                    :class="showControls ? 'opacity-100' : 'opacity-0'"
-                    onclick="document.getElementById('active-tastings-container').scrollBy({left: -600, behavior: 'smooth'})">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
+            <div class="flex items-center space-x-6">
+                <h2 class="text-xl font-semibold text-white flex items-center">
+                    <span class="w-2 h-2 bg-rose-500 rounded-full mr-3 animate-pulse"></span>
+                    Active Tastings
+                    <img id="tasting-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
+                </h2>
 
-             <div id="active-tastings-container" 
-                 hx-get="{% url 'dashboard' %}?partial=tasting" 
-                 hx-trigger="sync-complete from:body"
-                 hx-sync="this:replace"
-                 hx-indicator="#tasting-indicator" 
-                 class="flex flex-nowrap overflow-x-auto space-x-6 pb-6 scroll-smooth">
-                {% include 'vibarr/partials/active_tastings.html' %}
+                <!-- Media Type Toggle -->
+                <div class="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                    <input type="hidden" name="media_type" x-model="tastingType">
+                    <button type="button" @click="tastingType = 'ALL'" 
+                            hx-get="{% url 'dashboard' %}?partial=tasting" 
+                            hx-target="#active-tastings-container"
+                            hx-indicator="#tasting-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="tastingType === 'ALL' ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'text-gray-500 hover:text-white'">
+                        All
+                    </button>
+                    <button type="button" @click="tastingType = 'MOVIE'" 
+                            hx-get="{% url 'dashboard' %}?partial=tasting&media_type=MOVIE" 
+                            hx-target="#active-tastings-container"
+                            hx-indicator="#tasting-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="tastingType === 'MOVIE' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-gray-500 hover:text-white'">
+                        Movies
+                    </button>
+                    <button type="button" @click="tastingType = 'SHOW'" 
+                            hx-get="{% url 'dashboard' %}?partial=tasting&media_type=SHOW" 
+                            hx-target="#active-tastings-container"
+                            hx-indicator="#tasting-indicator"
+                            class="px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-lg transition"
+                            :class="tastingType === 'SHOW' ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'text-gray-500 hover:text-white'">
+                        Shows
+                    </button>
+                </div>
             </div>
-
-            <button class="absolute right-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-l-xl transition duration-300 backdrop-blur-sm shadow-2xl"
-                    :class="showControls ? 'opacity-100' : 'opacity-0'"
-                    onclick="document.getElementById('active-tastings-container').scrollBy({left: 600, behavior: 'smooth'})">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
+            <a href="{% url 'tastings_list' %}" class="text-[10px] text-rose-500 font-bold uppercase tracking-widest hover:underline flex items-center">
+                View All (Full Library)
+                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+        </div>
+        
+        <div id="active-tastings-container" 
+             hx-get="{% url 'dashboard' %}?partial=tasting" 
+             hx-trigger="sync-complete from:body"
+             hx-include="closest section [name='media_type']"
+             hx-sync="this:replace"
+             hx-indicator="#tasting-indicator" 
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
+            {% include 'vibarr/partials/active_tastings.html' %}
         </div>
     </section>
     {% else %}
@@ -96,45 +161,12 @@
     </section>
     {% endif %}
 
-    <!-- DISCOVERY FEED -->
-    <section>
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold text-white flex items-center">
-                Discovery Feed
-                <img id="discovery-indicator" class="htmx-indicator ml-2 w-4 h-4 opacity-30" src="https://samherbert.net/svg-loaders/svg-loaders/oval.svg" />
-            </h2>
-            <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">AI Reranking Active</span>
-        </div>
-        <div class="relative" x-data="{ showControls: false }" @mouseenter="showControls = true" @mouseleave="showControls = false">
-            <button class="absolute left-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-r-xl transition duration-300 backdrop-blur-sm shadow-2xl"
-                    :class="showControls ? 'opacity-100' : 'opacity-0'"
-                    onclick="document.getElementById('discovery-feed-container').scrollBy({left: -600, behavior: 'smooth'})">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            </button>
-
-            <div id="discovery-feed-container" 
-                 hx-get="{% url 'dashboard' %}?partial=discovery" 
-                 hx-trigger="sync-complete from:body"
-                 hx-sync="this:replace"
-                 hx-indicator="#discovery-indicator" 
-                 class="flex flex-nowrap overflow-x-auto space-x-6 pb-6 scroll-smooth">
-                {% include 'vibarr/partials/discovery_feed.html' %}
-            </div>
-
-            <button class="absolute right-0 top-[40%] -translate-y-1/2 z-10 bg-black/80 border border-white/10 hover:bg-rose-500 hover:border-rose-500 text-white p-3 rounded-l-xl transition duration-300 backdrop-blur-sm shadow-2xl"
-                    :class="showControls ? 'opacity-100' : 'opacity-0'"
-                    onclick="document.getElementById('discovery-feed-container').scrollBy({left: 600, behavior: 'smooth'})">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-            </button>
-        </div>
-    </section>
-
     <!-- COMMITTED -->
     {% if committed %}
     <section>
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-white">Full Series Committed</h2>
-            <a href="#" class="text-xs text-rose-500 hover:underline">View All</a>
+            <a href="{% url 'committed_list' %}" class="text-xs text-rose-500 hover:underline">View All</a>
         </div>
         <div id="committed-container" hx-get="{% url 'dashboard' %}?partial=committed" hx-trigger="every 60s" class="grid grid-cols-2 md:grid-cols-6 gap-4">
             {% include 'vibarr/partials/recent_committed.html' %}

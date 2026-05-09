@@ -14,7 +14,7 @@
         </div>
     </td>
     <td class="px-6 py-4">
-        <span class="text-[10px] px-2 py-0.5 rounded border border-white/10 text-gray-400 uppercase font-medium">{{ event.media_type }}</span>
+        <span class="text-[10px] px-2 py-0.5 rounded border {% if event.media_type == 'MOVIE' %}border-amber-500/20 bg-amber-500/10 text-amber-500{% else %}border-blue-500/20 bg-blue-500/10 text-blue-500{% endif %} uppercase font-black">{{ event.media_type }}</span>
     </td>
     <td class="px-6 py-4">
         <span class="text-[10px] text-rose-500 font-black tracking-tighter uppercase">{{ event.source_server }}</span>

@@ -1,5 +1,9 @@
 import requests
+import logging
 from django.conf import settings
+from ...models import AppConfig
+
+logger = logging.getLogger(__name__)
 
 class SonarrService:
     def __init__(self, url=None, api_key=None):
@@ -7,7 +11,6 @@ class SonarrService:
             self.base_url = url.rstrip('/')
             self.api_key = api_key
         else:
-            from ...models import AppConfig
             config = AppConfig.get_solo()
             self.base_url = (config.sonarr_url or getattr(settings, 'SONARR_URL', '')).rstrip('/')
             self.api_key = config.sonarr_api_key or getattr(settings, 'SONARR_API_KEY', '')
@@ -26,10 +29,15 @@ class SonarrService:
         response.raise_for_status()
         return response.json()
 
-    def add_series(self, tmdb_id, title, tasting_count=3):
+    def add_series(self, tmdb_id, title, tasting_count=3, tvdb_id=None):
         # First, lookup the series in Sonarr to get details for adding
         lookup_url = f"{self.base_url}/api/v3/series/lookup"
-        params = {"term": f"tmdb:{tmdb_id}"}
+        
+        # Prefer TVDB ID if provided for higher accuracy in Sonarr
+        if tvdb_id:
+            params = {"term": f"tvdb:{tvdb_id}"}
+        else:
+            params = {"term": f"tmdb:{tmdb_id}"}
         try:
             lookup_res = requests.get(lookup_url, params=params, headers=self.headers, timeout=15)
             lookup_res.raise_for_status()
@@ -38,11 +46,9 @@ class SonarrService:
                 raise Exception(f"No results found in Sonarr for TMDB ID {tmdb_id}")
             series_data = results[0]
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Sonarr Lookup Error: {e}")
+            logger.error(f"Sonarr Lookup Error: {e}")
             raise
 
-        from ...models import AppConfig
         config = AppConfig.get_solo()
         
         # Use saved config or defaults
@@ -136,3 +142,14 @@ class SonarrService:
             return None
         response.raise_for_status()
         return response.json()
+
+    def get_all_tvdb_ids(self):
+        if not self.base_url: return set()
+        try:
+            url = f"{self.base_url}/api/v3/series"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return {str(s['tvdbId']) for s in response.json() if s.get('tvdbId')}
+        except Exception as e:
+            logger.error(f"Sonarr: Failed to fetch all TVDB IDs: {e}")
+            return set()

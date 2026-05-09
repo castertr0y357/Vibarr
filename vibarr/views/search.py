@@ -80,7 +80,6 @@ class TasteFromSearchView(View):
             }
         )
         
-        from ..tasks import start_tasting
-        async_task(start_tasting, show.id)
+        async_task('vibarr.tasks.managers.actions.start_tasting', show.id)
         
         return HttpResponse(f'<div class="bg-green-500/20 text-green-500 p-2 rounded text-[10px] text-center font-bold">Added to {media_type} manager</div>')

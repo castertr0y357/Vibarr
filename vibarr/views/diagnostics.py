@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import FileResponse
 import os
 import zipfile
+from django.db import connection
 
 class LogsView(TemplateView):
     template_name = 'vibarr/logs.html'
@@ -19,7 +20,6 @@ class LogsView(TemplateView):
         context['logs'] = lines
         
         # DB Stats
-        from django.db import connection
         engine = connection.vendor
         size = "0.0 MB"
         

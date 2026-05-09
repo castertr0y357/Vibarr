@@ -45,6 +45,8 @@ class AppConfig(models.Model):
     
     # External APIs
     tmdb_api_key = models.TextField(null=True, blank=True)
+    tvdb_api_key = models.TextField(null=True, blank=True)
+    tvdb_pin = models.TextField(null=True, blank=True)
     tautulli_url = models.TextField(null=True, blank=True)
     tautulli_api_key = models.TextField(null=True, blank=True)
 
@@ -79,10 +81,30 @@ class AppConfig(models.Model):
     
     # Defaults
     default_tasting_count = models.IntegerField(default=3, help_text="Default number of episodes for a new show tasting")
+    # Governance & Growth
+    max_discovered_movies = models.IntegerField(default=50, help_text="Maximum movies to keep in the Discovery Feed.")
+    max_discovered_shows = models.IntegerField(default=50, help_text="Maximum shows to keep in the Discovery Feed.")
+    max_tasting_items = models.IntegerField(default=50, help_text="Maximum total number of active tastings allowed at once.")
+    
+    # Intelligence Influence
+    movie_influence_on_shows = models.IntegerField(default=20, help_text="How much movie taste influences show discovery (0-100).")
+    show_influence_on_movies = models.IntegerField(default=20, help_text="How much show taste influences movie discovery (0-100).")
+    
+    # Heuristic Preferences
+    h_rating_weight = models.IntegerField(default=50, help_text="Weight for TMDB/IMDB ratings (0-100)")
+    h_popularity_weight = models.IntegerField(default=30, help_text="Weight for TMDB popularity (0-100)")
+    h_genre_weight = models.IntegerField(default=100, help_text="Weight for genre matching (0-100)")
+    h_keyword_weight = models.IntegerField(default=70, help_text="Weight for keyword matching (0-100)")
+    h_seerr_weight = models.IntegerField(default=40, help_text="Weight for Seerr request history (0-100)")
+    h_collection_weight = models.IntegerField(default=60, help_text="Weight for collection matching (0-100)")
     
     last_sync = models.DateTimeField(null=True, blank=True)
     is_syncing = models.BooleanField(default=False)
     sync_status = models.TextField(default="", blank=True)
+    
+    # Universe Architect
+    auto_collection_sync = models.BooleanField(default=False, help_text="Automatically create collections in Plex/Jellyfin for detected universes.")
+    universe_page_enabled = models.BooleanField(default=True)
 
     @property
     def is_configured(self):

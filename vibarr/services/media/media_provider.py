@@ -8,6 +8,11 @@ class MediaProvider(ABC):
         pass
 
     @abstractmethod
+    def get_library_identifiers(self) -> Dict[str, str]:
+        """Returns a mapping of TMDB IDs to titles currently in the library."""
+        pass
+
+    @abstractmethod
     def get_recent_history(self, hours: int = 1) -> List[Dict[str, Any]]:
         """Returns recent watch history events."""
         pass

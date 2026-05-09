@@ -5,6 +5,7 @@ from ..services.discovery.tmdb_service import TMDBService
 from ..models import MediaWatchEvent, Show, ShowState, MediaType
 import logging
 from django.utils import timezone
+from ..utils.providers import get_active_providers
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,6 @@ class NightcapActionView(View):
         history = MediaWatchEvent.objects.order_by('-watched_at').values_list('show_title', flat=True).distinct()[:10]
         
         # Get library titles to filter out owned content
-        from ..tasks.media.polling import get_active_providers
         library_titles = []
         for _, provider in get_active_providers():
             library_titles.extend([t.lower() for t in provider.get_library_titles()])

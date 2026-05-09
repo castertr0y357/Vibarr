@@ -2,12 +2,12 @@ import logging
 import random
 from django.utils import timezone
 from django.core.cache import cache
+from django_q.tasks import async_task
 
-from ...models import Show, MediaWatchEvent, ShowState, MediaType, Recommendation
-from ...services.discovery.tmdb_service import TMDBService
+from ...models import Show, ShowState, MediaType, MediaWatchEvent, Recommendation
 from ...services.discovery.ai_service import AIService
+from ...services.discovery.tmdb_service import TMDBService
 from ...services.comms.notification_service import NotificationService
-from ..managers.actions import start_tasting
 from .recommendations import generate_recommendations
 from ...utils.providers import get_active_providers
 
@@ -61,7 +61,7 @@ def run_bridge_check(show_id):
             
             # Don't auto-start tasting for bridges, just suggest? 
             # Actually, the user liked the first one enough to commit, so auto-tasting is good.
-            start_tasting(new_show.id)
+            async_task('vibarr.tasks.managers.actions.start_tasting', new_show.id)
 
 def background_scout():
     """Periodic task to scan history and find new matches."""
@@ -94,15 +94,9 @@ def background_scout():
             if not cache.get(cache_key):
                 candidates.append(t)
     
-    # Pre-fetch library titles
-    library_titles = []
-    for _, provider in get_active_providers():
-        library_titles.extend([t.lower() for t in provider.get_library_titles()])
-    
     for event in candidates:
         generate_recommendations(
             event['show_title'], 
-            is_movie=(event['media_type'] == MediaType.MOVIE),
-            library_titles=library_titles
+            is_movie=(event['media_type'] == MediaType.MOVIE)
         )
 

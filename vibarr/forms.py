@@ -11,6 +11,8 @@ class AppConfigForm(forms.ModelForm):
             'sonarr_api_key': forms.PasswordInput(render_value=True),
             'radarr_api_key': forms.PasswordInput(render_value=True),
             'tmdb_api_key': forms.PasswordInput(render_value=True),
+            'tvdb_api_key': forms.PasswordInput(render_value=True),
+            'tvdb_pin': forms.PasswordInput(render_value=True),
             'telegram_bot_token': forms.PasswordInput(render_value=True),
             'ai_api_key': forms.PasswordInput(render_value=True),
         }

@@ -1,0 +1,117 @@
+{% extends 'vibarr/settings_layout.html' %}
+
+{% block settings_title %}Automation{% endblock %}
+{% block section_name %}Automation Infrastructure{% endblock %}
+
+{% block settings_section %}
+<div class="space-y-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Sonarr -->
+        <div class="glass p-8 rounded-3xl space-y-6">
+            <h3 class="text-xl font-bold text-white">Sonarr (TV)</h3>
+            <div class="space-y-4">
+                <input type="text" id="sonarr_url_input" name="sonarr_url" value="{{ config.sonarr_url|default:'' }}" placeholder="URL" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <div class="flex gap-2">
+                    <input type="password" id="sonarr_key_input" name="sonarr_api_key" value="{{ config.sonarr_api_key|default:'' }}" placeholder="API Key" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "sonarr"}' hx-include="#sonarr_url_input, #sonarr_key_input" hx-target="#sonarr-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                </div>
+                <div id="sonarr-status"></div>
+                
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Root Folder</label>
+                    <select name="sonarr_root_folder" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        {% for folder in sonarr_folders %}
+                        <option value="{{ folder.path }}" {% if config.sonarr_root_folder == folder.path %}selected{% endif %}>{{ folder.path }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Quality Profile</label>
+                    <select name="sonarr_quality_profile_id" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        {% for profile in sonarr_profiles %}
+                        <option value="{{ profile.id }}" {% if config.sonarr_quality_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radarr -->
+        <div class="glass p-8 rounded-3xl space-y-6">
+            <h3 class="text-xl font-bold text-white">Radarr (Movies)</h3>
+            <div class="space-y-4">
+                <input type="text" id="radarr_url_input" name="radarr_url" value="{{ config.radarr_url|default:'' }}" placeholder="URL" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <div class="flex gap-2">
+                    <input type="password" id="radarr_key_input" name="radarr_api_key" value="{{ config.radarr_api_key|default:'' }}" placeholder="API Key" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "radarr"}' hx-include="#radarr_url_input, #radarr_key_input" hx-target="#radarr-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                </div>
+                <div id="radarr-status"></div>
+
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Root Folder</label>
+                    <select name="radarr_root_folder" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        {% for folder in radarr_folders %}
+                        <option value="{{ folder.path }}" {% if config.radarr_root_folder == folder.path %}selected{% endif %}>{{ folder.path }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Quality Profile</label>
+                    <select name="radarr_quality_profile_id" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        {% for profile in radarr_profiles %}
+                        <option value="{{ profile.id }}" {% if config.radarr_quality_profile_id == profile.id %}selected{% endif %}>{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seerr -->
+    <section class="glass p-8 rounded-3xl space-y-6" x-data="{ useSeerr: {% if config.use_seerr %}true{% else %}false{% endif %} }">
+        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+            <div>
+                <h4 class="text-white font-bold">Unified Request Manager (Seerr)</h4>
+                <p class="text-xs text-gray-500">Sync Vibarr recommendations as requests to Overseerr/Jellyseerr.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="use_seerr" class="sr-only peer" x-model="useSeerr" {% if config.use_seerr %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+        </div>
+
+        <div x-show="useSeerr" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">Seerr URL</label>
+                <input type="text" id="seerr_url_input" name="seerr_url" value="{{ config.seerr_url|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            </div>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">Seerr API Key</label>
+                <div class="flex gap-2">
+                    <input type="password" id="seerr_key_input" name="seerr_api_key" value="{{ config.seerr_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "seerr"}' hx-include="#seerr_url_input, #seerr_key_input" hx-target="#seerr-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                </div>
+            </div>
+            <div id="seerr-status" class="md:col-span-2"></div>
+        </div>
+    </section>
+    
+    <!-- Universe Architect -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+            <div>
+                <h4 class="text-white font-bold">Auto Collection Sync</h4>
+                <p class="text-xs text-gray-500">Automatically create and sync franchise collections in Plex or BoxSets in Jellyfin.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="auto_collection_sync" class="sr-only peer" {% if config.auto_collection_sync %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+        </div>
+        <p class="text-[10px] text-amber-500/80 italic px-4">
+            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Enabling this will modify metadata on your media server to group related titles.
+        </p>
+    </section>
+</div>
+{% endblock %}

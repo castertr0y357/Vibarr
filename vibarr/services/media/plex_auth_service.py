@@ -1,17 +1,21 @@
 import requests
 import uuid
+import hashlib
+import logging
+import urllib3
+from django.conf import settings
+from ...models import AppConfig
+
+logger = logging.getLogger(__name__)
 
 class PlexAuthService:
     BASE_URL = "https://plex.tv/api/v2"
     
     def __init__(self):
-        from ...models import AppConfig
         config = AppConfig.get_solo()
         
         # We need a persistent identifier for Plex Auth to work correctly.
         # We derive a stable ID from the app's secret key.
-        import hashlib
-        from django.conf import settings
         client_id = hashlib.sha256(settings.SECRET_KEY.encode()).hexdigest()[:32]
 
         self.headers = {
@@ -30,12 +34,10 @@ class PlexAuthService:
         response.raise_for_status()
         try:
             pin_data = response.json()
-            import logging
-            logging.getLogger(__name__).info(f"Plex PIN Response: {pin_data}")
+            logger.info(f"Plex PIN Response: {pin_data}")
             return pin_data # Contains 'id' and 'code'
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Plex Auth JSON Error: {e}. Content: {response.text}")
+            logger.error(f"Plex Auth JSON Error: {e}. Content: {response.text}")
             raise
 
     def check_pin(self, pin_id):
@@ -46,20 +48,17 @@ class PlexAuthService:
             data = response.json()
             return data.get('authToken') # Returns None if not yet authorized
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Plex PIN Poll JSON Error: {e}. Content: {response.text}")
+            logger.error(f"Plex PIN Poll JSON Error: {e}. Content: {response.text}")
             return None
 
     def get_resources(self, token):
         """Fetches all Plex servers associated with the token."""
         try:
             from plexapi.myplex import MyPlexAccount
-            import requests
             
             # Use a session that ignores SSL for local discovery if needed
             session = requests.Session()
             session.verify = False
-            import urllib3
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             
             account = MyPlexAccount(token=token, session=session)
@@ -86,6 +85,5 @@ class PlexAuthService:
                     })
             return servers
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Plex Resource Discovery Error: {e}")
+            logger.error(f"Plex Resource Discovery Error: {e}")
             return []

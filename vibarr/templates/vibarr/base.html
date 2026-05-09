@@ -14,6 +14,8 @@
             --rose-glow: rgba(233, 69, 96, 0.3);
             --bg-dark: #0f172a;
             --bg-sidebar: #1e293b;
+            --movie: #e9a820;
+            --show: #00a1ff;
         }
         body {
             font-family: 'Outfit', sans-serif;
@@ -121,8 +123,25 @@
         <nav class="flex-1 space-y-2">
             <a href="{% url 'dashboard' %}" class="sidebar-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                <span>Dashboard</span>
+                <span>Overview</span>
             </a>
+            <div class="pt-4 pb-2 px-4 text-[9px] font-bold text-gray-500 uppercase tracking-widest">Library</div>
+            <a href="{% url 'discoveries_list' %}" class="sidebar-item {% if request.resolver_match.url_name == 'discoveries_list' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <span>Discovery Feed</span>
+            </a>
+            <a href="{% url 'tastings_list' %}" class="sidebar-item {% if request.resolver_match.url_name == 'tastings_list' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                <span>Active Tastings</span>
+            </a>
+            <a href="{% url 'universe_architect_list' %}" class="sidebar-item {% if request.resolver_match.url_name == 'universe_architect_list' %}active{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                <div class="flex items-center gap-2">
+                    <span>Universes</span>
+                    <span class="text-[8px] bg-rose-500/10 text-rose-500 px-1 py-0.5 rounded border border-rose-500/20 font-black uppercase tracking-wider">Beta</span>
+                </div>
+            </a>
+            <div class="pt-4 pb-2 px-4 text-[9px] font-bold text-gray-500 uppercase tracking-widest">Tools</div>
             <a href="{% url 'vibe_search_page' %}" class="sidebar-item {% if request.resolver_match.url_name == 'vibe_search_page' %}active{% endif %}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 <span>Vibe Search</span>
@@ -131,40 +150,53 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span>Watch History</span>
             </a>
-            <a href="{% url 'settings' %}" class="sidebar-item {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+            <a href="{% url 'settings_general' %}" class="sidebar-item {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <span>Settings</span>
             </a>
         </nav>
 
-        <!-- Stack Health -->
-        <div class="mt-auto pt-6 border-t border-white/5 space-y-4">
-            <div class="px-4 py-4 glass rounded-2xl space-y-3">
-                <h3 class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Stack Health</h3>
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-gray-400">Media Server</span>
-                    <div id="health-media" hx-get="{% url 'test_media_health' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-gray-400">Automation</span>
-                    <div id="health-automation" hx-get="{% url 'test_sonarr' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
-                </div>
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-gray-400">AI Scout</span>
-                    <div id="health-ai" hx-get="{% url 'test_ai' %}?mini=true" hx-trigger="load" class="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+        <!-- Stack Health & Actions -->
+        <div class="mt-auto pt-6 border-t border-white/5 space-y-6">
+            <div class="px-4 space-y-3">
+                <h3 class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Quick Actions</h3>
+                <button hx-get="{% url 'manual_sync' %}" hx-swap="none" class="w-full flex items-center px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-400 hover:bg-white/10 hover:text-white transition group">
+                    <svg class="w-4 h-4 mr-3 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Sync Library
+                </button>
+                <button hx-get="{% url 'universe_sync' %}" hx-swap="none" class="w-full flex items-center px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-gray-400 hover:bg-white/10 hover:text-white transition group">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Architect Universe
+                </button>
+            </div>
+
+            <div class="px-4 py-4 glass rounded-2xl">
+                <h3 class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">System Health</h3>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex flex-col items-center gap-1 group relative">
+                        <div id="health-media" hx-get="{% url 'test_media_health' %}?mini=true" hx-trigger="load" class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                        <span class="text-[8px] text-gray-600 font-bold uppercase">Media</span>
+                        <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black p-2 rounded text-[8px] text-white whitespace-nowrap z-50 border border-white/10">Media Server Connection</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 group relative">
+                        <div id="health-automation" hx-get="{% url 'test_sonarr' %}?mini=true" hx-trigger="load" class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                        <span class="text-[8px] text-gray-600 font-bold uppercase">Auto</span>
+                        <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black p-2 rounded text-[8px] text-white whitespace-nowrap z-50 border border-white/10">Arr Services Status</div>
+                    </div>
+                    <div class="flex flex-col items-center gap-1 group relative">
+                        <div id="health-ai" hx-get="{% url 'test_ai' %}?mini=true" hx-trigger="load" class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                        <span class="text-[8px] text-gray-600 font-bold uppercase">Scout</span>
+                        <div class="absolute bottom-full mb-2 hidden group-hover:block bg-black p-2 rounded text-[8px] text-white whitespace-nowrap z-50 border border-white/10">AI Engine Connectivity</div>
+                    </div>
                 </div>
             </div>
             
-            <div class="pt-4 space-y-1">
-                <h3 class="px-4 text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Maintenance</h3>
+            <div class="space-y-1">
                 <a href="{% url 'logs_view' %}" class="sidebar-item scale-90 {% if request.resolver_match.url_name == 'logs_view' %}active{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     <span>Logs & Diagnostics</span>
                 </a>
-                <a href="/admin" class="sidebar-item opacity-50 hover:opacity-100 scale-90">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                <span>Django Admin</span>
-            </a>
+            </div>
         </div>
     </aside>
 
@@ -187,7 +219,7 @@
         </div>
 
         <!-- Content Area -->
-        <div class="p-12 max-w-7xl mx-auto">
+        <div class="p-12 max-w-[1600px] mx-auto">
             {% block content %}{% endblock %}
         </div>
     </main>
@@ -199,6 +231,22 @@
         
         document.body.addEventListener('htmx:error', function(evt) {
             console.error("HTMX Error:", evt.detail);
+        });
+
+        // --- Global Toast Handler for HX-Trigger ---
+        document.body.addEventListener('show-toast', function(evt) {
+            const message = evt.detail.value;
+            const container = document.getElementById('toast-container');
+            if (container) {
+                const toast = document.createElement('div');
+                toast.setAttribute('x-data', '{ show: true }');
+                toast.setAttribute('x-show', 'show');
+                toast.setAttribute('x-transition.opacity.duration.500ms', '');
+                toast.className = 'pointer-events-auto px-6 py-4 rounded-2xl glass border shadow-2xl flex items-center space-x-4 animate-fade-in border-green-500/50 bg-green-500/10 text-green-500';
+                toast.innerHTML = `<span class="text-sm font-semibold">${message}</span><button @click="show = false" class="opacity-50 hover:opacity-100">&times;</button>`;
+                container.appendChild(toast);
+                setTimeout(() => { toast.remove(); }, 4000);
+            }
         });
 
         // --- CSRF: Read token from the hidden input (most reliable) ---

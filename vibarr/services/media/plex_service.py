@@ -2,9 +2,13 @@ from plexapi.server import PlexServer
 from django.conf import settings
 from datetime import datetime, timedelta, timezone as dt_timezone
 from django.utils import timezone
+from django.core.cache import cache
+import requests
+import re
+import urllib3
+import logging
 from .media_provider import MediaProvider
 from ...models import AppConfig
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +24,11 @@ class PlexService(MediaProvider):
     def plex(self):
         if self._plex is None and self.baseurl and self.token:
             try:
-                from plexapi.server import PlexServer
-                import requests
-                
                 # Setup session to allow insecure local connections if needed
                 session = requests.Session()
-                import re
                 is_ip = re.match(r"https?://\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", self.baseurl)
                 if is_ip:
                     session.verify = False
-                    import urllib3
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                 
                 self._plex = PlexServer(self.baseurl, self.token, session=session)
@@ -158,12 +157,12 @@ class PlexService(MediaProvider):
         if not self.plex: return []
         try:
             return [section.title for section in self.plex.library.sections() if section.type in ['show', 'movie']]
-        except Exception:
+        except Exception as e:
+            logger.error(f"Plex: Failed to fetch libraries: {e}")
             return []
 
     def get_library_titles(self, force_refresh=False):
         if not self.plex: return []
-        from django.core.cache import cache
         
         cache_key = 'plex_library_titles'
         if not force_refresh:
@@ -171,7 +170,7 @@ class PlexService(MediaProvider):
             if cached_titles: return cached_titles
 
         config = AppConfig.objects.first()
-        monitored = [i.strip().lower() for i in config.monitored_libraries.split(',')] if config and config.monitored_libraries else []
+        monitored = set(i.strip().lower() for i in config.monitored_libraries.split(',')) if config and config.monitored_libraries else set()
         
         try:
             titles = []
@@ -184,26 +183,77 @@ class PlexService(MediaProvider):
             unique_titles = list(set(titles))
             cache.set(cache_key, unique_titles, 3600)
             return unique_titles
-        except Exception: return []
+        except Exception as e:
+            logger.error(f"Plex: Failed to fetch library titles: {e}")
+            return []
+
+    def get_library_identifiers(self, force_refresh=False):
+        if not self.plex: return {}
+        
+        cache_key = 'plex_library_identifiers'
+        if not force_refresh:
+            cached = cache.get(cache_key)
+            if cached: return cached
+
+        config = AppConfig.get_solo()
+        monitored = set(i.strip().lower() for i in config.monitored_libraries.split(',')) if config and config.monitored_libraries else set()
+        
+        identifiers = {}
+        try:
+            for section in self.plex.library.sections():
+                if monitored and section.title.lower() not in monitored: continue
+                if section.type in ['show', 'movie']:
+                    for item in section.search():
+                        tmdb_id = None
+                        # Try to extract TMDB ID from guids
+                        try:
+                            for guid in getattr(item, 'guids', []):
+                                if 'tmdb://' in guid.id:
+                                    tmdb_id = guid.id.replace('tmdb://', '')
+                                    break
+                        except Exception: pass
+                        
+                        if tmdb_id:
+                            identifiers[str(tmdb_id)] = item.title
+                        else:
+                            # Fallback to title matching if no TMDB ID
+                            identifiers[item.title.lower()] = item.title
+            
+            cache.set(cache_key, identifiers, 3600)
+            return identifiers
+        except Exception as e:
+            logger.error(f"Plex: Failed to fetch library identifiers: {e}")
+            return {}
 
     def sync_collection(self, titles, collection_name):
+        """Creates or updates a collection in Plex."""
         if not self.plex: return
-        """Efficiently adds items to a collection."""
-        import logging
-        logger = logging.getLogger(__name__)
         
-        # Batch by section to avoid redundant section loops
+        # Determine monitored libraries
+        config = AppConfig.get_solo()
+        monitored = [i.strip().lower() for i in config.monitored_libraries.split(',')] if config and config.monitored_libraries else []
+        
+        # Convert titles to set for O(1) matching
+        target_titles = set(t.lower() for t in titles)
+        
         sections = [s for s in self.plex.library.sections() if s.type in ['show', 'movie']]
-        
         for section in sections:
-            # Search for all titles in this section in one go if possible?
-            # PlexAPI doesn't support bulk title search well, but we can search once per section
-            # and then filter the results in memory.
-            all_items = section.all()
-            items_to_add = [item for item in all_items if item.title.lower() in [t.lower() for t in titles]]
-            
-            for item in items_to_add:
-                try:
-                    item.addCollection(collection_name)
-                    logger.info(f"Plex: Added '{item.title}' to Collection '{collection_name}'")
-                except Exception: continue
+            if monitored and section.title.lower() not in monitored:
+                continue
+                
+            try:
+                # Use Plex search for specific titles to avoid section.all() bloat
+                for title in titles:
+                    items = section.search(title=title)
+                    for item in items:
+                        if item.title.lower() in target_titles:
+                            try:
+                                # Check if already in collection to avoid redundant calls
+                                existing = set(c.tag.lower() for c in item.collections)
+                                if collection_name.lower() not in existing:
+                                    item.addCollection(collection_name)
+                                    logger.info(f"Plex: Added '{item.title}' to Collection '{collection_name}'")
+                            except Exception as e:
+                                logger.error(f"Plex: Failed to add '{item.title}' to collection: {e}")
+            except Exception as e:
+                logger.error(f"Plex: Section error in '{section.title}': {e}")

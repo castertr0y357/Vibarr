@@ -1,5 +1,9 @@
 import requests
+import logging
 from django.conf import settings
+from ...models import AppConfig
+
+logger = logging.getLogger(__name__)
 
 class RadarrService:
     def __init__(self, url=None, api_key=None):
@@ -7,7 +11,6 @@ class RadarrService:
             self.base_url = url.rstrip('/')
             self.api_key = api_key
         else:
-            from ...models import AppConfig
             config = AppConfig.get_solo()
             self.base_url = (config.radarr_url or getattr(settings, 'RADARR_URL', '')).rstrip('/')
             self.api_key = config.radarr_api_key or getattr(settings, 'RADARR_API_KEY', '')
@@ -41,11 +44,9 @@ class RadarrService:
                 raise Exception(f"No results found in Radarr for TMDB ID {tmdb_id}")
             movie_data = results[0]
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Radarr Lookup Error: {e}")
+            logger.error(f"Radarr Lookup Error: {e}")
             raise
 
-        from ...models import AppConfig
         config = AppConfig.get_solo()
         
         # Determine root path
@@ -86,3 +87,14 @@ class RadarrService:
             return None
         response.raise_for_status()
         return response.json()
+
+    def get_all_tmdb_ids(self):
+        if not self.base_url: return set()
+        try:
+            url = f"{self.base_url}/api/v3/movie"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return {str(m['tmdbId']) for m in response.json() if m.get('tmdbId')}
+        except Exception as e:
+            logger.error(f"Radarr: Failed to fetch all TMDB IDs: {e}")
+            return set()

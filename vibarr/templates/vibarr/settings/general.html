@@ -1,0 +1,109 @@
+{% extends 'vibarr/settings_layout.html' %}
+
+{% block settings_title %}General Settings{% endblock %}
+{% block section_name %}General & Regional{% endblock %}
+
+{% block settings_section %}
+<div class="space-y-8">
+    <!-- Regional Guardrails -->
+    <section class="glass p-8 rounded-3xl space-y-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-4">
+                <h3 class="text-white font-bold text-sm">Metadata Localization</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">TMDB Region</label>
+                        <select name="tmdb_region" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            <option value="US" {% if config.tmdb_region == 'US' %}selected{% endif %}>United States (US)</option>
+                            <option value="GB" {% if config.tmdb_region == 'GB' %}selected{% endif %}>United Kingdom (GB)</option>
+                            <option value="CA" {% if config.tmdb_region == 'CA' %}selected{% endif %}>Canada (CA)</option>
+                            <option value="AU" {% if config.tmdb_region == 'AU' %}selected{% endif %}>Australia (AU)</option>
+                            <option value="DE" {% if config.tmdb_region == 'DE' %}selected{% endif %}>Germany (DE)</option>
+                            <option value="FR" {% if config.tmdb_region == 'FR' %}selected{% endif %}>France (FR)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Language</label>
+                        <select name="tmdb_language" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            <option value="en-US" {% if config.tmdb_language == 'en-US' %}selected{% endif %}>English (US)</option>
+                            <option value="en-GB" {% if config.tmdb_language == 'en-GB' %}selected{% endif %}>English (UK)</option>
+                            <option value="fr-FR" {% if config.tmdb_language == 'fr-FR' %}selected{% endif %}>French (FR)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2 col-span-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Application Timezone</label>
+                        <select name="timezone" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            <option value="UTC" {% if config.timezone == 'UTC' %}selected{% endif %}>UTC (Universal)</option>
+                            <option value="America/New_York" {% if config.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time</option>
+                            <option value="Europe/London" {% if config.timezone == 'Europe/London' %}selected{% endif %}>United Kingdom</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-white font-bold text-sm">Global Safety</h3>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Max Content Rating</label>
+                    <select name="max_content_rating" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <option value="NR" {% if config.max_content_rating == 'NR' %}selected{% endif %}>No Restriction</option>
+                        <option value="G" {% if config.max_content_rating == 'G' %}selected{% endif %}>General (G)</option>
+                        <option value="PG" {% if config.max_content_rating == 'PG' %}selected{% endif %}>Parental Guidance (PG)</option>
+                        <option value="PG-13" {% if config.max_content_rating == 'PG-13' %}selected{% endif %}>Teen (PG-13)</option>
+                        <option value="R" {% if config.max_content_rating == 'R' %}selected{% endif %}>Mature (R)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Networking -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <h3 class="text-white font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.826a4 4 0 005.656 0l4-4a4 4 0 00-5.656 0l4 4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+            Networking & Proxy
+        </h3>
+        <div class="space-y-2">
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base URL Path</label>
+            <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="e.g. /vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            <p class="text-[9px] text-gray-500">Only needed if running Vibarr behind a reverse proxy subfolder.</p>
+        </div>
+    </section>
+
+    <!-- System Maintenance -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <h3 class="text-white font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            System Maintenance
+        </h3>
+        <div class="flex flex-col md:flex-row gap-4">
+            <button type="button" 
+                    hx-post="{% url 'reset_sync' %}" 
+                    hx-confirm="Force-reset the synchronization state?"
+                    class="flex-1 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Force Reset Sync Status
+            </button>
+            <button type="button" 
+                    hx-post="{% url 'setup_reset' %}" 
+                    hx-confirm="Re-run the setup wizard?"
+                    class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Re-run Setup Wizard
+            </button>
+            <button type="button" 
+                    hx-post="{% url 'refresh_metadata' %}" 
+                    hx-target="#metadata-refresh-status"
+                    class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Sync Batch (25)
+            </button>
+            <button type="button" 
+                    hx-post="{% url 'refresh_metadata' %}" 
+                    hx-vals='{"full": "true"}'
+                    hx-target="#metadata-refresh-status"
+                    class="flex-1 py-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Deep Refresh Library
+            </button>
+        </div>
+        <div id="metadata-refresh-status" class="mt-2 text-center"></div>
+    </section>
+</div>
+{% endblock %}

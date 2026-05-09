@@ -2,8 +2,8 @@ from django.views.generic import ListView, View
 from ..models import MediaWatchEvent, AppConfig
 from django.shortcuts import redirect
 from django.contrib import messages
-from ..tasks.media.polling import poll_media_servers
 from django_q.tasks import async_task
+from django.db.models import Max, Count, F
 
 class HistoryView(ListView):
     model = MediaWatchEvent
@@ -12,7 +12,6 @@ class HistoryView(ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        from django.db.models import Max, Count, F
         return MediaWatchEvent.objects.values(
             'show_title', 'media_type', 'source_server', 'tmdb_id'
         ).annotate(
@@ -40,6 +39,6 @@ class HistoryView(ListView):
 class BackfillHistoryView(View):
     def post(self, request):
         # Poll for the last 10 years (effectively full history)
-        async_task(poll_media_servers, hours=87600)
+        async_task('vibarr.tasks.media.polling.poll_media_servers', hours=87600)
         messages.success(request, "Full history backfill triggered. This may take a few minutes.")
         return redirect('history_view')
