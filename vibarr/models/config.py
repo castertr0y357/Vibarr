@@ -85,6 +85,7 @@ class AppConfig(models.Model):
     max_discovered_movies = models.IntegerField(default=50, help_text="Maximum movies to keep in the Discovery Feed.")
     max_discovered_shows = models.IntegerField(default=50, help_text="Maximum shows to keep in the Discovery Feed.")
     max_tasting_items = models.IntegerField(default=50, help_text="Maximum total number of active tastings allowed at once.")
+    auto_purge_inactive = models.BooleanField(default=False, help_text="Automatically remove tastings with no progress after 14 days.")
     
     # Intelligence Influence
     movie_influence_on_shows = models.IntegerField(default=20, help_text="How much movie taste influences show discovery (0-100).")

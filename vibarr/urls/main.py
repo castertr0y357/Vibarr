@@ -1,7 +1,7 @@
 from django.urls import path
 from ..views.dashboard import DashboardView, SyncStatusView
 from ..views.search import VibeSearchView, VibeSearchActionView, TasteFromSearchView
-from ..views.settings import SettingsView, UpdateSettingsView, GetLibrariesView, TestSettingsView, DiscoverPlexServersView, RefreshMetadataView
+from ..views.settings import SettingsView, UpdateSettingsView, GetLibrariesView, TestSettingsView, DiscoverPlexServersView, RefreshMetadataView, RevaluateRecommendationsView
 from ..views.diagnostics import LogsView, DownloadLogsView
 from ..views.setup import SetupWizardView, SetupActionView, PlexPinRequestView, PlexPinPollView, ResetSetupView, TestAutomationView
 from ..views.nightcap import NightcapView, NightcapActionView
@@ -44,6 +44,7 @@ urlpatterns = [
     path('settings/test/', TestSettingsView.as_view(), name='test_settings'),
     path('settings/plex/discover/', DiscoverPlexServersView.as_view(), name='discover_plex_servers'),
     path('settings/refresh-metadata/', RefreshMetadataView.as_view(), name='refresh_metadata'),
+    path('settings/revaluate-recommendations/', RevaluateRecommendationsView.as_view(), name='revaluate_recommendations'),
     path('settings/keys/', APIKeyListView.as_view(), name='api_key_list'),
     path('settings/keys/create/', CreateAPIKeyView.as_view(), name='create_api_key'),
     path('settings/keys/revoke/<int:key_id>/', RevokeAPIKeyView.as_view(), name='revoke_api_key'),

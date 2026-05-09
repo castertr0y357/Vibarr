@@ -16,7 +16,7 @@ from ..services.media.jellyfin_service import JellyfinService
 from ..services.discovery.tmdb_service import TMDBService
 from ..services.discovery.tvdb_service import TVDBService
 from django_q.tasks import async_task
-from ..tasks.discovery.recommendations import refresh_metadata_backlog
+from ..tasks.discovery.recommendations import refresh_metadata_backlog, revaluate_all_recommendations, refresh_discovery_tracks
 
 import logging
 
@@ -194,3 +194,15 @@ class RefreshMetadataView(View):
         
         count = refresh_metadata_backlog(full_sweep=False)
         return HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Refreshed {count} items</span>')
+
+class RevaluateRecommendationsView(View):
+    def post(self, request):
+        mode = request.POST.get('mode', 'scores')
+        
+        if mode == 'discovery':
+            async_task('vibarr.tasks.discovery.recommendations.refresh_discovery_tracks')
+            return HttpResponse('<span class="text-blue-500 font-bold text-[10px]">Fresh Discovery Scout Triggered</span>')
+        
+        # Default: Re-evaluate scores
+        async_task('vibarr.tasks.discovery.recommendations.revaluate_all_recommendations')
+        return HttpResponse('<span class="text-rose-500 font-bold text-[10px]">Score Re-evaluation Started</span>')
