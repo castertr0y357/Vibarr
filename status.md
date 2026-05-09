@@ -60,7 +60,6 @@
 - [x] **IMDB Enrichment**: Real-time cross-referencing with IMDB identifiers for high-consensus quality signals and direct critical links.
 - [x] **Metadata Maintenance Engine**: Automated background backfilling and "Deep Refresh" capabilities to keep the entire library updated.
 - [x] **Automated Growth Governance**: Hard limits on discovery and tasting volume to prevent database/storage bloat.
-- [x] **Dual-Track Intelligence**: Independent sourcing engines for Movies and TV, ensuring balanced recommendations regardless of recent viewing habits.
 - [x] **Cross-Media Influence**: Configurable "leakage" settings that allow your movie taste to subtly shape TV suggestions (and vice versa).
 - [x] **TVDB Integration**: Native support for TheTVDB v4 API for enhanced metadata enrichment and higher accuracy series lookups.
 - [x] **Universe Dashboard**: Dedicated visual gallery for franchise continuities with horizontal scrolling.
@@ -74,9 +73,14 @@
 - [x] **Dashboard De-cluttering**: Removed redundant Universe Architect navigation from the executive summary view.
 
 ### UX Refinement & Search Integration (v1.8)
+- **README Overhaul**: Completely rewritten the project documentation to emphasize the "Autonomous Talent Scout" lifecycle (Discovery → Tasting → Commitment) and document all v1.8 features.
+- **Manual Intelligence Maintenance**: Added UI triggers in Settings for manual "Score Re-evaluation" and "Discovery Scouting," allowing users to instantly refresh their feed based on latest viewing habits.
 - **Vibe Snap Migration**: Moved the "Nightcap" feature from the dashboard to the search page. This aligns the feature with the user's "search intent" rather than passive browsing.
 - **Visual Rebranding**: Rebranded the feature as **Vibe Snap** with a lightning-bolt aesthetic (⚡) and refreshed "Snap Analysis" reasoning.
 - **Redundancy Cleanup**: Removed the "Universe Architect" link from the Discovery Feed header on the dashboard to reduce visual noise, as it is already accessible via the primary sidebar.
+- [x] **Documentation v1.8**: Comprehensive README overhaul.
+- [x] **Manual Scout Triggers**: Dedicated Intelligence Maintenance actions in Settings.
+- [x] **Model Hardening**: Fixed missing `auto_purge_inactive` persistence.
 - [x] **Rebranded Discovery**: Vibe Snap (formerly Nightcap) integrated into Search.
 - [x] **Clutter Reduction**: Dashboard navigation cleanup.
 

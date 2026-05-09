@@ -13,16 +13,13 @@ from ...utils.providers import get_active_providers
 from ...utils.intelligence import get_weighted_history_profile
 from ...services.managers.sonarr_service import SonarrService
 from ...services.managers.radarr_service import RadarrService
+from ...utils.tasting import calculate_tasting_count
 import time
 
 logger = logging.getLogger(__name__)
 
-def get_tasting_count(runtime):
-    config = AppConfig.objects.first()
-    default_count = config.default_tasting_count if config else 3
-    if not runtime: return default_count
-    if runtime < 35: return default_count + 2
-    return default_count
+def get_tasting_count(runtime, season_episodes=0):
+    return calculate_tasting_count(runtime, season_episodes)
 
 
 def refresh_discovery_tracks():
@@ -124,9 +121,13 @@ def scout_for_media_type(target_type, limit=5):
         
         imdb_id = details.get('external_ids', {}).get('imdb_id')
         tvdb_id = details.get('external_ids', {}).get('tvdb_id')
-        avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
-        rating, advisory = tmdb.parse_advisory(details, is_movie=is_movie)
-        
+        # Extract Season 1 episode count if available
+        season_one_episodes = 0
+        if not is_movie and details.get('seasons'):
+            s1 = next((s for s in details['seasons'] if s.get('season_number') == 1), None)
+            if s1:
+                season_one_episodes = s1.get('episode_count', 0)
+
         show, created = Show.objects.get_or_create(
             tmdb_id=match['id'],
             media_type=target_type,
@@ -140,7 +141,8 @@ def scout_for_media_type(target_type, limit=5):
                 'content_rating': rating,
                 'content_advisory': advisory,
                 'streaming_providers': ", ".join(tmdb.get_watch_providers(match['id'], is_movie=is_movie)),
-                'tasting_episodes_count': 1 if is_movie else get_tasting_count(avg_runtime),
+                'first_season_episodes': season_one_episodes if not is_movie else None,
+                'tasting_episodes_count': 1 if is_movie else get_tasting_count(avg_runtime, season_one_episodes),
                 'state': ShowState.SUGGESTED
             }
         )

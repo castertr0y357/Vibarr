@@ -28,6 +28,7 @@ class Show(models.Model):
     )
     is_pinned = models.BooleanField(default=False, db_index=True)
     has_notified_ready = models.BooleanField(default=False)
+    first_season_episodes = models.IntegerField(null=True, blank=True, help_text="Episode count of the first season")
     tasting_episodes_count = models.IntegerField(default=3, help_text="Number of episodes to download for tasting")
     streaming_providers = models.TextField(null=True, blank=True)
     universe_name = models.TextField(null=True, blank=True, db_index=True)

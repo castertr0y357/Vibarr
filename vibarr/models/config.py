@@ -80,7 +80,8 @@ class AppConfig(models.Model):
     plex_user_filter = models.CharField(max_length=100, null=True, blank=True, help_text="Only learn from this User ID")
     
     # Defaults
-    default_tasting_count = models.IntegerField(default=3, help_text="Default number of episodes for a new show tasting")
+    default_tasting_count = models.IntegerField(default=3, help_text="Minimum number of episodes for a new show tasting (the floor)")
+    tasting_percentage = models.IntegerField(default=20, help_text="Percentage of first season episodes to taste (rounded up)")
     # Governance & Growth
     max_discovered_movies = models.IntegerField(default=50, help_text="Maximum movies to keep in the Discovery Feed.")
     max_discovered_shows = models.IntegerField(default=50, help_text="Maximum shows to keep in the Discovery Feed.")

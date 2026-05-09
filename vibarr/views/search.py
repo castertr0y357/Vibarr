@@ -7,6 +7,7 @@ from ..services.discovery.ai_service import AIService
 from ..services.discovery.tmdb_service import TMDBService
 from ..services.media.plex_service import PlexService
 from ..services.media.jellyfin_service import JellyfinService
+from ..utils.tasting import calculate_tasting_count
 from django_q.tasks import async_task
 
 class VibeSearchView(ConfigMixin, TemplateView):
@@ -71,12 +72,30 @@ class TasteFromSearchView(View):
         media_type = request.POST.get('media_type')
         title = request.POST.get('title')
         
+        # Fetch details to get runtime and season 1 episode count
+        tmdb = TMDBService()
+        is_movie = media_type == 'MOVIE'
+        details = tmdb.get_movie_details(tmdb_id) if is_movie else tmdb.get_show_details(tmdb_id)
+        
+        avg_runtime = 0
+        season_one_episodes = 0
+        
+        if details:
+            avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
+            if not is_movie and details.get('seasons'):
+                s1 = next((s for s in details['seasons'] if s.get('season_number') == 1), None)
+                if s1:
+                    season_one_episodes = s1.get('episode_count', 0)
+
         show, created = Show.objects.get_or_create(
             tmdb_id=tmdb_id,
             defaults={
                 'title': title,
                 'media_type': media_type,
-                'state': ShowState.SUGGESTED
+                'state': ShowState.SUGGESTED,
+                'runtime': avg_runtime,
+                'first_season_episodes': season_one_episodes if not is_movie else None,
+                'tasting_episodes_count': 1 if is_movie else calculate_tasting_count(avg_runtime, season_one_episodes)
             }
         )
         

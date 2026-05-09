@@ -4,6 +4,7 @@ from ...services.discovery.tmdb_service import TMDBService
 from ...services.managers.sonarr_service import SonarrService
 from ...services.managers.radarr_service import RadarrService
 from ...utils.providers import get_active_providers
+from ...utils.tasting import calculate_tasting_count
 from ...services.comms.notification_service import NotificationService
 from django_q.tasks import async_task
 import logging
@@ -98,10 +99,16 @@ def discover_universe_and_sync(show_id, library_ids=None):
             rating, advisory = tmdb.parse_advisory(details, is_movie=(m_type == MediaType.MOVIE))
             avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
             
-            # Extract providers directly from appended data
             provider_results = details.get('watch/providers', {}).get('results', {}).get(tmdb.region, {})
             flatrate = provider_results.get('flatrate', [])
             providers_str = ", ".join([p['provider_name'] for p in flatrate])
+
+            # Season 1 logic
+            season_one_episodes = 0
+            if m_type == MediaType.SHOW and details.get('seasons'):
+                s1 = next((s for s in details['seasons'] if s.get('season_number') == 1), None)
+                if s1:
+                    season_one_episodes = s1.get('episode_count', 0)
 
             # Decide state
             existing_show = Show.objects.filter(tmdb_id=tmdb_id, media_type=m_type).first()
@@ -122,7 +129,8 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 'content_advisory': advisory,
                 'streaming_providers': providers_str,
                 'state': state,
-                'tasting_episodes_count': 1 if m_type == MediaType.MOVIE else 3
+                'first_season_episodes': season_one_episodes if m_type == MediaType.SHOW else None,
+                'tasting_episodes_count': 1 if m_type == MediaType.MOVIE else calculate_tasting_count(avg_runtime, season_one_episodes)
             })
         except Exception as e:
             logger.error(f"[Universe Architect] Error gathering metadata for '{member_title}': {e}")
@@ -168,6 +176,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'content_advisory': candidate['content_advisory'],
                     'streaming_providers': candidate['streaming_providers'],
                     'state': candidate['state'],
+                    'first_season_episodes': candidate.get('first_season_episodes'),
                     'tasting_episodes_count': candidate['tasting_episodes_count']
                 }
             )

@@ -40,9 +40,14 @@
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Episodes to Taste (Default)</label>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Episodes to Taste (Minimum)</label>
                 <input type="number" name="default_tasting_count" value="{{ config.default_tasting_count }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                <p class="text-[9px] text-gray-500">Number of episodes required to "commit" to a series.</p>
+                <p class="text-[9px] text-gray-500">The absolute floor for any new series trial.</p>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tasting Percentage (%)</label>
+                <input type="number" name="tasting_percentage" value="{{ config.tasting_percentage }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                <p class="text-[9px] text-gray-500">Percentage of the **first season** to taste (rounds up).</p>
             </div>
             <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div>
