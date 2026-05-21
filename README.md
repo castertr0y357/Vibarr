@@ -56,7 +56,7 @@ docker-compose up -d
 ```
 
 ### 3. Setup Wizard
-Visit `http://localhost:8000` to start the interactive 5-step Setup Wizard. Vibarr will guide you through connecting your services and initializing your first library scan.
+Visit `http://localhost:8282` to start the interactive 5-step Setup Wizard. Vibarr will guide you through connecting your services and initializing your first library scan.
 
 ---
 
@@ -73,4 +73,7 @@ Vibarr supports localized metadata and content ratings. Configure your **TMDB Re
 
 ---
 *Built with ❤️ for the home lab community.*
+
+## 📜 License
+This project is licensed under the **GNU Affero General Public License v3 (AGPLv3)**. See the [LICENSE](LICENSE) file for details.
 
