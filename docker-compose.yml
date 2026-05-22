@@ -32,9 +32,8 @@ services:
     restart: unless-stopped
     command: ["web"]
     volumes:
-      - .:/app
-      - ./logs:/app/logs
-      - ./data:/app/data
+      - data_volume:/app/data
+      - logs_volume:/app/logs
       - static_volume:/app/staticfiles
     env_file:
       - path: .env
@@ -69,9 +68,8 @@ services:
     restart: unless-stopped
     command: ["worker"]
     volumes:
-      - .:/app
-      - ./logs:/app/logs
-      - ./data:/app/data
+      - data_volume:/app/data
+      - logs_volume:/app/logs
     env_file:
       - path: .env
         required: false
@@ -101,3 +99,5 @@ services:
 volumes:
   postgres_data:
   static_volume:
+  logs_volume:
+  data_volume:
