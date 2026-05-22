@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -7,7 +5,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vibarr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vibarr}
+      POSTGRES_DB: ${POSTGRES_DB:-vibarr}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-vibarr}"]
       interval: 10s
@@ -34,7 +37,25 @@ services:
       - ./data:/app/data
       - static_volume:/app/staticfiles
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      DEBUG: ${DEBUG:-1}
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-vibarr-secret-change-me}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,web,testserver}
+      DATABASE_URL: ${DATABASE_URL:-postgres://vibarr:vibarr@db:5432/vibarr}
+      DATABASE: ${DATABASE:-postgres}
+      SQL_HOST: ${SQL_HOST:-db}
+      SQL_PORT: ${SQL_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-vibarr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vibarr}
+      POSTGRES_DB: ${POSTGRES_DB:-vibarr}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-adminpass}
+      TAUTULLI_URL: ${TAUTULLI_URL:-}
+      TAUTULLI_API_KEY: ${TAUTULLI_API_KEY:-}
     ports:
       - "${VIBARR_PORT:-8282}:8000"
     depends_on:
@@ -52,7 +73,25 @@ services:
       - ./logs:/app/logs
       - ./data:/app/data
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      DEBUG: ${DEBUG:-1}
+      SECRET_KEY: ${SECRET_KEY:-django-insecure-vibarr-secret-change-me}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,web,testserver}
+      DATABASE_URL: ${DATABASE_URL:-postgres://vibarr:vibarr@db:5432/vibarr}
+      DATABASE: ${DATABASE:-postgres}
+      SQL_HOST: ${SQL_HOST:-db}
+      SQL_PORT: ${SQL_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-vibarr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vibarr}
+      POSTGRES_DB: ${POSTGRES_DB:-vibarr}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-adminpass}
+      TAUTULLI_URL: ${TAUTULLI_URL:-}
+      TAUTULLI_API_KEY: ${TAUTULLI_API_KEY:-}
     depends_on:
       db:
         condition: service_healthy
