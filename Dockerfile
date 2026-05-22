@@ -29,6 +29,7 @@ RUN apt-get update && apt-get install -y \
     libpq5 \
     netcat-openbsd \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
@@ -36,14 +37,11 @@ COPY --from=builder /install /install
 
 # Create non-root user
 RUN useradd -m vibarr && \
-    mkdir -p /app/logs /app/data && \
+    mkdir -p /app/logs /app/data /app/staticfiles && \
     chown -R vibarr:vibarr /app
 
 # Copy project files
 COPY --chown=vibarr:vibarr . /app/
-
-# Switch to non-root user
-USER vibarr
 
 RUN chmod +x /app/entrypoint.sh
 

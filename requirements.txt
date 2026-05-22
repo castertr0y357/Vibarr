@@ -9,3 +9,4 @@ python-dotenv==1.2.2
 django-picklefield==3.4.0
 tzdata==2026.2
 redis==5.0.1
+whitenoise==6.8.2

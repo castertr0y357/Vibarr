@@ -34,7 +34,6 @@ services:
     volumes:
       - data_volume:/app/data
       - logs_volume:/app/logs
-      - static_volume:/app/staticfiles
     env_file:
       - path: .env
         required: false
@@ -98,6 +97,5 @@ services:
 
 volumes:
   postgres_data:
-  static_volume:
   logs_volume:
   data_volume:

@@ -51,6 +51,7 @@ MIDDLEWARE = [
     'vibarr.middleware.url_base.URLBaseMiddleware',
     'vibarr.middleware.timezone.TimezoneMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'vibarr.middleware.auth.VibarrAuthMiddleware',
     'django.middleware.common.CommonMiddleware',

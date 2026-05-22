@@ -3,6 +3,15 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# Drop privileges to vibarr user if running as root
+if [ "$(id -u)" = '0' ]; then
+    echo "Fixing permissions on logs, data, and staticfiles directories..."
+    chown -R vibarr:vibarr /app/logs /app/data /app/staticfiles
+    echo "Dropping privileges to vibarr user..."
+    exec gosu vibarr "$0" "$@"
+fi
+
+
 if [ "$DATABASE" = "postgres" ]
 then
     echo "Waiting for postgres..."
