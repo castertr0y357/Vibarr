@@ -126,17 +126,11 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Ensure logs directory exists and the log file is writable
+# Ensure logs directory exists
 LOGS_DIR = BASE_DIR / 'logs'
-enable_file_logging = False
 try:
     LOGS_DIR.mkdir(exist_ok=True)
-    # Test writing directly to the actual log file path
-    log_file = LOGS_DIR / 'vibarr.log'
-    with open(log_file, 'a'):
-        pass
-    enable_file_logging = True
-except (PermissionError, OSError):
+except Exception:
     pass
 
 # Django-Q2 Configuration
@@ -155,8 +149,6 @@ Q_CLUSTER = {
 # but the primary source of truth is the database.
 
 # Logging Configuration
-active_handlers = ['console', 'file'] if enable_file_logging else ['console']
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -172,34 +164,32 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'human',
         },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'vibarr.logging_handlers.SafeFileHandler',
+            'filename': 'logs/vibarr.log',
+            'formatter': 'human',
+        },
     },
     'root': {
-        'handlers': active_handlers,
+        'handlers': ['console', 'file'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': active_handlers,
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
         'vibarr': {
-            'handlers': active_handlers,
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False,
         },
         'django_q': {
-            'handlers': active_handlers,
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
-
-if enable_file_logging:
-    LOGGING['handlers']['file'] = {
-        'level': 'DEBUG',
-        'class': 'logging.FileHandler',
-        'filename': 'logs/vibarr.log',
-        'formatter': 'human',
-    }
