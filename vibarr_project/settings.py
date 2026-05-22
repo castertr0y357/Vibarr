@@ -126,15 +126,15 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Ensure logs directory exists and is writable
+# Ensure logs directory exists and the log file is writable
 LOGS_DIR = BASE_DIR / 'logs'
 enable_file_logging = False
 try:
     LOGS_DIR.mkdir(exist_ok=True)
-    # Test file write permission
-    test_file = LOGS_DIR / '.write_test'
-    test_file.touch()
-    test_file.unlink()
+    # Test writing directly to the actual log file path
+    log_file = LOGS_DIR / 'vibarr.log'
+    with open(log_file, 'a'):
+        pass
     enable_file_logging = True
 except (PermissionError, OSError):
     pass
