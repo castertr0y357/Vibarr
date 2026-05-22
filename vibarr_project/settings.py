@@ -126,9 +126,18 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Ensure logs directory exists
+# Ensure logs directory exists and is writable
 LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+enable_file_logging = False
+try:
+    LOGS_DIR.mkdir(exist_ok=True)
+    # Test file write permission
+    test_file = LOGS_DIR / '.write_test'
+    test_file.touch()
+    test_file.unlink()
+    enable_file_logging = True
+except (PermissionError, OSError):
+    pass
 
 # Django-Q2 Configuration
 Q_CLUSTER = {
@@ -146,6 +155,8 @@ Q_CLUSTER = {
 # but the primary source of truth is the database.
 
 # Logging Configuration
+active_handlers = ['console', 'file'] if enable_file_logging else ['console']
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -161,32 +172,34 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'human',
         },
-        'file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': 'logs/vibarr.log',
-            'formatter': 'human',
-        },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': active_handlers,
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': active_handlers,
             'level': 'INFO',
             'propagate': False,
         },
         'vibarr': {
-            'handlers': ['console', 'file'],
+            'handlers': active_handlers,
             'level': 'DEBUG',
             'propagate': False,
         },
         'django_q': {
-            'handlers': ['console', 'file'],
+            'handlers': active_handlers,
             'level': 'INFO',
             'propagate': False,
         },
     },
 }
+
+if enable_file_logging:
+    LOGGING['handlers']['file'] = {
+        'level': 'DEBUG',
+        'class': 'logging.FileHandler',
+        'filename': 'logs/vibarr.log',
+        'formatter': 'human',
+    }

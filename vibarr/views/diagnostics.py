@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import FileResponse
 import os
 import zipfile
+import io
 from django.db import connection
 
 class LogsView(TemplateView):
@@ -15,8 +16,11 @@ class LogsView(TemplateView):
         log_file = os.path.join('logs', 'vibarr.log')
         lines = []
         if os.path.exists(log_file):
-            with open(log_file, 'r') as f:
-                lines = f.readlines()[-200:]
+            try:
+                with open(log_file, 'r') as f:
+                    lines = f.readlines()[-200:]
+            except (PermissionError, OSError):
+                lines = ["[Permission denied or error reading log file]"]
         context['logs'] = lines
         
         # DB Stats
@@ -50,12 +54,19 @@ class LogsView(TemplateView):
 class DownloadLogsView(View):
     def get(self, request, *args, **kwargs):
         log_dir = 'logs'
-        zip_path = os.path.join(log_dir, 'vibarr_logs.zip')
         
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
-            for root, dirs, files in os.walk(log_dir):
-                for file in files:
-                    if file.endswith('.log'):
-                        zipf.write(os.path.join(root, file), file)
+        # Build the zip in memory to avoid write permission errors on the filesystem
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            if os.path.exists(log_dir):
+                for root, dirs, files in os.walk(log_dir):
+                    for file in files:
+                        if file.endswith('.log'):
+                            file_path = os.path.join(root, file)
+                            try:
+                                zipf.write(file_path, file)
+                            except (PermissionError, OSError):
+                                pass
         
-        return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename='vibarr_logs.zip')
+        zip_buffer.seek(0)
+        return FileResponse(zip_buffer, as_attachment=True, filename='vibarr_logs.zip')
