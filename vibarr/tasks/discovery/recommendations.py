@@ -138,6 +138,9 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
             if s1:
                 season_one_episodes = s1.get('episode_count', 0)
 
+        rating, advisory = tmdb.parse_advisory(details, is_movie=is_movie)
+        avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
+
         show, created = Show.objects.get_or_create(
             tmdb_id=match['id'],
             media_type=target_type,
