@@ -34,6 +34,12 @@ DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'testserver'])
 
+# CSRF and proxy settings for external/reverse proxy deployments
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
+SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
+
 # Application definition
 
 INSTALLED_APPS = [
