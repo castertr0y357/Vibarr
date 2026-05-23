@@ -48,7 +48,7 @@ def refresh_discovery_tracks():
         logger.info(f"[AI Scout] Show backlog at {current_shows}/{config.max_discovered_shows}. Refreshing...")
         scout_for_media_type(MediaType.SHOW, limit=min(needed, 10), library_titles=library_titles)
 
-def scout_for_media_type(target_type, limit=5, library_titles=None):
+def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=None):
     """
     Finds and ranks new recommendations specifically for a media type.
     """
@@ -63,7 +63,8 @@ def scout_for_media_type(target_type, limit=5, library_titles=None):
         return
 
     # Pick a seed from history to get similar candidates from TMDB
-    seed_title = profile[0]
+    if not seed_title:
+        seed_title = profile[0]
     is_movie = target_type == MediaType.MOVIE
     
     search_result = tmdb.search_movie(seed_title) if is_movie else tmdb.search_show(seed_title)
@@ -178,7 +179,7 @@ def generate_recommendations(title, is_movie=False):
     Legacy wrapper for reactive scouting, now respects new governance.
     """
     target_type = MediaType.MOVIE if is_movie else MediaType.SHOW
-    scout_for_media_type(target_type, limit=5)
+    scout_for_media_type(target_type, limit=5, seed_title=title)
 
 def refresh_metadata_backlog(full_sweep=False):
     """

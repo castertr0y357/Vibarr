@@ -42,6 +42,10 @@ def poll_media_servers(hours=1):
         config.is_syncing = False
         config.sync_status = "Sync complete."
         config.save()
+        
+        if hours > 24:
+            logger.info("[Library Sync] Deep backfill completed. Triggering background refresh of discovery tracks.")
+            async_task('vibarr.tasks.discovery.recommendations.refresh_discovery_tracks')
     except Exception as e:
         logger.error(f"Sync error: {e}")
         config.is_syncing = False
