@@ -74,6 +74,24 @@ Vibarr supports localized metadata and content ratings. Configure your **TMDB Re
 ---
 *Built with ❤️ for the home lab community.*
 
+## 🔍 Troubleshooting
+
+### 1. CSRF 403 Errors behind a Reverse Proxy
+If you host Vibarr on an external server behind an SSL-terminating reverse proxy (like Nginx, Caddy, Traefik, or Cloudflare Tunnel) and encounter a `403 Forbidden` error on POST/HTMX requests:
+* **Configure Trusted Origins**: Set `CSRF_TRUSTED_ORIGINS` in your `.env` file to the exact scheme and domain you use to access the app (e.g., `CSRF_TRUSTED_ORIGINS=https://vibarr.your-domain.com`).
+* **Secure Cookies**: If using HTTPS, turn on secure cookies by setting `CSRF_COOKIE_SECURE=True` and `SESSION_COOKIE_SECURE=True` in your `.env`.
+* **SSL Headers**: Ensure your proxy passes the `X-Forwarded-Proto` header. Vibarr is pre-configured to detect SSL termination via `SECURE_PROXY_SSL_HEADER`.
+
+### 2. AI Recommendations with Open WebUI
+If you configure Open WebUI as your OpenAI-compatible AI backend:
+* **Correct API Endpoint**: Use the full completions path containing the `/api` prefix:
+  * `https://your-open-webui-url.com/api/v1/chat/completions`
+  * Or `https://your-open-webui-url.com/api/chat/completions`
+  * *Note: Accessing `/v1/chat/completions` directly without `/api` will result in a `405 Method Not Allowed`.*
+* **Open WebUI 400 Bad Request**: Older versions of Open WebUI crash with `400 Bad Request` if a `chat_id` parameter is not present. Vibarr automatically appends a dummy `"chat_id": ""` to all outbound AI payloads to avoid this issue.
+
+---
+
 ## 📜 License
 This project is licensed under the **GNU Affero General Public License v3 (AGPLv3)**. See the [LICENSE](LICENSE) file for details.
 

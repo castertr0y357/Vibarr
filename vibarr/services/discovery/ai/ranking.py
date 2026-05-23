@@ -1,7 +1,10 @@
 from .base import AIBaseService
 import json
 import requests
+import logging
 from ....models import Show, ShowState
+
+logger = logging.getLogger(__name__)
 
 class AIRankingService(AIBaseService):
     def rank_shows(self, history_titles, candidates, context=None):
@@ -44,7 +47,8 @@ class AIRankingService(AIBaseService):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": 0.7
+            "temperature": 0.7,
+            "chat_id": ""
         }
         if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
 
@@ -57,7 +61,8 @@ class AIRankingService(AIBaseService):
             if isinstance(data, dict):
                 return data.get('recommendations', [])
             return data if isinstance(data, list) else []
-        except Exception:
+        except Exception as e:
+            logger.error(f"AIRankingService.rank_shows error: {e}")
             return []
 
     def score_candidates(self, history_titles, candidates):
@@ -99,7 +104,8 @@ class AIRankingService(AIBaseService):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": 0.3 # Lower temperature for more consistent scoring
+            "temperature": 0.3, # Lower temperature for more consistent scoring
+            "chat_id": ""
         }
         if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
 
@@ -110,7 +116,7 @@ class AIRankingService(AIBaseService):
             data = self._parse_json_response(content, {})
             return data.get('scores', [])
         except Exception as e:
-            print(f"AI Scoring Error: {e}")
+            logger.error(f"AIRankingService.score_candidates error: {e}")
             return []
 
     def get_mood_recommendations(self, history_titles, mood):

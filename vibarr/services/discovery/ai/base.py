@@ -84,7 +84,8 @@ class AIBaseService:
         payload = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature
+            "temperature": temperature,
+            "chat_id": ""
         }
         
         if json_mode:
