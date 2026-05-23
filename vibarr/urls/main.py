@@ -11,7 +11,7 @@ from ..views.history import HistoryView, BackfillHistoryView
 from ..views.media_views import DiscoveryListView, TastingListView, CommittedListView
 from ..views.universe import UniverseListView
 from ..views.auth import LoginView, LogoutView
-from ..views.about import AboutView
+from ..views.about import AboutView, CheckUpdateView
 
 
 urlpatterns = [
@@ -58,5 +58,6 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('about/', AboutView.as_view(), name='about'),
+    path('about/check-update/', CheckUpdateView.as_view(), name='check_update'),
 ]
 
