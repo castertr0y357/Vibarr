@@ -36,7 +36,7 @@
         </div>
         <div class="flex items-center gap-4">
             <div id="scout-status" class="text-[10px] text-gray-500"></div>
-            <span class="text-xs font-bold text-rose-500 uppercase tracking-widest">{{ suggested|length }} Titles Found</span>
+            <span id="title-count" class="text-xs font-bold text-rose-500 uppercase tracking-widest">{{ suggested|length }} Titles Found</span>
             <button type="button" 
                     hx-post="{% url 'revaluate_recommendations' %}" 
                     hx-vals='{"mode": "discovery"}'
