@@ -64,7 +64,7 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
 
     # Pick a seed from history to get similar candidates from TMDB
     if not seed_title:
-        seed_title = profile[0]
+        seed_title = profile[0]['title'] if isinstance(profile[0], dict) else profile[0]
     is_movie = target_type == MediaType.MOVIE
     
     search_result = tmdb.search_movie(seed_title) if is_movie else tmdb.search_show(seed_title)
@@ -274,7 +274,15 @@ def revaluate_all_recommendations():
     # Build history profiles (we'll need both for broad context)
     movie_profile = get_weighted_history_profile(MediaType.MOVIE)
     show_profile = get_weighted_history_profile(MediaType.SHOW)
-    full_profile = list(set(movie_profile + show_profile))
+    
+    # Dedup list of dicts (or strings) by title
+    seen = set()
+    full_profile = []
+    for p in movie_profile + show_profile:
+        title = p['title'] if isinstance(p, dict) else p
+        if title not in seen:
+            seen.add(title)
+            full_profile.append(p)
 
     # Batch process 8 items at a time (smaller batches prevent AI response truncation)
     items_list = list(items_to_score)

@@ -171,8 +171,14 @@ def discover_universe_and_sync(show_id, library_ids=None):
         from ...services.discovery.heuristic_ranking import HeuristicRankingService
         
         # We'll use a mix of both types for a broad universe profile
-        profile = get_weighted_history_profile(MediaType.MOVIE) + get_weighted_history_profile(MediaType.SHOW)
-        profile = list(set(profile)) # Dedup
+        raw_profile = get_weighted_history_profile(MediaType.MOVIE) + get_weighted_history_profile(MediaType.SHOW)
+        seen = set()
+        profile = []
+        for p in raw_profile:
+            title = p['title'] if isinstance(p, dict) else p
+            if title not in seen:
+                seen.add(title)
+                profile.append(p)
         
         scores_map = {}
         if config.use_ai_recommendations:

@@ -34,36 +34,69 @@ class HeuristicRankingService:
         """
         Analyzes history to find preferred genres and keywords.
         """
-        events = MediaWatchEvent.objects.filter(media_type=target_type).order_by('-watched_at')[:20]
+        from django.db.models import Max, Count
+        import math
+        
+        unique_history = MediaWatchEvent.objects.filter(
+            media_type=target_type,
+            tmdb_id__isnull=False
+        ).values('tmdb_id').annotate(
+            latest_watch=Max('watched_at'),
+            play_count=Count('id')
+        ).order_by('-latest_watch')[:20]
         
         genres = {}
         keywords = {}
         collections = set()
+        genre_names = {}
+        keyword_names = {}
         
-        for event in events:
-            # We use TMDB to get details for history items if we don't have them
-            # (In a real scenario, we might want to cache this or use stored metadata)
-            # For now, let's assume we can get it from TMDB efficiently or it's already cached
-            details = self.tmdb.get_movie_details(event.tmdb_id) if target_type == MediaType.MOVIE else self.tmdb.get_show_details(event.tmdb_id)
+        for item in unique_history:
+            tmdb_id = item['tmdb_id']
+            play_count = item['play_count']
+            
+            # Apply logarithmic scaling to play count: weight = 1.0 + ln(play_count)
+            weight = 1.0 + math.log(play_count)
+            
+            details = self.tmdb.get_movie_details(tmdb_id) if target_type == MediaType.MOVIE else self.tmdb.get_show_details(tmdb_id)
             
             if details:
                 # Genres
                 for g in details.get('genres', []):
-                    genres[g['id']] = genres.get(g['id'], 0) + 1
+                    genres[g['id']] = genres.get(g['id'], 0.0) + weight
+                    genre_names[g['id']] = g['name']
                 
                 # Keywords
                 kw_key = 'keywords' if target_type == MediaType.MOVIE else 'results'
                 for k in details.get('keywords', {}).get(kw_key, []):
-                    keywords[k['id']] = keywords.get(k['id'], 0) + 1
+                    keywords[k['id']] = keywords.get(k['id'], 0.0) + weight
+                    keyword_names[k['id']] = k['name']
                 
                 # Collection
                 if target_type == MediaType.MOVIE and details.get('belongs_to_collection'):
                     collections.add(details['belongs_to_collection']['id'])
 
+        # Apply negative keyword weights from rejected shows
+        from ...models import Show, ShowState
+        rejected = Show.objects.filter(
+            state=ShowState.REJECTED,
+            media_type=target_type
+        ).order_by('-updated_at')[:10]
+        
+        for r_show in rejected:
+            details = self.tmdb.get_movie_details(r_show.tmdb_id) if target_type == MediaType.MOVIE else self.tmdb.get_show_details(r_show.tmdb_id)
+            if details:
+                kw_key = 'keywords' if target_type == MediaType.MOVIE else 'results'
+                for k in details.get('keywords', {}).get(kw_key, []):
+                    keywords[k['id']] = keywords.get(k['id'], 0.0) - 1.0
+                    keyword_names[k['id']] = k['name']
+
         return {
             'genres': genres,
             'keywords': keywords,
-            'collections': collections
+            'collections': collections,
+            'genre_names': genre_names,
+            'keyword_names': keyword_names
         }
 
     def _build_seerr_profile(self):
@@ -110,7 +143,8 @@ class HeuristicRankingService:
                     keyword_score += profile['keywords'][k['id']]
                 if len(vibe_tags) < 4:
                     vibe_tags.append(k['name'].capitalize())
-            keyword_score = min(keyword_score, 10)
+            # Cap keyword score between -5.0 and 10.0
+            keyword_score = max(-5.0, min(keyword_score, 10.0))
             
             # Collection matching
             if is_movie and details.get('belongs_to_collection'):
