@@ -300,6 +300,7 @@ def revaluate_all_recommendations():
             overview = (raw_overview[:300] + '...') if len(raw_overview) > 300 else raw_overview
             
             candidates.append({
+                'id': item.tmdb_id,
                 'title': item.title,
                 'overview': overview
             })
@@ -346,3 +347,72 @@ def revaluate_all_recommendations():
                         promoted_count += 1
 
     logger.info(f"[AI Re-evaluator] Finished. Updated {updated_count} scores, Promoted {promoted_count} items.")
+
+
+def reevaluate_single_show(show):
+    """
+    Re-evaluates the score of a single Show.
+    """
+    config = AppConfig.get_solo()
+    
+    # Update or get overview from existing recommendations
+    all_recs = list(show.recommendations.all())
+    raw_overview = all_recs[0].reasoning if all_recs else ""
+    overview = (raw_overview[:300] + '...') if len(raw_overview) > 300 else raw_overview
+    
+    candidate = {
+        'id': show.tmdb_id,
+        'title': show.title,
+        'overview': overview
+    }
+    
+    if config.use_ai_recommendations:
+        ai = AIService()
+        movie_profile = get_weighted_history_profile(MediaType.MOVIE)
+        show_profile = get_weighted_history_profile(MediaType.SHOW)
+        
+        seen = set()
+        full_profile = []
+        for p in movie_profile + show_profile:
+            title = p['title'] if isinstance(p, dict) else p
+            if title not in seen:
+                seen.add(title)
+                full_profile.append(p)
+                
+        scores = ai.score_candidates(full_profile, [candidate])
+    else:
+        hrs = HeuristicRankingService(config)
+        user_profile = hrs._build_user_profile(show.media_type)
+        seerr_profile = hrs._build_seerr_profile() if config.use_seerr else set()
+        score_data = hrs._calculate_score(candidate, show.media_type, user_profile, seerr_profile)
+        scores = [score_data]
+        
+    if not scores:
+        return None, False
+        
+    ai_data = scores[0]
+    new_score = ai_data.get('score', 0)
+    new_reasoning = ai_data.get('reasoning', "Matches updated viewing habits.")
+    new_tags = ", ".join(ai_data.get('vibe_tags', [])) if isinstance(ai_data.get('vibe_tags'), list) else ""
+    
+    # Update or create Recommendation
+    rec = show.recommendations.first()
+    if not rec:
+        rec = Recommendation(suggested_show=show, source_title=show.title)
+    rec.score = new_score
+    rec.reasoning = new_reasoning
+    rec.vibe_tags = new_tags
+    rec.save()
+    
+    # Check for Auto-Tasting promotion
+    promoted = False
+    if config.enable_auto_tasting and show.state == ShowState.SUGGESTED and new_score >= config.auto_tasting_threshold:
+        current_tasting = Show.objects.filter(state=ShowState.TASTING).count()
+        if current_tasting < config.max_tasting_items:
+            logger.info(f"[Single Re-evaluator] Item '{show.title}' score increased to {new_score}. Promoting to Auto-Tasting.")
+            show.state = ShowState.TASTING
+            show.save()
+            async_task('vibarr.tasks.managers.actions.start_tasting', show.id)
+            promoted = True
+            
+    return rec, promoted

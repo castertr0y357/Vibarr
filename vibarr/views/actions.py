@@ -24,8 +24,11 @@ from ..tasks import (
 from .mixins import ConfigMixin, APIMixin
 
 import logging
+import json
+from ..tasks.discovery.recommendations import reevaluate_single_show
 
 logger = logging.getLogger(__name__)
+
 
 # Return an empty string, allowing hx-swap="delete" to remove the element without DOM clutter
 HTMX_REMOVE = ""
@@ -220,4 +223,78 @@ class ExternalSyncView(APIMixin, View):
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': 'External sync triggered'})
         return redirect('settings_automation')
+
+
+class RescoreShowView(View):
+    def post(self, request, show_id):
+        show = get_object_or_404(Show, id=show_id)
+        
+        try:
+            rec, promoted = reevaluate_single_show(show)
+        except Exception as e:
+            logger.exception(f"Error during re-scoring for show '{show.title}': {e}")
+            if request.headers.get('HX-Request'):
+                if show.state == ShowState.SUGGESTED:
+                    response = render(request, 'vibarr/partials/discovery_card.html', {
+                        'show': show,
+                        'flipped': True
+                    })
+                elif show.state == ShowState.TASTING:
+                    response = render(request, 'vibarr/partials/active_tastings.html', {
+                        'tasting': [show],
+                        'flipped': True
+                    })
+                else:
+                    response = HttpResponse(HTMX_REMOVE)
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {
+                        'message': f"Failed to re-score '{show.title}': {str(e)}",
+                        'type': 'error'
+                    }
+                })
+                return response
+            else:
+                messages.error(request, f"Failed to re-score '{show.title}': {str(e)}")
+                return redirect('dashboard')
+
+        if request.headers.get('HX-Request'):
+            if promoted:
+                response = HttpResponse(HTMX_REMOVE)
+                response['HX-Trigger'] = json.dumps({
+                    'discovery-changed': '',
+                    'tasting-changed': '',
+                    'show-toast': {
+                        'message': f"'{show.title}' promoted to Auto-Tasting!",
+                        'type': 'success'
+                    }
+                })
+                return response
+            
+            if show.state == ShowState.SUGGESTED:
+                response = render(request, 'vibarr/partials/discovery_card.html', {
+                    'show': show,
+                    'flipped': True
+                })
+            elif show.state == ShowState.TASTING:
+                response = render(request, 'vibarr/partials/active_tastings.html', {
+                    'tasting': [show],
+                    'flipped': True
+                })
+            else:
+                response = HttpResponse(HTMX_REMOVE)
+                
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {
+                    'message': f"Re-scored '{show.title}' successfully.",
+                    'type': 'success'
+                }
+            })
+            return response
+            
+        if promoted:
+            messages.success(request, f"'{show.title}' score updated and promoted to Auto-Tasting.")
+        else:
+            messages.success(request, f"Re-scored '{show.title}' successfully.")
+        return redirect('dashboard')
+
 
