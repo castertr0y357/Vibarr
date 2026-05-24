@@ -83,6 +83,33 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 logger.warning(f"[Universe Architect] Could not find TMDB record for universe member: {member_title}")
                 continue
                 
+            # Prevent false positives (titles that sound similar/vague, or random TMDB fuzzy matches)
+            import re
+            clean_member = re.sub(r'\((?:19|20)\d{2}\)', '', member_title).strip().lower()
+            resolved_title = search_res.get('title') or search_res.get('name') or ''
+            clean_resolved = resolved_title.lower()
+            
+            member_words = set(re.findall(r'\w+', clean_member))
+            resolved_words = set(re.findall(r'\w+', clean_resolved))
+            
+            # They must share at least one significant alphanumeric word (longer than 2 chars)
+            # or be sub-strings of each other
+            sig_member_words = {w for w in member_words if len(w) > 2}
+            sig_resolved_words = {w for w in resolved_words if len(w) > 2}
+            
+            # Edge case: short titles
+            if not sig_member_words:
+                sig_member_words = member_words
+            if not sig_resolved_words:
+                sig_resolved_words = resolved_words
+                
+            has_overlap = bool(sig_member_words & sig_resolved_words)
+            is_substring = clean_member in clean_resolved or clean_resolved in clean_member
+            
+            if not (has_overlap or is_substring):
+                logger.warning(f"[Universe Architect] Title match verification failed for member '{member_title}'. Got search result '{resolved_title}'. Skipping.")
+                continue
+
             tmdb_id = str(search_res['id'])
             m_type = MediaType.MOVIE if 'title' in search_res else MediaType.SHOW
             
@@ -138,27 +165,54 @@ def discover_universe_and_sync(show_id, library_ids=None):
     if not gathered_candidates:
         return
 
-    # Batch Score with AI
+    # Batch Score with AI or Heuristics
     try:
         from ...utils.intelligence import get_weighted_history_profile
+        from ...services.discovery.heuristic_ranking import HeuristicRankingService
+        
         # We'll use a mix of both types for a broad universe profile
         profile = get_weighted_history_profile(MediaType.MOVIE) + get_weighted_history_profile(MediaType.SHOW)
         profile = list(set(profile)) # Dedup
         
-        # We might have a lot of items, so we batch the AI scoring (15 at a time)
-        scored_results = []
-        for i in range(0, len(gathered_candidates), 15):
-            batch = gathered_candidates[i:i+15]
-            scored_results.extend(ai.score_candidates(profile, batch))
+        scores_map = {}
+        if config.use_ai_recommendations:
+            # We might have a lot of items, so we batch the AI scoring (15 at a time)
+            scored_results = []
+            for i in range(0, len(gathered_candidates), 15):
+                batch = gathered_candidates[i:i+15]
+                scored_results.extend(ai.score_candidates(profile, batch))
+                
+            # Map scores back to gathered candidates
+            scores_map = {s['title'].lower(): s for s in scored_results}
+        else:
+            hrs = HeuristicRankingService(config)
+            user_profile_movie = hrs._build_user_profile(MediaType.MOVIE)
+            user_profile_show = hrs._build_user_profile(MediaType.SHOW)
+            seerr_profile = hrs._build_seerr_profile() if config.use_seerr else set()
             
-        # Map scores back to gathered candidates
-        scores_map = {s['title'].lower(): s for s in scored_results}
+            for candidate in gathered_candidates:
+                m_type = candidate['media_type']
+                user_profile = user_profile_movie if m_type == MediaType.MOVIE else user_profile_show
+                # Adapt candidate to format hrs._calculate_score expects
+                cand_adapted = {
+                    'id': int(candidate['tmdb_id']),
+                    'title': candidate['title'],
+                    'vote_average': candidate['imdb_rating'] or 0.0,
+                    'popularity': 0.0,
+                    'genre_ids': [], # Details will load genres in HeuristicRankingService anyway
+                }
+                res = hrs._calculate_score(cand_adapted, m_type, user_profile, seerr_profile)
+                scores_map[candidate['title'].lower()] = {
+                    'score': res['score'],
+                    'reasoning': res['reasoning'],
+                    'vibe_tags': res['vibe_tags']
+                }
         
         for candidate in gathered_candidates:
-            ai_data = scores_map.get(candidate['title'].lower(), {})
-            ai_score = ai_data.get('score', candidate['imdb_rating'] or 5.0)
-            ai_reasoning = ai_data.get('reasoning', f"Part of {collection_name}.")
-            ai_tags = ", ".join(ai_data.get('vibe_tags', [])) if isinstance(ai_data.get('vibe_tags'), list) else ""
+            score_data = scores_map.get(candidate['title'].lower(), {})
+            score = score_data.get('score', candidate['imdb_rating'] or 5.0)
+            reasoning = score_data.get('reasoning', f"Part of {collection_name}.")
+            tags = ", ".join(score_data.get('vibe_tags', [])) if isinstance(score_data.get('vibe_tags'), list) else ""
 
             # Save Show
             show_obj, _ = Show.objects.update_or_create(
@@ -186,17 +240,17 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 suggested_show=show_obj,
                 defaults={
                     'source_title': show.title, 
-                    'score': ai_score, 
-                    'reasoning': ai_reasoning, 
-                    'vibe_tags': ai_tags
+                    'score': score, 
+                    'reasoning': reasoning, 
+                    'vibe_tags': tags
                 }
             )
             
             # Check for Auto-Tasting if it's a new high-confidence match
-            if candidate['state'] == ShowState.SUGGESTED and ai_score >= config.auto_tasting_threshold:
+            if candidate['state'] == ShowState.SUGGESTED and score >= config.auto_tasting_threshold:
                 current_tasting = Show.objects.filter(state=ShowState.TASTING).count()
                 if current_tasting < config.max_tasting_items:
-                    logger.info(f"[Universe Architect] High confidence universe match ({ai_score}) for '{show_obj.title}'. Auto-Tasting.")
+                    logger.info(f"[Universe Architect] High confidence universe match ({score}) for '{show_obj.title}'. Auto-Tasting.")
                     async_task('vibarr.tasks.managers.actions.start_tasting', show_obj.id)
 
     except Exception as e:

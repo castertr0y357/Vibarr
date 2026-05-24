@@ -1,7 +1,8 @@
 {% for show in tasting %}
 <div class="flip-card h-[520px] w-full" x-data="{ flipped: false, hidden: false, hovered: false }" 
      @mouseenter="hovered = true" @mouseleave="hovered = false"
-     x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''">
+     x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''"
+     hx-disinherit="hx-include">
     <div class="flip-card-inner">
         <!-- FRONT -->
         <div class="flip-card-front glass p-4 border border-white/5 flex flex-col">

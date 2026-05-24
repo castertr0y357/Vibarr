@@ -9,9 +9,14 @@ class AIUniverseService(AIBaseService):
         
         If YES, return a JSON object with:
         - "universe_name": The definitive name for the collection (e.g. "Marvel Cinematic Universe")
-        - "members": A list of all core Movies and Shows in that universe in release order.
+        - "members": A list of all core Movies and Shows in that universe in release order, with their release year in parentheses (e.g. "Iron Man (2008)", "WandaVision (2021)", "Thor: Love and Thunder (2022)").
         
         If NO, return: {{"universe_name": null, "members": []}}
+        
+        CRITICAL RULES:
+        1. Only include canonical, officially produced movies and shows that are actual entries of the cinematic universe.
+        2. Strictly exclude fan-made films, unofficial bootlegs, mockbusters, documentaries, or unrelated titles that simply share similar wording.
+        3. Do not include titles that sound similar but are not part of the official universe continuity.
         
         Return ONLY valid JSON.
         """

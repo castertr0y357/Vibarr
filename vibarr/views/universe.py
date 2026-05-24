@@ -61,3 +61,32 @@ class CompleteUniverseView(ConfigMixin, View):
             
         messages.success(request, f"Added {count} items from '{universe_name}' to your tasting queue.")
         return redirect('universe_architect_list')
+
+from django.http import HttpResponse
+import json
+
+class RemoveFromUniverseView(ConfigMixin, View):
+    def post(self, request, show_id):
+        try:
+            show = Show.objects.get(id=show_id)
+            old_universe = show.universe_name
+            show.universe_name = None
+            show.save()
+            
+            if request.headers.get('HX-Request'):
+                response = HttpResponse("")
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {
+                        'message': f"Removed '{show.title}' from '{old_universe}'.",
+                        'type': 'success'
+                    }
+                })
+                return response
+                
+            messages.success(request, f"Removed '{show.title}' from '{old_universe}'.")
+            return redirect('universe_architect_list')
+        except Show.DoesNotExist:
+            if request.headers.get('HX-Request'):
+                return HttpResponse(status=404)
+            return redirect('universe_architect_list')
+
