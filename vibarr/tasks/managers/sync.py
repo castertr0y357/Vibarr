@@ -9,6 +9,9 @@ from ...services.comms.notification_service import NotificationService
 from django_q.tasks import async_task
 import logging
 import time
+import re
+from ...utils.intelligence import get_weighted_history_profile
+from ...services.discovery.heuristic_ranking import HeuristicRankingService
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +87,6 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 continue
                 
             # Prevent false positives (titles that sound similar/vague, or random TMDB fuzzy matches)
-            import re
             clean_member = re.sub(r'\((?:19|20)\d{2}\)', '', member_title).strip().lower()
             resolved_title = search_res.get('title') or search_res.get('name') or ''
             clean_resolved = resolved_title.lower()
@@ -167,9 +169,6 @@ def discover_universe_and_sync(show_id, library_ids=None):
 
     # Batch Score with AI or Heuristics
     try:
-        from ...utils.intelligence import get_weighted_history_profile
-        from ...services.discovery.heuristic_ranking import HeuristicRankingService
-        
         # We'll use a mix of both types for a broad universe profile
         raw_profile = get_weighted_history_profile(MediaType.MOVIE) + get_weighted_history_profile(MediaType.SHOW)
         seen = set()

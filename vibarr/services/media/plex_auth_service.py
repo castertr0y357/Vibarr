@@ -5,6 +5,7 @@ import logging
 import urllib3
 from django.conf import settings
 from ...models import AppConfig
+from plexapi.myplex import MyPlexAccount
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,6 @@ class PlexAuthService:
     def get_resources(self, token):
         """Fetches all Plex servers associated with the token."""
         try:
-            from plexapi.myplex import MyPlexAccount
-            
             # Use a session that ignores SSL for local discovery if needed
             session = requests.Session()
             session.verify = False

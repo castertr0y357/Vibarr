@@ -2,13 +2,16 @@ from .base import AIBaseService
 import json
 import requests
 import logging
-from ....models import Show, ShowState
+import math
+
+from ....models import Show, ShowState, MediaType, MediaWatchEvent
+from ..tmdb_service import TMDBService
+from ..heuristic_ranking import HeuristicRankingService
 
 logger = logging.getLogger(__name__)
 
 class AIRankingService(AIBaseService):
     def _determine_media_type(self, candidates):
-        from ....models import MediaType
         if not candidates:
             return MediaType.SHOW
         
@@ -23,11 +26,6 @@ class AIRankingService(AIBaseService):
         """
         Builds the structured text for Core Taste Profile and Current Binge Vibe.
         """
-        from ..tmdb_service import TMDBService
-        from ..heuristic_ranking import HeuristicRankingService
-        from ....models import MediaType, MediaWatchEvent
-        import math
-        
         # 1. Format Core Taste Profile
         # Get Heuristic Profile for names and weights
         hrs = HeuristicRankingService()
@@ -131,7 +129,6 @@ class AIRankingService(AIBaseService):
         """
         Formats rejected shows with content rating and advisory keywords.
         """
-        from ....models import Show, ShowState
         rejected = Show.objects.filter(state=ShowState.REJECTED).order_by('-updated_at')[:10]
         if not rejected.exists():
             return "  None"
@@ -280,7 +277,6 @@ class AIRankingService(AIBaseService):
 
     def get_mood_recommendations(self, history_titles, mood):
         """Suggests titles based on a specific 'Mood' and watch history."""
-        from ....models import MediaType
         profile_formatted = self._build_two_bucket_profile(history_titles, MediaType.SHOW)
         prompt = f"""
         User Taste Profile:

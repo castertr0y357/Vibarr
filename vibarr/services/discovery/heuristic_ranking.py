@@ -1,5 +1,7 @@
 import logging
-from ...models import AppConfig, MediaWatchEvent, ShowState, MediaType
+import math
+from django.db.models import Max, Count
+from ...models import AppConfig, MediaWatchEvent, ShowState, MediaType, Show
 from ..managers.seerr_service import SeerrService
 from ..discovery.tmdb_service import TMDBService
 
@@ -34,9 +36,6 @@ class HeuristicRankingService:
         """
         Analyzes history to find preferred genres and keywords.
         """
-        from django.db.models import Max, Count
-        import math
-        
         unique_history = MediaWatchEvent.objects.filter(
             media_type=target_type,
             tmdb_id__isnull=False
@@ -77,7 +76,6 @@ class HeuristicRankingService:
                     collections.add(details['belongs_to_collection']['id'])
 
         # Apply negative keyword weights from rejected shows
-        from ...models import Show, ShowState
         rejected = Show.objects.filter(
             state=ShowState.REJECTED,
             media_type=target_type

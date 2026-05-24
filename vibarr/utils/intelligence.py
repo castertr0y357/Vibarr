@@ -51,9 +51,6 @@ def get_recent_history_profile(target_type, limit=5):
     """
     Returns the last `limit` unique watched items with titles and tmdb_ids.
     """
-    from django.db.models import Max
-    from ..models import MediaWatchEvent
-    
     events = MediaWatchEvent.objects.filter(
         media_type=target_type,
         tmdb_id__isnull=False
@@ -70,9 +67,6 @@ def get_core_history_profile(target_type, limit=30):
     """
     Returns the top unique titles by play count, including cross-media influence.
     """
-    from django.db.models import Max, Count
-    from ..models import MediaWatchEvent, AppConfig, MediaType
-    
     config = AppConfig.get_solo()
     
     if target_type == MediaType.MOVIE:

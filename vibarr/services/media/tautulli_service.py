@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 class TautulliService:
     def __init__(self):
-        from ...models import AppConfig
         config = AppConfig.get_solo()
         self.base_url = config.tautulli_url or ""
         self.api_key = config.tautulli_api_key or ""
