@@ -36,7 +36,9 @@ class RejectShowView(View):
         show.state = ShowState.REJECTED
         show.save()
         if request.headers.get('HX-Request'):
-            return HttpResponse(HTMX_REMOVE)
+            response = HttpResponse(HTMX_REMOVE)
+            response['HX-Trigger'] = 'discovery-changed'
+            return response
         if getattr(request, 'is_api_request', False):
             return JsonResponse({'status': 'success', 'message': f'Show {show_id} rejected'})
         return redirect('dashboard')
@@ -70,7 +72,9 @@ class StopAndDeleteShowView(View):
         
         messages.success(request, f"Removed '{show.title}' from tastings.")
         if request.headers.get('HX-Request'):
-            return HttpResponse(HTMX_REMOVE)
+            response = HttpResponse(HTMX_REMOVE)
+            response['HX-Trigger'] = 'tasting-changed'
+            return response
         return redirect('dashboard')
 
 class MarkWatchedView(View):
@@ -97,7 +101,9 @@ class MarkWatchedView(View):
             )
         
         if request.headers.get('HX-Request'):
-            return HttpResponse(HTMX_REMOVE)
+            response = HttpResponse(HTMX_REMOVE)
+            response['HX-Trigger'] = 'discovery-changed'
+            return response
         return redirect('dashboard')
 
 class TasteShowView(View):
@@ -112,8 +118,10 @@ class TasteShowView(View):
             tasting_shows = Show.objects.filter(state=ShowState.TASTING).order_by('-updated_at')
             html = render_to_string('vibarr/partials/active_tastings.html', {'tasting': tasting_shows}, request=request)
             dashboard_url = reverse('dashboard') + '?partial=tasting'
-            oob = f'<div id="active-tastings-container" hx-swap-oob="true" hx-get="{dashboard_url}" hx-trigger="sync-complete from:body" hx-sync="this:replace" hx-indicator="#tasting-indicator" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">{html}</div>'
-            return HttpResponse(oob)
+            oob = f'<div id="active-tastings-container" hx-swap-oob="true" hx-get="{dashboard_url}" hx-trigger="sync-complete from:body, tasting-changed from:body" hx-sync="this:replace" hx-indicator="#tasting-indicator" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">{html}</div>'
+            response = HttpResponse(oob)
+            response['HX-Trigger'] = 'discovery-changed'
+            return response
             
         messages.info(request, f"Started tasting for '{show.title}'.")
         return redirect('dashboard')
