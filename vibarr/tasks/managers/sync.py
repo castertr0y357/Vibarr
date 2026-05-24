@@ -247,7 +247,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
             )
             
             # Check for Auto-Tasting if it's a new high-confidence match
-            if candidate['state'] == ShowState.SUGGESTED and score >= config.auto_tasting_threshold:
+            if config.enable_auto_tasting and candidate['state'] == ShowState.SUGGESTED and score >= config.auto_tasting_threshold:
                 current_tasting = Show.objects.filter(state=ShowState.TASTING).count()
                 if current_tasting < config.max_tasting_items:
                     logger.info(f"[Universe Architect] High confidence universe match ({score}) for '{show_obj.title}'. Auto-Tasting.")

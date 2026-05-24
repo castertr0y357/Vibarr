@@ -139,7 +139,7 @@ class UpdateSettingsView(View):
         ],
         'intelligence': [
             'tmdb_api_key', 'tvdb_api_key', 'tvdb_pin',
-            'use_ai_recommendations', 'auto_universe_discovery',
+            'use_ai_recommendations', 'enable_auto_tasting', 'auto_universe_discovery',
             'auto_tasting_threshold',
             'ai_api_url', 'ai_model', 'ai_api_key',
             'h_rating_weight', 'h_popularity_weight', 'h_genre_weight',

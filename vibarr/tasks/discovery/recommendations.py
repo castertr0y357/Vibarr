@@ -172,7 +172,7 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
         )
 
         # Auto-Tasting
-        if ai_score >= config.auto_tasting_threshold and current_tasting < config.max_tasting_items:
+        if config.enable_auto_tasting and ai_score >= config.auto_tasting_threshold and current_tasting < config.max_tasting_items:
             logger.info(f"[AI Scout] High confidence match ({ai_score}) for '{show.title}'. Starting Auto-Tasting.")
             async_task('vibarr.tasks.managers.actions.start_tasting', show.id)
             current_tasting += 1
@@ -330,7 +330,7 @@ def revaluate_all_recommendations():
                 updated_count += 1
                 
                 # Check for Auto-Tasting promotion
-                if item.state == ShowState.SUGGESTED and new_score >= config.auto_tasting_threshold:
+                if config.enable_auto_tasting and item.state == ShowState.SUGGESTED and new_score >= config.auto_tasting_threshold:
                     current_tasting = Show.objects.filter(state=ShowState.TASTING).count()
                     if current_tasting < config.max_tasting_items:
                         logger.info(f"[AI Re-evaluator] Item '{item.title}' score increased to {new_score}. Promoting to Auto-Tasting.")

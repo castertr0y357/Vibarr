@@ -62,6 +62,7 @@ class AppConfig(models.Model):
     
     # AI Settings
     use_ai_recommendations = models.BooleanField(default=True)
+    enable_auto_tasting = models.BooleanField(default=False, help_text="Automatically send high-confidence suggestions to the 'Tasting' queue.")
     auto_universe_discovery = models.BooleanField(default=False)
     auto_tasting_threshold = models.FloatField(default=9.5, help_text="AI confidence score (0-10) above which a recommendation is automatically sent to 'Tasting'.")
     
