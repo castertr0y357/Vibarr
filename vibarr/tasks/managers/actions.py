@@ -62,7 +62,8 @@ def check_tasting_progress(event):
                     discover_universe_and_sync(show.id)
                 run_bridge_check(show.id)
                 NotificationService().send_message(f"🏆 Tasting Complete! You've committed to the full series: <b>{show.title}</b>.", title="Series Committed")
-            except Exception: pass
+            except Exception as e:
+                logger.error(f"Failed to commit series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
 
 def trigger_auto_purge(title, tmdb_id=None):
     if tmdb_id:
@@ -78,13 +79,15 @@ def trigger_auto_purge(title, tmdb_id=None):
                 radarr.delete_movie(show.radarr_id)
                 show.state = ShowState.REJECTED
                 show.save()
-            except Exception: pass
+            except Exception as e:
+                logger.error(f"Failed to delete movie '{show.title}' (Radarr ID: {show.radarr_id}) in Radarr: {e}")
         else:
             sonarr = SonarrService()
             try:
                 sonarr.delete_series(show.sonarr_id)
                 show.state = ShowState.REJECTED
                 show.save()
-            except Exception: pass
+            except Exception as e:
+                logger.error(f"Failed to delete series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
             
         NotificationService().notify_purge(show.title, "Low user rating / Negative vibe.")

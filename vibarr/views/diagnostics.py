@@ -5,6 +5,9 @@ import os
 import zipfile
 import io
 from django.db import connection
+import logging
+
+logger = logging.getLogger(__name__)
 
 class LogsView(TemplateView):
     template_name = 'vibarr/logs.html'
@@ -42,7 +45,8 @@ class LogsView(TemplateView):
                 engine_display = "SQLite"
             else:
                 engine_display = engine.capitalize()
-        except Exception:
+        except Exception as e:
+            logger.error(f"Diagnostics - Error - Could not determine DB size: {e}")
             engine_display = "Unknown"
             size = "Error"
             

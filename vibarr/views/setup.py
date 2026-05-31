@@ -29,7 +29,8 @@ class SetupWizardView(TemplateView):
             try:
                 context['sonarr_folders'] = SonarrService().get_root_folders()
                 context['radarr_folders'] = RadarrService().get_root_folders()
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Wizard Setup - Warning - Could not load folder paths: {e}")
                 context['sonarr_folders'] = []
                 context['radarr_folders'] = []
                 
@@ -101,7 +102,8 @@ class SetupActionView(View):
         try:
             context['sonarr_folders'] = SonarrService().get_root_folders()
             context['radarr_folders'] = RadarrService().get_root_folders()
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Wizard Setup - Warning - Could not load folder paths for context: {e}")
             context['sonarr_folders'] = []
             context['radarr_folders'] = []
         return context

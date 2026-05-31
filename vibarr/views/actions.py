@@ -188,7 +188,8 @@ class HealthCheckView(View):
                 success = any(p.test_connection() for p in providers)
             else:
                 success = False
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Health Check - Warning - Health check failed for {service_type}: {e}")
             success = False
 
         if mini:
