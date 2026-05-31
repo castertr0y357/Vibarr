@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: PROJECT STANDARDS AUDIT & ALIGNMENT (v1.9.5)
-**Last Checkpoint**: 2026-05-31 (Eliminated silent exception swallowing, added type hints, and introduced test coverage)
+## Current State: FEED PERFORMANCE OPTIMIZATION & GOVERNANCE (v1.9.6)
+**Last Checkpoint**: 2026-05-31 (Optimized feed rendering responsiveness and enforced suggestions backlog limits)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Feed Performance & Governance (v1.9.6)**: Resolved UI sluggishness in the Discovery Feed, Active Tastings, and Vibe Search by migrating Alpine.js hovers to pure CSS/Tailwind `group-hover` and enabling image lazy loading. Enforced suggestions backlog limits (`max_discovered_movies` and `max_discovered_shows`) using a new database-pruning function triggered on full page load, universe architect syncs, and background scouts, cleaning up the user's database from 1,310 suggestions down to a strict 100 suggestion ceiling.
 - [x] **Project Standards Alignment (v1.9.5)**: Audited codebase to eliminate silent exception swallowing in Plex, Jellyfin, TMDB, and TVDB integrations, added clean typing annotations, and created a robust unit test suite covering views and models.
 - [x] **Sonarr/Radarr Monitoring Hardening**: Resolved a critical bug where shows were added in an unmonitored state; now ensures Series and Season 1 are active immediately.
 - [x] **Multi-Level Monitoring Sync**: Enhanced the background sync to verify and "heal" monitoring status at the Series, Season, and Episode levels simultaneously.
