@@ -275,6 +275,11 @@ def discover_universe_and_sync(show_id, library_ids=None):
     logger.info(f"Universe Architect - Info - Completed sync for '{collection_name}': {len(members)} members processed.")
     NotificationService().notify_universe_found(show.title, collection_name, len(members))
 
+    # Enforce backlog limits
+    from ..discovery.recommendations import prune_discovery_backlog
+    prune_discovery_backlog(MediaType.MOVIE)
+    prune_discovery_backlog(MediaType.SHOW)
+
 def batch_universe_sync():
     """Batches universe discovery for all active/watched shows by dispatching individual tasks."""
     active_shows = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED, ShowState.WATCHED])

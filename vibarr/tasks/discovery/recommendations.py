@@ -2,7 +2,7 @@ import logging
 from django.utils import timezone
 from django.core.cache import cache
 from django_q.tasks import async_task
-from django.db.models import Q
+from django.db.models import Q, Max
 
 from ...models import Show, Recommendation, MediaWatchEvent, ShowState, MediaType, AppConfig
 from ...models.enums import RATING_SCALE
@@ -20,6 +20,33 @@ logger = logging.getLogger(__name__)
 
 def get_tasting_count(runtime, season_episodes=0):
     return calculate_tasting_count(runtime, season_episodes)
+
+
+def prune_discovery_backlog(target_type):
+    """
+    Ensures the number of SUGGESTED shows of target_type does not exceed the governance limit.
+    Deletes the lowest-scoring, unpinned SUGGESTED items.
+    """
+    config = AppConfig.get_solo()
+    max_items = config.max_discovered_movies if target_type == MediaType.MOVIE else config.max_discovered_shows
+    
+    current_count = Show.objects.filter(state=ShowState.SUGGESTED, media_type=target_type).count()
+    if current_count <= max_items:
+        return
+        
+    excess = current_count - max_items
+    logger.info(f"[Governance] {target_type} suggestions count ({current_count}) exceeds limit ({max_items}) by {excess}. Pruning lowest-scoring items...")
+    
+    # We query all SUGGESTED shows of this type, ordered by is_pinned (False first), then by score (lowest first)
+    to_prune_ids = list(
+        Show.objects.filter(state=ShowState.SUGGESTED, media_type=target_type)
+        .annotate(max_score=Max('recommendations__score'))
+        .order_by('is_pinned', 'max_score')  # False is_pinned comes before True is_pinned. Null/low score comes first.
+        .values_list('id', flat=True)[:excess]
+    )
+    
+    deleted, _ = Show.objects.filter(id__in=to_prune_ids).delete()
+    logger.info(f"[Governance] Pruned {deleted} lowest-scoring suggestions for {target_type}.")
 
 
 def refresh_discovery_tracks():
@@ -177,11 +204,20 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
             async_task('vibarr.tasks.managers.actions.start_tasting', show.id)
             current_tasting += 1
 
+    # Enforce backlog limits
+    prune_discovery_backlog(target_type)
+
 def generate_recommendations(title, is_movie=False):
     """
     Legacy wrapper for reactive scouting, now respects new governance.
     """
     target_type = MediaType.MOVIE if is_movie else MediaType.SHOW
+    config = AppConfig.get_solo()
+    max_items = config.max_discovered_movies if target_type == MediaType.MOVIE else config.max_discovered_shows
+    current_count = Show.objects.filter(state=ShowState.SUGGESTED, media_type=target_type).count()
+    if current_count >= max_items:
+        logger.info(f"[AI Scout] {target_type} suggestions backlog is already full ({current_count}/{max_items}). Skipping reactive scouting.")
+        return
     scout_for_media_type(target_type, limit=5, seed_title=title)
 
 def refresh_metadata_backlog(full_sweep=False):

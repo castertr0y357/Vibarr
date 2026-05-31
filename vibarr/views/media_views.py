@@ -9,6 +9,11 @@ class DiscoveryListView(ConfigMixin, ListView):
     context_object_name = 'suggested'
 
     def get(self, request, *args, **kwargs):
+        if not request.headers.get('HX-Request'):
+            from ..tasks.discovery.recommendations import prune_discovery_backlog
+            prune_discovery_backlog(MediaType.MOVIE)
+            prune_discovery_backlog(MediaType.SHOW)
+
         if request.headers.get('HX-Request'):
             self.template_name = 'vibarr/partials/discovery_feed.html'
         return super().get(request, *args, **kwargs)

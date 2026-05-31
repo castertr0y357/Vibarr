@@ -11,19 +11,18 @@
 
     <div class="flex overflow-x-auto space-x-6 pb-6 scroll-hide">
         {% for item in results %}
-        <div class="flip-card h-[520px] w-64 flex-shrink-0" x-data="{ flipped: false, hidden: false, hovered: false }" 
-             @mouseenter="hovered = true" @mouseleave="hovered = false"
+        <div class="flip-card group h-[520px] w-64 flex-shrink-0" x-data="{ flipped: false, hidden: false }" 
              x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''">
             
             <div class="flip-card-inner">
                 <!-- FRONT -->
                 <div class="flip-card-front glass p-4 border border-white/5 flex flex-col">
                     <div class="relative mb-3 aspect-[2/3] overflow-hidden rounded-xl shadow-2xl cursor-pointer flex-shrink-0"
-                         @click="flipped = true">
+                          @click="flipped = true">
                         {% if item.poster_path %}
                         <img src="https://image.tmdb.org/t/p/w500{{ item.poster_path }}" alt="{{ item.title }}" 
-                             class="w-full h-full object-cover transition duration-500"
-                             :class="hovered ? 'scale-110' : 'scale-100'">
+                             class="w-full h-full object-cover transition duration-500 group-hover:scale-110"
+                             loading="lazy">
                         {% else %}
                         <div class="w-full h-full bg-white/5 flex items-center justify-center text-rose-500 font-black text-4xl">V</div>
                         {% endif %}
@@ -34,8 +33,7 @@
                         </div>
 
                         <!-- Hover hint -->
-                        <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none"
-                             :class="hovered ? 'opacity-100' : 'opacity-0'">
+                        <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none opacity-0 group-hover:opacity-100">
                             <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] animate-pulse">Click poster to see reasoning</p>
                         </div>
                     </div>

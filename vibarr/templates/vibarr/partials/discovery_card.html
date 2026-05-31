@@ -1,5 +1,4 @@
-<div class="flip-card h-[520px] w-full" x-data="{ flipped: {% if flipped %}true{% else %}false{% endif %}, hidden: false, hovered: false, hasUniverse: {% if show.universe_name %}true{% else %}false{% endif %} }" 
-     @mouseenter="hovered = true" @mouseleave="hovered = false"
+<div class="flip-card group h-[520px] w-full" x-data="{ flipped: {% if flipped %}true{% else %}false{% endif %}, hidden: false, hasUniverse: {% if show.universe_name %}true{% else %}false{% endif %} }" 
      x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''"
      hx-disinherit="hx-include">
     <div class="flip-card-inner">
@@ -9,8 +8,8 @@
                  @click="flipped = true">
                 {% if show.poster_path %}
                 <img src="https://image.tmdb.org/t/p/w500{{ show.poster_path }}" alt="{{ show.title }}" 
-                     class="w-full h-full object-cover transition duration-500"
-                     :class="hovered ? 'scale-110' : 'scale-100'">
+                     class="w-full h-full object-cover transition duration-500 group-hover:scale-110"
+                     loading="lazy">
                 {% else %}
                 <div class="w-full h-full bg-gray-800 flex items-center justify-center text-gray-600">
                     <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
@@ -28,8 +27,7 @@
                 </div>
 
                 <!-- Hover hint -->
-                <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none"
-                     :class="hovered ? 'opacity-100' : 'opacity-0'">
+                <div class="absolute inset-0 bg-black/60 transition-opacity flex flex-col justify-center items-center z-20 pointer-events-none opacity-0 group-hover:opacity-100">
                     <p class="text-[9px] text-gray-400 uppercase tracking-[0.2em] animate-pulse">Click poster to see reasoning</p>
                 </div>
             </div>
