@@ -33,7 +33,7 @@ class PlexService(MediaProvider):
                 
                 self._plex = PlexServer(self.baseurl, self.token, session=session)
             except Exception as e:
-                logger.error(f"Plex Connection Error to {self.baseurl}: {e}")
+                logger.error(f"Plex Integration - Error - Connection failed to {self.baseurl}: {e}")
                 return None
         return self._plex
 
@@ -47,7 +47,7 @@ class PlexService(MediaProvider):
 
     def get_recent_history(self, hours=24):
         if not self.plex: 
-            logger.warning("Plex history requested but no connection established.")
+            logger.warning("Plex Integration - Warning - History requested but no connection established")
             return []
         config = AppConfig.get_solo()
         monitored = [i.strip().lower() for i in config.monitored_libraries.split(',')] if config and config.monitored_libraries else []
@@ -61,7 +61,7 @@ class PlexService(MediaProvider):
             offset = 0
             
             while True:
-                logger.info(f"Plex: Fetching history page (offset: {offset}, limit: {page_size})")
+                logger.info(f"Plex Integration - Info - Fetching history page (offset: {offset}, limit: {page_size})")
                 
                 params = {'sort': 'viewedAt:desc'}
                 if config.plex_user_filter:
@@ -106,12 +106,12 @@ class PlexService(MediaProvider):
                 offset += page_size
                 if len(events) > 5000: # Safety cap per provider
 
-                    logger.warning("Plex: Reached safety cap of 5000 history items per poll.")
+                    logger.warning("Plex Integration - Warning - Reached safety cap of 5000 history items per poll")
                     break
             
             if not events:
                 # Fallback: Scan libraries for watched items
-                logger.info("Plex history endpoint returned 0. Falling back to library scan...")
+                logger.info("Plex Integration - Info - Plex history endpoint returned 0. Falling back to library scan")
                 for section in self.plex.library.sections():
                     library_name = section.title.lower()
                     if monitored and library_name not in monitored: continue
@@ -125,7 +125,7 @@ class PlexService(MediaProvider):
                     limit = None if hours > 24 else 50
                     items_to_process = watched_items if limit is None else watched_items[:limit]
                     
-                    logger.info(f"Scanning section {section.title}: Found {len(watched_items)} watched items. Processing {len(items_to_process)}.")
+                    logger.info(f"Plex Integration - Info - Scanning section {section.title}: Found {len(watched_items)} watched items")
                     for item in items_to_process:
                         last_viewed = getattr(item, 'lastViewedAt', None)
                         if last_viewed and last_viewed.tzinfo is None:
@@ -150,7 +150,7 @@ class PlexService(MediaProvider):
             
             return events
         except Exception as e:
-            logger.error(f"Plex History Error: {e}")
+            logger.error(f"Plex Integration - Error - Failed to fetch history: {e}")
             return []
 
     def get_available_libraries(self) -> list[str]:
@@ -158,7 +158,7 @@ class PlexService(MediaProvider):
         try:
             return [section.title for section in self.plex.library.sections() if section.type in ['show', 'movie']]
         except Exception as e:
-            logger.error(f"Plex: Failed to fetch libraries: {e}")
+            logger.error(f"Plex Integration - Error - Failed to fetch libraries: {e}")
             return []
 
     def get_library_titles(self, force_refresh=False):
@@ -184,7 +184,7 @@ class PlexService(MediaProvider):
             cache.set(cache_key, unique_titles, 3600)
             return unique_titles
         except Exception as e:
-            logger.error(f"Plex: Failed to fetch library titles: {e}")
+            logger.error(f"Plex Integration - Error - Failed to fetch library titles: {e}")
             return []
 
     def get_library_identifiers(self, force_refresh=False):
@@ -222,7 +222,7 @@ class PlexService(MediaProvider):
             cache.set(cache_key, identifiers, 3600)
             return identifiers
         except Exception as e:
-            logger.error(f"Plex: Failed to fetch library identifiers: {e}")
+            logger.error(f"Plex Integration - Error - Failed to fetch library identifiers: {e}")
             return {}
 
     def sync_collection(self, titles, collection_name):
@@ -252,8 +252,8 @@ class PlexService(MediaProvider):
                                 existing = set(c.tag.lower() for c in item.collections)
                                 if collection_name.lower() not in existing:
                                     item.addCollection(collection_name)
-                                    logger.info(f"Plex: Added '{item.title}' to Collection '{collection_name}'")
+                                    logger.info(f"Plex Integration - Info - Added '{item.title}' to Collection '{collection_name}'")
                             except Exception as e:
-                                logger.error(f"Plex: Failed to add '{item.title}' to collection: {e}")
+                                logger.error(f"Plex Integration - Error - Failed to add '{item.title}' to collection: {e}")
             except Exception as e:
-                logger.error(f"Plex: Section error in '{section.title}': {e}")
+                logger.error(f"Plex Integration - Error - Section error in '{section.title}': {e}")

@@ -39,7 +39,7 @@ class TVDBService:
                     # Token is valid for 1 month, but we'll cache it for 28 days
                     cache.set(cache_key, token, 60 * 60 * 24 * 28)
             except Exception as e:
-                logger.error(f"TVDB Auth Error: {e}")
+                logger.error(f"TVDB Integration - Error - Auth failed: {e}")
                 return None
                 
         return token
@@ -78,7 +78,7 @@ class TVDBService:
                 cache.set(cache_key, data, ttl)
             return data
         except Exception as e:
-            logger.error(f"TVDB API Error [{endpoint}]: {e}")
+            logger.error(f"TVDB Integration - Error - API request failed [{endpoint}]: {e}")
             return None
 
     def search_series(self, title):

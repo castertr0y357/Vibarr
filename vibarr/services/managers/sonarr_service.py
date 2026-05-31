@@ -47,7 +47,7 @@ class SonarrService:
                 raise Exception(f"No results found in Sonarr for TMDB ID {tmdb_id}")
             series_data = results[0]
         except Exception as e:
-            logger.error(f"Sonarr Lookup Error: {e}")
+            logger.error(f"Sonarr Integration - Error - Lookup failed: {e}")
             raise
 
         config = AppConfig.get_solo()
@@ -122,7 +122,7 @@ class SonarrService:
             time.sleep(1)
 
         if not episodes:
-            logger.warning(f"Sonarr: No episodes found for series {series_id} after retries.")
+            logger.warning(f"Sonarr Integration - Warning - No episodes found for series {series_id} after retries")
             return
 
         # Sort episodes by season and number
@@ -216,7 +216,7 @@ class SonarrService:
             response.raise_for_status()
             return response.json().get('records', [])
         except Exception as e:
-            logger.error(f"Sonarr: Failed to fetch queue for series {series_id}: {e}")
+            logger.error(f"Sonarr Integration - Error - Failed to fetch queue for series {series_id}: {e}")
             return []
 
     def get_full_queue(self):
@@ -228,7 +228,7 @@ class SonarrService:
             response.raise_for_status()
             return response.json().get('records', [])
         except Exception as e:
-            logger.error(f"Sonarr: Failed to fetch full queue: {e}")
+            logger.error(f"Sonarr Integration - Error - Failed to fetch full queue: {e}")
             return []
 
     def get_all_tvdb_ids(self):
@@ -239,5 +239,5 @@ class SonarrService:
             response.raise_for_status()
             return {str(s['tvdbId']) for s in response.json() if s.get('tvdbId')}
         except Exception as e:
-            logger.error(f"Sonarr: Failed to fetch all TVDB IDs: {e}")
+            logger.error(f"Sonarr Integration - Error - Failed to fetch all TVDB IDs: {e}")
             return set()

@@ -210,7 +210,7 @@ class AIRankingService(AIBaseService):
                 return data.get('recommendations', [])
             return data if isinstance(data, list) else []
         except Exception as e:
-            logger.error(f"AIRankingService.rank_shows error: {e}")
+            logger.error(f"AI Ranking - Error - rank_shows failed: {e}")
             return []
 
     def score_candidates(self, history_titles, candidates):
@@ -272,7 +272,7 @@ class AIRankingService(AIBaseService):
             data = self._parse_json_response(content, {})
             return data.get('scores', [])
         except Exception as e:
-            logger.error(f"AIRankingService.score_candidates error: {e}")
+            logger.error(f"AI Ranking - Error - score_candidates failed: {e}")
             return []
 
     def get_mood_recommendations(self, history_titles, mood):

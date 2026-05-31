@@ -77,7 +77,7 @@ class AIBaseService:
             return json.loads(content.strip())
         except Exception as e:
             # Only log if we couldn't find ANY valid JSON
-            logger.error(f"AI JSON Parse Error: {e}. Raw content (truncated): {content[:500]}")
+            logger.error(f"AI Integration - Error - JSON parse failed: {e}. Raw content (truncated): {content[:500]}")
             return default
 
     def _post(self, prompt, temperature=0.3, timeout=60, json_mode=False):
@@ -99,5 +99,5 @@ class AIBaseService:
             response.raise_for_status()
             return response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
         except Exception as e:
-            logger.error(f"AI API Error: {e}")
+            logger.error(f"AI Integration - Error - API call failed: {e}")
             return None

@@ -66,7 +66,7 @@ class StopAndDeleteShowView(View):
             if show.radarr_id:
                 RadarrService().delete_movie(show.radarr_id)
         except Exception as e:
-            logger.error(f"External service delete error: {e}")
+            logger.error(f"Show Actions - Error - External service delete failed: {e}")
             messages.error(request, f"Failed to remove '{show.title}' from manager. Is the service online?")
             return redirect('dashboard')
         
@@ -233,7 +233,7 @@ class RescoreShowView(View):
         try:
             rec, promoted = reevaluate_single_show(show)
         except Exception as e:
-            logger.exception(f"Error during re-scoring for show '{show.title}': {e}")
+            logger.exception(f"Show Actions - Error - Re-scoring failed for '{show.title}': {e}")
             if request.headers.get('HX-Request'):
                 if show.state == ShowState.SUGGESTED:
                     response = render(request, 'vibarr/partials/discovery_card.html', {

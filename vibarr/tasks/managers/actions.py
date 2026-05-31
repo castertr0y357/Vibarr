@@ -22,7 +22,7 @@ def start_tasting(show_id):
         show.state = ShowState.TASTING
         show.save()
     except Exception as e:
-        logger.error(f"Error starting tasting for {show.title}: {e}")
+        logger.error(f"Tasting - Error - Failed to start tasting for {show.title}: {e}")
 
 def check_tasting_progress(event):
     tmdb_id = event.get('tmdb_id')
@@ -63,7 +63,7 @@ def check_tasting_progress(event):
                 run_bridge_check(show.id)
                 NotificationService().send_message(f"🏆 Tasting Complete! You've committed to the full series: <b>{show.title}</b>.", title="Series Committed")
             except Exception as e:
-                logger.error(f"Failed to commit series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
+                logger.error(f"Tasting - Error - Failed to commit series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
 
 def trigger_auto_purge(title, tmdb_id=None):
     if tmdb_id:
@@ -72,7 +72,7 @@ def trigger_auto_purge(title, tmdb_id=None):
         show = Show.objects.filter(title__icontains=title, state=ShowState.TASTING).first()
         
     if show and (show.sonarr_id or show.radarr_id):
-        logger.info(f"Auto-Purging {show.title} due to low rating.")
+        logger.info(f"Purging - Info - Auto-purging {show.title} due to low rating")
         if show.media_type == MediaType.MOVIE:
             radarr = RadarrService()
             try:
@@ -80,7 +80,7 @@ def trigger_auto_purge(title, tmdb_id=None):
                 show.state = ShowState.REJECTED
                 show.save()
             except Exception as e:
-                logger.error(f"Failed to delete movie '{show.title}' (Radarr ID: {show.radarr_id}) in Radarr: {e}")
+                logger.error(f"Purging - Error - Failed to delete movie '{show.title}' (Radarr ID: {show.radarr_id}) in Radarr: {e}")
         else:
             sonarr = SonarrService()
             try:
@@ -88,6 +88,6 @@ def trigger_auto_purge(title, tmdb_id=None):
                 show.state = ShowState.REJECTED
                 show.save()
             except Exception as e:
-                logger.error(f"Failed to delete series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
+                logger.error(f"Purging - Error - Failed to delete series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
             
         NotificationService().notify_purge(show.title, "Low user rating / Negative vibe.")

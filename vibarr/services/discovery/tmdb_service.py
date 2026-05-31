@@ -42,7 +42,7 @@ class TMDBService:
         final_params = {"api_key": self.api_key}
         if params: final_params.update(params)
         
-        logger.debug(f"TMDB Request: {endpoint} (params: {params})")
+        logger.debug(f"TMDB Integration - Debug - Requesting [{endpoint}] with params {params}")
         
         max_retries = 2
         for attempt in range(max_retries + 1):
@@ -64,11 +64,11 @@ class TMDBService:
                     status_code = status_code.status_code
                 
                 if attempt == max_retries:
-                    logger.error(f"TMDB Final Error [{endpoint}] after {max_retries} retries. Status: {status_code}. Error: {e}")
+                    logger.error(f"TMDB Integration - Error - Final error [{endpoint}] after {max_retries} retries: {e}")
                     return None
                 
                 wait = (attempt + 1) * 2
-                logger.warning(f"TMDB Retry {attempt+1}/{max_retries} for [{endpoint}] due to: {e}. Waiting {wait}s...")
+                logger.warning(f"TMDB Integration - Warning - Retry {attempt+1}/{max_retries} for [{endpoint}]: {e}")
                 time.sleep(wait)
         return None
 

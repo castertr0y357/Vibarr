@@ -36,7 +36,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
             if coll:
                 collection_name = coll['name']
                 members.update([m.get('title') or m.get('name') for m in coll.get('parts', [])])
-                logger.info(f"[Universe Architect] Found TMDB Collection: {collection_name} ({len(members)} parts)")
+                logger.info(f"Universe Architect - Info - Found TMDB Collection: {collection_name} ({len(members)} parts)")
     
     # 2. AI Discovery (for broader Cinematic Universes and TV tie-ins)
     universe = ai.identify_universe(show.title)
@@ -48,10 +48,10 @@ def discover_universe_and_sync(show_id, library_ids=None):
         members.update(universe['members'])
         
     if not collection_name:
-        logger.info(f"[Universe Architect] No universe identified for '{show.title}'.")
+        logger.info(f"Universe Architect - Info - No universe identified for '{show.title}'.")
         return
         
-    logger.info(f"[Universe Architect] Architecting the '{collection_name}' universe for '{show.title}'.")
+    logger.info(f"Universe Architect - Info - Architecting the '{collection_name}' universe for '{show.title}'.")
     
     # Tag current show with universe
     show.universe_name = collection_name
@@ -83,7 +83,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
             
             search_res = tmdb.search_movie(member_title) or tmdb.search_show(member_title)
             if not search_res:
-                logger.warning(f"[Universe Architect] Could not find TMDB record for universe member: {member_title}")
+                logger.warning(f"Universe Architect - Warning - Could not find TMDB record for universe member: {member_title}")
                 continue
                 
             # Prevent false positives (titles that sound similar/vague, or random TMDB fuzzy matches)
@@ -109,7 +109,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
             is_substring = clean_member in clean_resolved or clean_resolved in clean_member
             
             if not (has_overlap or is_substring):
-                logger.warning(f"[Universe Architect] Title match verification failed for member '{member_title}'. Got search result '{resolved_title}'. Skipping.")
+                logger.warning(f"Universe Architect - Warning - Title match verification failed for member '{member_title}'. Got search result '{resolved_title}'. Skipping.")
                 continue
 
             tmdb_id = str(search_res['id'])
@@ -162,7 +162,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 'tasting_episodes_count': 1 if m_type == MediaType.MOVIE else calculate_tasting_count(avg_runtime, season_one_episodes)
             })
         except Exception as e:
-            logger.error(f"[Universe Architect] Error gathering metadata for '{member_title}': {e}")
+            logger.error(f"Universe Architect - Error - Error gathering metadata for '{member_title}': {e}")
 
     if not gathered_candidates:
         return
@@ -255,11 +255,11 @@ def discover_universe_and_sync(show_id, library_ids=None):
             if config.enable_auto_tasting and candidate['state'] == ShowState.SUGGESTED and score >= config.auto_tasting_threshold:
                 current_tasting = Show.objects.filter(state=ShowState.TASTING).count()
                 if current_tasting < config.max_tasting_items:
-                    logger.info(f"[Universe Architect] High confidence universe match ({score}) for '{show_obj.title}'. Auto-Tasting.")
+                    logger.info(f"Universe Architect - Info - High confidence universe match ({score}) for '{show_obj.title}'. Auto-Tasting.")
                     async_task('vibarr.tasks.managers.actions.start_tasting', show_obj.id)
 
     except Exception as e:
-        logger.error(f"[Universe Architect] AI Scoring failed: {e}. Falling back to default scores.")
+        logger.error(f"Universe Architect - Error - AI Scoring failed: {e}. Falling back to default scores.")
         # Fallback loop (similar to old logic but simpler)
         for candidate in gathered_candidates:
             show_obj, _ = Show.objects.update_or_create(
@@ -272,14 +272,14 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 defaults={'source_title': show.title, 'score': 5.0, 'reasoning': f"Part of {collection_name}."}
             )
     
-    logger.info(f"[Universe Architect] Completed sync for '{collection_name}': {len(members)} members processed.")
+    logger.info(f"Universe Architect - Info - Completed sync for '{collection_name}': {len(members)} members processed.")
     NotificationService().notify_universe_found(show.title, collection_name, len(members))
 
 def batch_universe_sync():
     """Batches universe discovery for all active/watched shows by dispatching individual tasks."""
     active_shows = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED, ShowState.WATCHED])
     
-    logger.info(f"[Universe Architect] Starting batch sync for {active_shows.count()} shows.")
+    logger.info(f"Universe Architect - Info - Starting batch sync for {active_shows.count()} shows.")
     
     for show in active_shows:
         async_task(discover_universe_and_sync, show.id)
@@ -298,7 +298,7 @@ def sync_external_states():
             if item.media_type == MediaType.SHOW and item.sonarr_id:
                 s_details = sonarr.get_series(item.sonarr_id)
                 if not s_details:
-                    logger.warning(f"[Sync] Show '{item.title}' (ID: {item.sonarr_id}) not found in Sonarr. Marking as REJECTED.")
+                    logger.warning(f"State Sync - Warning - Show '{item.title}' (ID: {item.sonarr_id}) not found in Sonarr. Marking as REJECTED.")
                     item.state = ShowState.REJECTED
                     item.save()
                     continue
@@ -310,13 +310,13 @@ def sync_external_states():
                     # For committed shows, series AND all seasons should be monitored
                     has_unmonitored_season = any(not s.get('monitored') for s in s_details.get('seasons', []))
                     if not is_monitored or has_unmonitored_season:
-                        logger.info(f"[Sync] Healing monitoring for committed show: {item.title} (Series: {is_monitored}, Seasons: {not has_unmonitored_season})")
+                        logger.info(f"State Sync - Info - Healing monitoring for committed show: {item.title} (Series: {is_monitored}, Seasons: {not has_unmonitored_season})")
                         sonarr.commit_series(item.sonarr_id)
                 
                 elif item.state == ShowState.TASTING:
                     # For tasting, series must be monitored
                     if not is_monitored:
-                        logger.info(f"[Sync] Healing series-level monitoring for tasting show: {item.title}")
+                        logger.info(f"State Sync - Info - Healing series-level monitoring for tasting show: {item.title}")
                         s_details['monitored'] = True
                         sonarr.update_series(s_details)
                         # Re-run granular monitoring to be safe
@@ -325,25 +325,25 @@ def sync_external_states():
                         # Even if series is monitored, ensure Season 1 and some episodes are
                         has_monitored_season = any(s.get('monitored') and s.get('seasonNumber') == 1 for s in s_details.get('seasons', []))
                         if not has_monitored_season:
-                            logger.info(f"[Sync] Healing season-level monitoring for tasting show: {item.title}")
+                            logger.info(f"State Sync - Info - Healing season-level monitoring for tasting show: {item.title}")
                             sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
 
                 # 2. Check if it's actually downloading
                 queue = sonarr.get_series_queue(item.sonarr_id)
                 if not queue and item.state == ShowState.TASTING:
-                    logger.debug(f"[Sync] Tasting '{item.title}' is monitored in Sonarr but nothing in queue.")
+                    logger.debug(f"State Sync - Debug - Tasting '{item.title}' is monitored in Sonarr but nothing in queue.")
 
             elif item.media_type == MediaType.MOVIE and item.radarr_id:
                 m_details = radarr.get_movie(item.radarr_id)
                 if not m_details:
-                    logger.warning(f"[Sync] Movie '{item.title}' (ID: {item.radarr_id}) not found in Radarr. Marking as REJECTED.")
+                    logger.warning(f"State Sync - Warning - Movie '{item.title}' (ID: {item.radarr_id}) not found in Radarr. Marking as REJECTED.")
                     item.state = ShowState.REJECTED
                     item.save()
                     continue
                 
                 # Ensure it is monitored
                 if not m_details.get('monitored'):
-                    logger.info(f"[Sync] Healing monitoring for movie in Radarr: {item.title}")
+                    logger.info(f"State Sync - Info - Healing monitoring for movie in Radarr: {item.title}")
                     m_details['monitored'] = True
                     radarr.update_movie(m_details)
 
@@ -352,5 +352,5 @@ def sync_external_states():
                 # For now, Radarr is usually more straightforward.
 
         except Exception as e:
-            logger.error(f"[Sync] Error maintaining state for {item.title}: {e}")
+            logger.error(f"State Sync - Error - Error maintaining state for {item.title}: {e}")
             continue

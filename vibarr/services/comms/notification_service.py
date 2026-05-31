@@ -13,7 +13,7 @@ class NotificationService:
         try:
             async_task('vibarr.tasks.notifications.send_async_notification', text, title=title)
         except Exception as e:
-            logger.error(f"Failed to queue notification: {e}")
+            logger.error(f"Notification Service - Error - Failed to queue notification: {e}")
 
     def notify_tasting_ready(self, show_title):
         self.send_message(

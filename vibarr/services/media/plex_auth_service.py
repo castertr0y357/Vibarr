@@ -36,10 +36,10 @@ class PlexAuthService:
         response.raise_for_status()
         try:
             pin_data = response.json()
-            logger.info(f"Plex PIN Response: {pin_data}")
+            logger.info(f"Plex Auth - Info - PIN response received: {pin_data}")
             return pin_data # Contains 'id' and 'code'
         except Exception as e:
-            logger.error(f"Plex Auth JSON Error: {e}. Content: {response.text}")
+            logger.error(f"Plex Auth - Error - PIN JSON decoding failed: {e}. Content: {response.text}")
             raise
 
     def check_pin(self, pin_id):
@@ -50,7 +50,7 @@ class PlexAuthService:
             data = response.json()
             return data.get('authToken') # Returns None if not yet authorized
         except Exception as e:
-            logger.error(f"Plex PIN Poll JSON Error: {e}. Content: {response.text}")
+            logger.error(f"Plex Auth - Error - PIN poll JSON decoding failed: {e}. Content: {response.text}")
             return None
 
     def get_resources(self, token):
@@ -85,5 +85,5 @@ class PlexAuthService:
                     })
             return servers
         except Exception as e:
-            logger.error(f"Plex Resource Discovery Error: {e}")
+            logger.error(f"Plex Auth - Error - Resource discovery failed: {e}")
             return []

@@ -22,7 +22,7 @@ class SeerrService:
             response = requests.get(url, headers=self.headers, timeout=5)
             return response.status_code == 200
         except Exception as e:
-            logger.error(f"Seerr Connection Error: {e}")
+            logger.error(f"Seerr Integration - Error - Connection failed: {e}")
             return False
 
     def get_requests(self):
@@ -42,7 +42,7 @@ class SeerrService:
                 return response.json().get('results', [])
             return []
         except Exception as e:
-            logger.error(f"Seerr Get Requests Error: {e}")
+            logger.error(f"Seerr Integration - Error - Failed to fetch requests: {e}")
             return []
 
     def request_media(self, tmdb_id, media_type="tv"):
@@ -59,5 +59,5 @@ class SeerrService:
             response = requests.post(url, headers=self.headers, json=payload, timeout=10)
             return response.status_code in [200, 201]
         except Exception as e:
-            logger.error(f"Seerr Request Error: {e}")
+            logger.error(f"Seerr Integration - Error - Request failed: {e}")
             return False

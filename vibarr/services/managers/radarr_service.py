@@ -44,7 +44,7 @@ class RadarrService:
                 raise Exception(f"No results found in Radarr for TMDB ID {tmdb_id}")
             movie_data = results[0]
         except Exception as e:
-            logger.error(f"Radarr Lookup Error: {e}")
+            logger.error(f"Radarr Integration - Error - Lookup failed: {e}")
             raise
 
         config = AppConfig.get_solo()
@@ -103,7 +103,7 @@ class RadarrService:
             response.raise_for_status()
             return response.json().get('records', [])
         except Exception as e:
-            logger.error(f"Radarr: Failed to fetch full queue: {e}")
+            logger.error(f"Radarr Integration - Error - Failed to fetch full queue: {e}")
             return []
 
     def get_all_tmdb_ids(self):
@@ -114,5 +114,5 @@ class RadarrService:
             response.raise_for_status()
             return {str(m['tmdbId']) for m in response.json() if m.get('tmdbId')}
         except Exception as e:
-            logger.error(f"Radarr: Failed to fetch all TMDB IDs: {e}")
+            logger.error(f"Radarr Integration - Error - Failed to fetch all TMDB IDs: {e}")
             return set()

@@ -50,7 +50,7 @@ class GetLibrariesView(View):
                         libraries_by_server[server_name] = []
                     libraries_by_server[server_name].extend(libs)
             except Exception as e:
-                logger.error(f"Error fetching libraries from provider: {e}")
+                logger.error(f"Settings - Error - Failed to fetch libraries from provider: {e}")
         
         for server in libraries_by_server:
             libraries_by_server[server] = sorted(list(set(libraries_by_server[server])))
@@ -209,7 +209,7 @@ class UpdateSettingsView(View):
                 
             messages.success(request, "Settings updated successfully.")
         else:
-            logger.error(f"Settings update failed. Errors: {errors}")
+            logger.error(f"Settings - Error - Update failed. Errors: {errors}")
             messages.error(request, f"Error saving settings: {errors}")
             
         if request.headers.get('HX-Request'):

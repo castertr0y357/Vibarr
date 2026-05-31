@@ -27,7 +27,7 @@ class JellyfinService(MediaProvider):
             response = requests.get(url, headers=self.headers, timeout=5)
             return response.status_code == 200
         except Exception as e:
-            logger.error(f"Jellyfin: Connection test failed: {e}")
+            logger.error(f"Jellyfin Integration - Error - Connection test failed: {e}")
             return False
 
     def get_library_titles(self) -> List[str]:
@@ -65,7 +65,7 @@ class JellyfinService(MediaProvider):
                 return titles
             return []
         except Exception as e:
-            logger.error(f"Jellyfin: Failed to fetch library titles: {e}")
+            logger.error(f"Jellyfin Integration - Error - Failed to fetch library titles: {e}")
             return []
 
     def get_library_identifiers(self, force_refresh=False):
@@ -108,7 +108,7 @@ class JellyfinService(MediaProvider):
                 cache.set(cache_key, identifiers, 900)
             return identifiers
         except Exception as e:
-            logger.error(f"Jellyfin: Failed to fetch library identifiers: {e}")
+            logger.error(f"Jellyfin Integration - Error - Failed to fetch library identifiers: {e}")
             return {}
 
     def get_recent_history(self, hours: int = 1) -> List[Dict[str, Any]]:
@@ -180,7 +180,7 @@ class JellyfinService(MediaProvider):
                 requests.post(update_url, headers=self.headers, params=params, timeout=10)
                 
         except Exception as e:
-            logger.error(f"Jellyfin: Collection Sync Error for '{collection_name}': {e}")
+            logger.error(f"Jellyfin Integration - Error - Collection Sync Error for '{collection_name}': {e}")
 
     def get_available_libraries(self) -> List[str]:
         if not self.base_url: return []
@@ -191,5 +191,5 @@ class JellyfinService(MediaProvider):
                 return [folder['Name'] for folder in response.json()]
             return []
         except Exception as e:
-            logger.error(f"Jellyfin: Failed to fetch libraries: {e}")
+            logger.error(f"Jellyfin Integration - Error - Failed to fetch libraries: {e}")
             return []

@@ -28,7 +28,7 @@ class TautulliService:
             response.raise_for_status()
             return response.json().get('response', {}).get('data', [])
         except Exception as e:
-            logger.error(f"Tautulli Error: {e}")
+            logger.error(f"Tautulli Integration - Error - API request failed: {e}")
             return None
 
     def get_library_user_stats(self):
@@ -45,5 +45,5 @@ class TautulliService:
             response.raise_for_status()
             return response.json().get('response', {}).get('data', [])
         except Exception as e:
-            logger.error(f"Tautulli Error: {e}")
+            logger.error(f"Tautulli Integration - Error - API request failed: {e}")
             return None

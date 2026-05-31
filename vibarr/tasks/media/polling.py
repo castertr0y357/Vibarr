@@ -23,7 +23,7 @@ def poll_media_servers(hours=1):
     # Robust lock: Allow if not syncing, OR if backfill (>24h), OR if stuck > 1 min
     stuck_threshold = 60 if hours > 24 else 900
     if config.is_syncing and config.last_sync and (now - config.last_sync).total_seconds() < stuck_threshold:
-        logger.info(f"[Library Sync] Scout sync already in progress ({int((now - config.last_sync).total_seconds())}s ago). Skipping.")
+        logger.info(f"Library Sync - Info - Scout sync already in progress ({int((now - config.last_sync).total_seconds())}s ago). Skipping.")
         return
 
     config.is_syncing = True
@@ -44,10 +44,10 @@ def poll_media_servers(hours=1):
         config.save()
         
         if hours > 24:
-            logger.info("[Library Sync] Deep backfill completed. Triggering background refresh of discovery tracks.")
+            logger.info("Library Sync - Info - Deep backfill completed. Triggering background refresh of discovery tracks.")
             async_task('vibarr.tasks.discovery.recommendations.refresh_discovery_tracks')
     except Exception as e:
-        logger.error(f"Sync error: {e}")
+        logger.error(f"Library Sync - Error - Sync failed: {e}")
         config.is_syncing = False
         config.sync_status = f"Sync failed: {str(e)}"
         config.save()
@@ -78,12 +78,12 @@ def poll_provider_history(server_type, hours=1):
     config.sync_status = f"Polling {server_type} for watch events (last {hours}h)..."
     config.save()
     
-    logger.info(f"[Library Sync] Polling {server_type} for new watch events (last {hours}h)...")
+    logger.info(f"Library Sync - Info - Polling {server_type} for new watch events (last {hours}h)")
     try:
         events = provider.get_recent_history(hours=hours)
-        logger.info(f"[Library Sync] Found {len(events)} events for {server_type} in last {hours}h.")
+        logger.info(f"Library Sync - Info - Found {len(events)} events for {server_type} in last {hours}h.")
     except Exception as e:
-        logger.error(f"[Library Sync] Failed to get history for {server_type}: {e}")
+        logger.error(f"Library Sync - Error - Failed to get history for {server_type}: {e}")
         return
     
     if not events:
@@ -171,15 +171,15 @@ def poll_provider_history(server_type, hours=1):
                     shows_to_purge.add((tmdb_id, title))
                     
         except Exception as e:
-            logger.error(f"Error processing history item '{event.get('title')}': {e}")
+            logger.error(f"Library Sync - Error - Error processing history item '{event.get('title')}': {e}")
             continue
 
     # 5. Bulk Create all new events in one transaction
     if new_events:
-        logger.info(f"[Library Sync] Bulk inserting {len(new_events)} new history events for {server_type} (Skipped {skipped} existing).")
+        logger.info(f"Library Sync - Info - Bulk inserting {len(new_events)} new history events for {server_type} (Skipped {skipped} existing).")
         MediaWatchEvent.objects.bulk_create(new_events, ignore_conflicts=True)
     else:
-        logger.info(f"[Library Sync] No new events to add for {server_type}. (Processed {total_events}, Skipped {skipped} existing).")
+        logger.info(f"Library Sync - Info - No new events to add for {server_type}. (Processed {total_events}, Skipped {skipped} existing).")
 
     # 6. Process "Active" logic outside the loop to minimize redundant queries
     for tmdb_id, event in recent_movie_events.items():
@@ -203,5 +203,5 @@ def poll_provider_history(server_type, hours=1):
             # Removed library_titles from payload to prevent Redis bloat
             async_task(generate_recommendations, title, is_movie=is_movie)
     else:
-        logger.info(f"[{server_type}] Deep backfill detected ({hours}h). Skipping immediate recommendations.")
+        logger.info(f"Library Sync - Info - Deep backfill detected for {server_type} ({hours}h). Skipping immediate recommendations.")
 

@@ -190,5 +190,5 @@ class TestAutomationView(View):
             
             return HttpResponse(response_html)
         except Exception as e:
-            logger.error(f"Wizard Automation Test Error: {e}")
+            logger.error(f"Wizard Setup - Error - Automation test failed: {e}")
             return HttpResponse(f'<span class="text-rose-500 font-bold text-xs">Connection Failed: {str(e)[:40]}...</span>')

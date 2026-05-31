@@ -25,7 +25,7 @@ class PlexWebhookView(View):
             data = json.loads(payload_str)
             event = data.get('event')
             
-            logger.info(f"Plex Webhook received: {event}")
+            logger.info(f"Plex Webhook - Info - Received event: {event}")
             
             # We only care about media.scrobble (finished watching) 
             # or media.rate (rated something)
@@ -36,7 +36,7 @@ class PlexWebhookView(View):
                 
             return JsonResponse({"status": "received"})
         except Exception as e:
-            logger.error(f"Plex Webhook Error: {e}")
+            logger.error(f"Plex Webhook - Error - Webhook processing failed: {e}")
             return HttpResponse(status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -49,12 +49,12 @@ class JellyfinWebhookView(View):
             data = json.loads(request.body)
             event = data.get('NotificationType')
             
-            logger.info(f"Jellyfin Webhook received: {event}")
+            logger.info(f"Jellyfin Webhook - Info - Received event: {event}")
             
             if event == 'PlaybackStopped':
                 async_task(poll_media_servers)
                 
             return JsonResponse({"status": "received"})
         except Exception as e:
-            logger.error(f"Jellyfin Webhook Error: {e}")
+            logger.error(f"Jellyfin Webhook - Error - Webhook processing failed: {e}")
             return HttpResponse(status=500)

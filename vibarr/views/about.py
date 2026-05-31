@@ -61,9 +61,9 @@ class CheckUpdateView(View):
                     """
                 return HttpResponse(html)
             else:
-                logger.warning(f"Failed to check updates: GitHub API returned {response.status_code}")
+                logger.warning(f"About - Warning - GitHub update check returned {response.status_code}")
         except Exception as e:
-            logger.error(f"Failed to check updates: {e}")
+            logger.error(f"About - Error - Update check failed: {e}")
             
         # Error fallback
         error_html = """
