@@ -70,3 +70,24 @@ To maintain high speed and prevent burning through API limits:
 
 1. **Diff-Only Modifications**:
    - Never overwrite a whole code file to make small edits. Always use targeted replacements (`replace_file_content` or `multi_replace_file_content` on specific line ranges) to minimize token transfer.
+
+## 🤖 Vibarr Agent Rules of Engagement & Command Triggers
+This section contains specific rules and triggers carried over from the legacy `AGENCY.md` rules.
+
+### Agent Behaviors
+1. **Session Restoration**: Always read [status.md](file:///./status.md) and any active `task.md` at the start of a session to restore state without redundant file scans.
+2. **Proactive Health Checks**: Run the connection verification check ([verify_connections.md](file:///./.gemini/skills/verify_connections.md)) whenever the `.env` or API services change.
+3. **Context Awareness**: Monitor the length of the session and suggest running the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill if performance degradation is detected.
+
+### Command Triggers
+* `/handover`: Immediately execute the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill. Stop current work and prepare for a session refresh.
+* `/health`: Immediately execute the [pre_flight_check.md](file:///./.gemini/skills/pre_flight_check.md) and [api_smoke_test.md](file:///./.gemini/skills/api_smoke_test.md) skills.
+* `/logs`: Immediately execute the [log_forensics.md](file:///./.gemini/skills/log_forensics.md) skill and provide a summary of the latest errors.
+* `/sync`: Immediately execute the [manual_sync_cycle.md](file:///./.gemini/skills/manual_sync_cycle.md) skill.
+* `/rebuild`: Immediately execute the [rebuild_stack.md](file:///./.gemini/skills/rebuild_stack.md) skill.
+
+### CI/CD Workflow & Quality Gates
+* **Stack Rebuild**: If any `*.py`, `Dockerfile`, or `docker-compose.yml` was modified, execute the [rebuild_stack.md](file:///./.gemini/skills/rebuild_stack.md) skill.
+* **Database Check**: If the pre-flight check fails due to unapplied migrations, attempt to fix them via `docker compose exec web python manage.py migrate` before escalating.
+* **Documentation**: Reflect any changes to API interactions in the relevant `*.md` documentation under `.gemini/skills/`.
+* **Async Backend Execution**: Ensure all heavy backend operations are executed asynchronously (via Django-Q) to prevent UI blocking.
