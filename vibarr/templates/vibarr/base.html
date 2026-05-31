@@ -108,13 +108,34 @@
         .flip-card-back {
             transform: rotateY(180deg);
         }
+        [x-cloak] {
+            display: none !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="flex">
+<body class="flex flex-col md:flex-row min-h-screen" x-data="{ mobileMenuOpen: false }">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden flex justify-between items-center bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-4 sticky top-0 z-40">
+        <a href="{% url 'dashboard' %}" class="flex items-center">
+            <div class="relative w-10 h-10 mr-1 flex items-center justify-center">
+                <img src="{% static 'vibarr/img/logo_v.png' %}" alt="V" class="w-full h-full mix-blend-screen">
+            </div>
+            <span class="text-xl font-extrabold tracking-tighter text-white">IB<span class="text-rose-500">ARR</span></span>
+        </a>
+        <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-400 hover:text-white focus:outline-none transition-colors" aria-label="Toggle Menu">
+            <svg x-show="!mobileMenuOpen" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            <svg x-show="mobileMenuOpen" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </header>
+
+    <!-- Sidebar Mobile Backdrop -->
+    <div x-show="mobileMenuOpen" x-cloak @click="mobileMenuOpen = false" class="fixed inset-0 bg-black/60 z-40 md:hidden"></div>
 
     <!-- Sidebar -->
-    <aside class="w-64 h-screen sticky top-0 flex-shrink-0 border-r border-white/5 bg-black/20 backdrop-blur-xl flex flex-col p-6 z-50">
+    <aside :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
+           class="fixed inset-y-0 left-0 w-64 bg-[#0f172a] border-r border-white/5 flex flex-col p-6 z-50 transition-transform duration-300 md:translate-x-0 md:static md:h-screen md:sticky md:top-0 md:flex-shrink-0 md:bg-black/20 md:backdrop-blur-xl">
         <div class="mb-12 px-2">
             <a href="{% url 'dashboard' %}" class="block group">
                 <h1 class="text-3xl font-extrabold tracking-tighter text-white flex items-center group-hover:scale-105 transition-transform duration-300 origin-left">
@@ -238,7 +259,7 @@
         </div>
 
         <!-- Content Area -->
-        <div class="p-12 max-w-[1600px] mx-auto">
+        <div class="p-4 sm:p-6 md:p-12 max-w-[1600px] mx-auto">
             {% block content %}{% endblock %}
         </div>
     </main>

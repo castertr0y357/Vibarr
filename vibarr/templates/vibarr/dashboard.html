@@ -11,7 +11,7 @@
     </div>
     
     <!-- HEADER -->
-    <div class="flex justify-between items-end">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
         <div>
             <h1 class="text-4xl font-bold text-white mb-2">Welcome Back</h1>
             <div class="flex items-center space-x-4">
@@ -43,7 +43,7 @@
 
     <!-- DISCOVERY FEED -->
     <section x-data="{ mediaType: 'ALL' }">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center space-x-6">
                 <h2 class="text-xl font-semibold text-white flex items-center">
                     Discovery Feed
@@ -101,7 +101,7 @@
     <!-- ACTIVE TASTINGS -->
     {% if tasting %}
     <section x-data="{ tastingType: 'ALL' }">
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center space-x-6">
                 <h2 class="text-xl font-semibold text-white flex items-center">
                     <span class="w-2 h-2 bg-rose-500 rounded-full mr-3 animate-pulse"></span>
@@ -164,7 +164,7 @@
     <!-- COMMITTED -->
     {% if committed %}
     <section>
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h2 class="text-xl font-semibold text-white">Full Series Committed</h2>
             <a href="{% url 'committed_list' %}" class="text-xs text-rose-500 hover:underline">View All</a>
         </div>
