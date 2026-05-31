@@ -42,7 +42,8 @@ class PlexService(MediaProvider):
             if not self.plex: return False
             self.plex.friendlyName
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Plex Integration - Error - Connection check failed: {e}")
             return False
 
     def get_recent_history(self, hours=24):
@@ -211,7 +212,8 @@ class PlexService(MediaProvider):
                                 if 'tmdb://' in guid.id:
                                     tmdb_id = guid.id.replace('tmdb://', '')
                                     break
-                        except Exception: pass
+                        except Exception as e:
+                            logger.debug(f"Plex Integration - Debug - Failed to extract GUID for '{item.title}': {e}")
                         
                         if tmdb_id:
                             identifiers[str(tmdb_id)] = item.title

@@ -1,3 +1,4 @@
+from typing import Dict, Any, Optional
 from ...models import Show, ShowState, MediaType, MediaWatchEvent, AppConfig
 from ...services.managers.sonarr_service import SonarrService
 from ...services.managers.radarr_service import RadarrService
@@ -8,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def start_tasting(show_id):
+def start_tasting(show_id: int) -> None:
     show = Show.objects.get(id=show_id)
     try:
         if show.media_type == MediaType.MOVIE:
@@ -24,7 +25,7 @@ def start_tasting(show_id):
     except Exception as e:
         logger.error(f"Tasting - Error - Failed to start tasting for {show.title}: {e}")
 
-def check_tasting_progress(event):
+def check_tasting_progress(event: Dict[str, Any]) -> None:
     tmdb_id = event.get('tmdb_id')
     if tmdb_id:
         show = Show.objects.filter(tmdb_id=tmdb_id, state=ShowState.TASTING).first()
@@ -65,7 +66,7 @@ def check_tasting_progress(event):
             except Exception as e:
                 logger.error(f"Tasting - Error - Failed to commit series '{show.title}' (Sonarr ID: {show.sonarr_id}) in Sonarr: {e}")
 
-def trigger_auto_purge(title, tmdb_id=None):
+def trigger_auto_purge(title: str, tmdb_id: Optional[int] = None) -> None:
     if tmdb_id:
         show = Show.objects.filter(tmdb_id=tmdb_id, state=ShowState.TASTING).first()
     else:

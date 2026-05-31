@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: SONARR/RADARR HARDENING & MAINTENANCE UI (v1.9.4)
-**Last Checkpoint**: 2026-05-09 (Multi-Level Monitoring Sync, Real-time Download Badges & Maintenance Actions)
+## Current State: PROJECT STANDARDS AUDIT & ALIGNMENT (v1.9.5)
+**Last Checkpoint**: 2026-05-31 (Eliminated silent exception swallowing, added type hints, and introduced test coverage)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Project Standards Alignment (v1.9.5)**: Audited codebase to eliminate silent exception swallowing in Plex, Jellyfin, TMDB, and TVDB integrations, added clean typing annotations, and created a robust unit test suite covering views and models.
 - [x] **Sonarr/Radarr Monitoring Hardening**: Resolved a critical bug where shows were added in an unmonitored state; now ensures Series and Season 1 are active immediately.
 - [x] **Multi-Level Monitoring Sync**: Enhanced the background sync to verify and "heal" monitoring status at the Series, Season, and Episode levels simultaneously.
 - [x] **Real-time Download Status**: Integrated manager queues into the dashboard to display pulsing "Downloading" badges for active content.

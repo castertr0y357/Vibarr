@@ -28,7 +28,8 @@ class TMDBService:
             params = {"api_key": self.api_key}
             response = self._session.get(url, params=params, timeout=5)
             return response.status_code == 200
-        except Exception:
+        except Exception as e:
+            logger.error(f"TMDB Integration - Error - Connection test failed: {e}")
             return False
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):

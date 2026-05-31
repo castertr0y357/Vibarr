@@ -95,14 +95,16 @@ class SettingsView(ConfigMixin, TemplateView):
             try:
                 context['sonarr_folders'] = sonarr.get_root_folders()
                 context['sonarr_profiles'] = sonarr.get_quality_profiles()
-            except Exception:
+            except Exception as e:
+                logger.error(f"Settings - Error - Failed to fetch Sonarr options: {e}")
                 context['sonarr_folders'] = []
                 context['sonarr_profiles'] = []
 
             try:
                 context['radarr_folders'] = radarr.get_root_folders()
                 context['radarr_profiles'] = radarr.get_quality_profiles()
-            except Exception:
+            except Exception as e:
+                logger.error(f"Settings - Error - Failed to fetch Radarr options: {e}")
                 context['radarr_folders'] = []
                 context['radarr_profiles'] = []
         
@@ -223,7 +225,8 @@ class UpdateSettingsView(View):
         url_name = f'settings_{section}'
         try:
             return redirect(url_name)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Settings - Warning - Redirect to section url {url_name} failed: {e}")
             return redirect('settings_general')
 
 class TestSettingsView(View):

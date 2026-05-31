@@ -1,10 +1,11 @@
+from typing import Optional
 import requests
 import logging
 from ..models import AppConfig
 
 logger = logging.getLogger(__name__)
 
-def send_async_notification(text, title=None):
+def send_async_notification(text: str, title: Optional[str] = None) -> None:
     config = AppConfig.get_solo()
     
     # 1. Discord

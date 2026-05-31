@@ -1,18 +1,18 @@
 from django.views.generic import ListView, View
 from django.shortcuts import redirect
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpRequest, HttpResponse
 from ..models import APIKey
 
 class APIKeyListView(ListView):
     model = APIKey
-    template_name = 'vibarr/partials/api_key_list.html'
-    context_object_name = 'api_keys'
+    template_name: str = 'vibarr/partials/api_key_list.html'
+    context_object_name: str = 'api_keys'
 
 class CreateAPIKeyView(View):
-    def post(self, request):
-        name = request.POST.get('key_name', 'Unnamed Key')
-        key = APIKey.objects.create(name=name)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        name: str = request.POST.get('key_name', 'Unnamed Key')
+        key: APIKey = APIKey.objects.create(name=name)
         messages.success(request, f"New API Key created: {key.name}")
         # If HTMX, return the partial list
         if request.headers.get('HX-Request'):
@@ -20,9 +20,9 @@ class CreateAPIKeyView(View):
         return redirect('settings')
 
 class RevokeAPIKeyView(View):
-    def post(self, request, key_id):
+    def post(self, request: HttpRequest, key_id: int) -> HttpResponse:
         try:
-            key = APIKey.objects.get(id=key_id)
+            key: APIKey = APIKey.objects.get(id=key_id)
             key.delete()
             messages.success(request, "API Key revoked.")
         except APIKey.DoesNotExist:

@@ -55,7 +55,8 @@ class TVDBService:
             headers = {"Authorization": f"Bearer {token}"}
             response = self._session.get(url, headers=headers, timeout=5)
             return response.status_code == 200
-        except Exception:
+        except Exception as e:
+            logger.error(f"TVDB Integration - Error - Connection check failed: {e}")
             return False
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):

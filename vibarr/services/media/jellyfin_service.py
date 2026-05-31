@@ -129,8 +129,8 @@ class JellyfinService(MediaProvider):
             # This logic is complex because Jellyfin log is verbose.
             # Usually, we'd want to use a webhook or Jellystat.
             # For now, let's just return an empty list or implement basic parsing.
-            return [] 
-        except Exception:
+        except Exception as e:
+            logger.error(f"Jellyfin Integration - Error - Failed to fetch recent history: {e}")
             return []
 
     def sync_collection(self, titles: List[str], collection_name: str):
