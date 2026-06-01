@@ -24,11 +24,88 @@ class AIBaseService:
         if AIBaseService._session is None:
             AIBaseService._session = requests.Session()
 
+    def _repair_json(self, json_str):
+        """
+        Attempts to repair truncated or malformed JSON by:
+        - Closing unclosed strings.
+        - Matching mismatched braces/brackets.
+        - Adding missing closing brackets/braces at the end.
+        """
+        clean_str = json_str.strip()
+        if not clean_str:
+            return ""
+            
+        result = []
+        stack = []
+        in_string = False
+        escape = False
+        
+        i = 0
+        while i < len(clean_str):
+            char = clean_str[i]
+            
+            if in_string:
+                if escape:
+                    escape = False
+                    result.append(char)
+                elif char == '\\':
+                    escape = True
+                    result.append(char)
+                elif char == '"':
+                    in_string = False
+                    result.append(char)
+                else:
+                    result.append(char)
+            else:
+                if char == '"':
+                    in_string = True
+                    result.append(char)
+                elif char == '{':
+                    stack.append('{')
+                    result.append(char)
+                elif char == '[':
+                    stack.append('[')
+                    result.append(char)
+                elif char == '}':
+                    while stack and stack[-1] == '[':
+                        stack.pop()
+                        result.append(']')
+                    if stack and stack[-1] == '{':
+                        stack.pop()
+                        result.append(char)
+                elif char == ']':
+                    while stack and stack[-1] == '{':
+                        stack.pop()
+                        result.append('}')
+                    if stack and stack[-1] == '[':
+                        stack.pop()
+                        result.append(char)
+                else:
+                    result.append(char)
+            i += 1
+            
+        if escape:
+            result.pop()
+        
+        if in_string:
+            result.append('"')
+            
+        while stack:
+            op = stack.pop()
+            if op == '{':
+                result.append('}')
+            elif op == '[':
+                result.append(']')
+                
+        return "".join(result)
+
     def _parse_json_response(self, content, default):
-        """Helper to extract and parse JSON from AI response."""
+        """Helper to extract and parse JSON from AI response with self-healing capabilities."""
         if not content:
             return default
             
+        json_str = None
+        
         # 1. Try finding JSON inside code blocks first
         if "```" in content:
             parts = content.split("```")
@@ -36,23 +113,16 @@ class AIBaseService:
                 clean_part = part.strip()
                 if not clean_part:
                     continue
-                
-                # Strip language identifiers like 'json' or 'json_object'
                 if clean_part.startswith("json"):
                     clean_part = clean_part[4:].strip()
-                
-                try:
-                    return json.loads(clean_part)
-                except json.JSONDecodeError:
-                    continue
+                json_str = clean_part
+                break
 
-        # 2. Try finding JSON by looking for braces/brackets if not already found in blocks
-        try:
-            # Find the first { or [ and last } or ]
+        if not json_str:
+            # 2. Try finding JSON by looking for braces/brackets
             start_obj = content.find('{')
             start_arr = content.find('[')
             
-            # Determine which comes first
             start = -1
             if start_obj != -1 and start_arr != -1:
                 start = min(start_obj, start_arr)
@@ -68,17 +138,43 @@ class AIBaseService:
                 
                 if end != -1 and end > start:
                     json_str = content[start:end+1]
-                    try:
-                        return json.loads(json_str)
-                    except json.JSONDecodeError:
-                        pass # Fall through to whole thing
             
-            # 3. Fallback: Try parsing the whole thing (if no braces found or extraction failed)
-            return json.loads(content.strip())
-        except Exception as e:
-            # Only log if we couldn't find ANY valid JSON
-            logger.error(f"AI Integration - Error - JSON parse failed: {e}. Raw content (truncated): {content[:500]}")
-            return default
+        if not json_str:
+            json_str = content.strip()
+
+        # Try parsing directly
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+
+        # Try repairing and parsing
+        repaired = self._repair_json(json_str)
+        try:
+            return json.loads(repaired)
+        except json.JSONDecodeError:
+            pass
+
+        # Try truncating at the last '{' if it was a list of objects and we failed to parse
+        try:
+            last_brace = json_str.rfind('{')
+            if last_brace != -1:
+                truncated = json_str[:last_brace].strip()
+                if truncated.endswith(','):
+                    truncated = truncated[:-1].strip()
+                
+                if json_str.strip().startswith('['):
+                    truncated += '\n]'
+                elif json_str.strip().startswith('{'):
+                    truncated += '\n}'
+                    
+                repaired_truncated = self._repair_json(truncated)
+                return json.loads(repaired_truncated)
+        except Exception:
+            pass
+
+        logger.error(f"AI Integration - Error - JSON parse failed. Raw content (truncated): {content[:500]}")
+        return default
 
     def _post(self, prompt, temperature=0.3, timeout=60, json_mode=False):
         payload = {

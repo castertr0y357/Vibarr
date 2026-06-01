@@ -176,9 +176,11 @@ class HistoryProfilingTestCase(TestCase):
         for i in range(5):
             for _ in range(5):
                 MediaWatchEvent.objects.create(
-                    event_id=f"comfort_{i}",
+                    event_id=f"comfort_{i}_{_}",
                     show_title=f"Comfort Show {i}",
                     media_type=MediaType.SHOW,
+                    season=1,
+                    episode=1,
                     watched_at=base_time - datetime.timedelta(days=10)
                 )
                 
@@ -189,6 +191,8 @@ class HistoryProfilingTestCase(TestCase):
                 event_id=f"recent_{i}",
                 show_title=f"Recent Show {i}",
                 media_type=MediaType.SHOW,
+                season=1,
+                episode=1,
                 watched_at=base_time - datetime.timedelta(hours=i)
             )
             
@@ -231,10 +235,12 @@ class HistoryProfilingTestCase(TestCase):
         for i in range(5):
             for _ in range(5):
                 MediaWatchEvent.objects.create(
-                    event_id=f"h_comfort_{i}",
+                    event_id=f"h_comfort_{i}_{_}",
                     show_title=f"H Comfort Show {i}",
                     tmdb_id=1000 + i,
                     media_type=MediaType.SHOW,
+                    season=1,
+                    episode=1,
                     watched_at=base_time - datetime.timedelta(days=10)
                 )
                 
@@ -245,6 +251,8 @@ class HistoryProfilingTestCase(TestCase):
                 show_title=f"H Recent Show {i}",
                 tmdb_id=2000 + i,
                 media_type=MediaType.SHOW,
+                season=1,
+                episode=1,
                 watched_at=base_time - datetime.timedelta(hours=i)
             )
             
@@ -259,3 +267,56 @@ class HistoryProfilingTestCase(TestCase):
         
         # The genre weight should reflect log-scaled play count sum
         self.assertGreater(profile['genres'][18], 15.0)
+
+class RobustAIJsonParsingTestCase(TestCase):
+    def test_robust_ai_json_parsing_repair(self) -> None:
+        from .services.discovery.ai.base import AIBaseService
+        
+        raw_malformed = """```json
+[
+{
+"title": "Full House",
+"reasoning": "This is a prime continuation of your comfort viewing, featuring a 'found family' dynamic that resonates strongly with the themes of 'The Golden Girls' and other warm, ensemble sitcoms.",
+"vibe_tags": [
+"Found Family",
+"Sitcom",
+"Nostalgic",
+"Comedy"
+},
+{
+"title": "Family Matters",
+"reasoning": "It is a perfect fit for your preference for dramedy and ensemble comedy, featuring the messy, quirky, and
+"""
+        service = AIBaseService()
+        parsed = service._parse_json_response(raw_malformed, [])
+        
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[0]['title'], "Full House")
+        self.assertEqual(parsed[0]['vibe_tags'], ["Found Family", "Sitcom", "Nostalgic", "Comedy"])
+        self.assertEqual(parsed[1]['title'], "Family Matters")
+        self.assertTrue(parsed[1]['reasoning'].startswith("It is a perfect fit"))
+
+    def test_robust_ai_json_parsing_repair_discard_truncated(self) -> None:
+        from .services.discovery.ai.base import AIBaseService
+        
+        raw_severely_truncated = """```json
+[
+{
+"title": "Full House",
+"reasoning": "This is a prime continuation of your comfort viewing.",
+"vibe_tags": [
+"Found Family",
+"Sitcom",
+"Nostalgic",
+"Comedy"
+},
+{
+"title": "Family Matters",
+"reason
+"""
+        service = AIBaseService()
+        parsed = service._parse_json_response(raw_severely_truncated, [])
+        
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]['title'], "Full House")
+        self.assertEqual(parsed[0]['vibe_tags'], ["Found Family", "Sitcom", "Nostalgic", "Comedy"])

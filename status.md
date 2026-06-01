@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: BALANCED TASTE RECOMMENDATIONS (v1.9.8)
-**Last Checkpoint**: 2026-05-31 (Balanced history profiling and background scouting to incorporate overall viewing habits)
+## Current State: ROBUST AI JSON REPAIR & BALANCED RECOMMENDATIONS (v1.9.9)
+**Last Checkpoint**: 2026-05-31 (Added robust self-healing JSON parsing for AI models and balanced watch history recommendations)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,7 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
-- [x] **Balanced Taste Recommendations (v1.9.8)**: Enhanced the recommendation engine's history profiling and background scouting by blending the top 10 most recent unique watched items with the top 10 overall most frequently played items. Applied this blended taste profile to both AI recommendations and Heuristic ranking. Updated background scouts to use a weighted random selection (weighted by play counts) from the user's primary history rather than always seeding from the single most recently watched show.
+- [x] **Robust AI JSON Repair & Balanced Recommendations (v1.9.9)**: Implemented self-healing JSON parsing in `AIBaseService` to automatically close unclosed quotes/brackets/braces, repair mismatched structural elements, and truncate incomplete trailing items. Coupled this with balanced taste profiling and background scouting that integrates the top 10 most recent items with the top 10 overall most played items, using weighted random choice to vary background seed titles.
 - [x] **Mobile-Friendly UI Polish (v1.9.7)**: Enhanced usability on mobile viewports by implementing a responsive slide-over drawer navigation menu controlled via Alpine.js, a sticky mobile top header with a neon logo, responsive page-level padding, and wrapped layout wrappers for flex headers. Cleaned up the vibe search form's absolute layout on smaller screens to prevent button overlapping.
 - [x] **Feed Performance & Governance (v1.9.6)**: Resolved UI sluggishness in the Discovery Feed, Active Tastings, and Vibe Search by migrating Alpine.js hovers to pure CSS/Tailwind `group-hover` and enabling image lazy loading. Enforced suggestions backlog limits (`max_discovered_movies` and `max_discovered_shows`) using a new database-pruning function triggered on full page load, universe architect syncs, and background scouts, cleaning up the user's database from 1,310 suggestions down to a strict 100 suggestion ceiling.
 - [x] **Project Standards Alignment (v1.9.5)**: Audited codebase to eliminate silent exception swallowing in Plex, Jellyfin, TMDB, and TVDB integrations, added clean typing annotations, and created a robust unit test suite covering views and models.
