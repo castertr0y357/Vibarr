@@ -5,7 +5,8 @@ def get_weighted_history_profile(target_type):
     """
     Builds a list of titles from history to feed the AI, 
     weighted by cross-media influence settings.
-    Returns a list of dicts: [{'title': str, 'play_count': int}]
+    Blends the top 10 most recent unique items and the top 10 overall most played items.
+    Returns a list of dicts: [{'title': str, 'play_count': int, 'is_primary': bool}]
     """
     config = AppConfig.get_solo()
     
@@ -18,18 +19,33 @@ def get_weighted_history_profile(target_type):
         secondary_type = MediaType.MOVIE
         influence_weight = config.movie_influence_on_shows
 
-    # Get Primary History (Full weight) - Unique titles ordered by latest watch
+    # Get Primary History
     primary_events = MediaWatchEvent.objects.filter(
         media_type=primary_type
     ).values('show_title').annotate(
         latest_watch=Max('watched_at'),
         play_count=Count('id')
-    ).order_by('-latest_watch')[:20]
+    )
 
-    primary_history = [
-        {'title': e['show_title'], 'play_count': e['play_count']}
-        for e in primary_events
-    ]
+    # Blended primary list: 10 recent, 10 top played
+    primary_recent = list(primary_events.order_by('-latest_watch')[:10])
+    primary_top = list(primary_events.order_by('-play_count', '-latest_watch')[:10])
+
+    seen_titles = set()
+    primary_history = []
+    
+    # Add recent first to preserve recent order at the front of the list
+    for e in primary_recent:
+        title = e['show_title']
+        if title not in seen_titles:
+            seen_titles.add(title)
+            primary_history.append({'title': title, 'play_count': e['play_count'], 'is_primary': True})
+
+    for e in primary_top:
+        title = e['show_title']
+        if title not in seen_titles:
+            seen_titles.add(title)
+            primary_history.append({'title': title, 'play_count': e['play_count'], 'is_primary': True})
 
     # Get Influencer History (Weighted subset)
     influence_count = max(1, int(20 * (influence_weight / 100)))
@@ -38,12 +54,28 @@ def get_weighted_history_profile(target_type):
     ).values('show_title').annotate(
         latest_watch=Max('watched_at'),
         play_count=Count('id')
-    ).order_by('-latest_watch')[:influence_count]
+    )
 
-    influencer_history = [
-        {'title': e['show_title'], 'play_count': e['play_count']}
-        for e in influencer_events
-    ]
+    recent_count = max(1, influence_count // 2)
+    top_count = max(1, influence_count - recent_count)
+
+    influencer_recent = list(influencer_events.order_by('-latest_watch')[:recent_count])
+    influencer_top = list(influencer_events.order_by('-play_count', '-latest_watch')[:top_count])
+
+    seen_inf_titles = set()
+    influencer_history = []
+    
+    for e in influencer_recent:
+        title = e['show_title']
+        if title not in seen_inf_titles:
+            seen_inf_titles.add(title)
+            influencer_history.append({'title': title, 'play_count': e['play_count'], 'is_primary': False})
+
+    for e in influencer_top:
+        title = e['show_title']
+        if title not in seen_inf_titles:
+            seen_inf_titles.add(title)
+            influencer_history.append({'title': title, 'play_count': e['play_count'], 'is_primary': False})
 
     return primary_history + influencer_history
 

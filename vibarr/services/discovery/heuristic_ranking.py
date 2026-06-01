@@ -35,14 +35,29 @@ class HeuristicRankingService:
     def _build_user_profile(self, target_type):
         """
         Analyzes history to find preferred genres and keywords.
+        Blends the top 10 most recent unique items and the top 10 overall most played items.
         """
-        unique_history = MediaWatchEvent.objects.filter(
+        base_query = MediaWatchEvent.objects.filter(
             media_type=target_type,
             tmdb_id__isnull=False
         ).values('tmdb_id').annotate(
             latest_watch=Max('watched_at'),
             play_count=Count('id')
-        ).order_by('-latest_watch')[:20]
+        )
+        
+        recent_history = list(base_query.order_by('-latest_watch')[:10])
+        top_history = list(base_query.order_by('-play_count', '-latest_watch')[:10])
+        
+        seen_ids = set()
+        unique_history = []
+        for item in recent_history:
+            if item['tmdb_id'] not in seen_ids:
+                seen_ids.add(item['tmdb_id'])
+                unique_history.append(item)
+        for item in top_history:
+            if item['tmdb_id'] not in seen_ids:
+                seen_ids.add(item['tmdb_id'])
+                unique_history.append(item)
         
         genres = {}
         keywords = {}

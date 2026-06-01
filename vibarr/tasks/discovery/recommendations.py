@@ -91,7 +91,15 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
 
     # Pick a seed from history to get similar candidates from TMDB
     if not seed_title:
-        seed_title = profile[0]['title'] if isinstance(profile[0], dict) else profile[0]
+        primary_titles = [p for p in profile if isinstance(p, dict) and p.get('is_primary', False)]
+        if primary_titles:
+            import random
+            titles_pool = [p['title'] for p in primary_titles]
+            weights = [p.get('play_count', 1) for p in primary_titles]
+            seed_title = random.choices(titles_pool, weights=weights, k=1)[0]
+            logger.info(f"[AI Scout] Selected seed title '{seed_title}' from primary history using weighted random choice (pool size: {len(titles_pool)}).")
+        else:
+            seed_title = profile[0]['title'] if isinstance(profile[0], dict) else profile[0]
     is_movie = target_type == MediaType.MOVIE
     
     search_result = tmdb.search_movie(seed_title) if is_movie else tmdb.search_show(seed_title)

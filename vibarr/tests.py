@@ -152,3 +152,110 @@ class GovernanceTestCase(TestCase):
         self.assertFalse(Show.objects.filter(id=show1.id).exists())
         self.assertTrue(Show.objects.filter(id=show2.id).exists())
         self.assertTrue(Show.objects.filter(id=show3.id).exists())
+
+from unittest.mock import patch
+from .models import MediaWatchEvent
+from .utils.intelligence import get_weighted_history_profile
+from .services.discovery.heuristic_ranking import HeuristicRankingService
+
+class HistoryProfilingTestCase(TestCase):
+    def test_get_weighted_history_profile_blending(self) -> None:
+        import datetime
+        from django.utils import timezone
+        
+        # Create a user config
+        config = AppConfig.get_solo()
+        config.show_influence_on_movies = 0
+        config.movie_influence_on_shows = 0
+        config.save()
+        
+        base_time = timezone.now()
+        
+        # 1. Create 5 older, highly-watched shows (Comfort Shows)
+        # e.g., watched 5 times each, 10 days ago
+        for i in range(5):
+            for _ in range(5):
+                MediaWatchEvent.objects.create(
+                    event_id=f"comfort_{i}",
+                    show_title=f"Comfort Show {i}",
+                    media_type=MediaType.SHOW,
+                    watched_at=base_time - datetime.timedelta(days=10)
+                )
+                
+        # 2. Create 10 recent, single-watched shows
+        # e.g., watched 1 time each, in the last 10 hours
+        for i in range(10):
+            MediaWatchEvent.objects.create(
+                event_id=f"recent_{i}",
+                show_title=f"Recent Show {i}",
+                media_type=MediaType.SHOW,
+                watched_at=base_time - datetime.timedelta(hours=i)
+            )
+            
+        # Get weighted history profile for SHOW
+        profile = get_weighted_history_profile(MediaType.SHOW)
+        
+        # Profile should contain a blend of both (up to 10 recent and 10 top played)
+        titles = [p['title'] for p in profile]
+        
+        # All 5 comfort shows should be in the profile because they are top played
+        for i in range(5):
+            self.assertIn(f"Comfort Show {i}", titles)
+            
+        # Recent shows should be in the profile (at least some, since we took the top 10 recent)
+        recent_count = sum(1 for t in titles if "Recent Show" in t)
+        self.assertGreater(recent_count, 0)
+        
+        # Verify fields
+        for item in profile:
+            self.assertTrue(item['is_primary'])
+            self.assertIn('play_count', item)
+            if "Comfort Show" in item['title']:
+                self.assertEqual(item['play_count'], 5)
+            else:
+                self.assertEqual(item['play_count'], 1)
+
+    @patch('vibarr.services.discovery.tmdb_service.TMDBService.get_show_details')
+    def test_heuristic_user_profile_blending(self, mock_get_show_details) -> None:
+        import datetime
+        from django.utils import timezone
+        
+        mock_get_show_details.return_value = {
+            'genres': [{'id': 18, 'name': 'Drama'}],
+            'keywords': {'results': [{'id': 100, 'name': 'mystery'}]}
+        }
+        
+        base_time = timezone.now()
+        
+        # Create 5 older, highly-watched shows (Comfort Shows)
+        for i in range(5):
+            for _ in range(5):
+                MediaWatchEvent.objects.create(
+                    event_id=f"h_comfort_{i}",
+                    show_title=f"H Comfort Show {i}",
+                    tmdb_id=1000 + i,
+                    media_type=MediaType.SHOW,
+                    watched_at=base_time - datetime.timedelta(days=10)
+                )
+                
+        # Create 10 recent, single-watched shows
+        for i in range(10):
+            MediaWatchEvent.objects.create(
+                event_id=f"h_recent_{i}",
+                show_title=f"H Recent Show {i}",
+                tmdb_id=2000 + i,
+                media_type=MediaType.SHOW,
+                watched_at=base_time - datetime.timedelta(hours=i)
+            )
+            
+        hrs = HeuristicRankingService()
+        profile = hrs._build_user_profile(MediaType.SHOW)
+        
+        # Check that genres/keywords were populated and both recent and comfort shows were queried.
+        # We mocked TMDB to return Genre 18 (Drama) and Keyword 100 (mystery).
+        # Both genres and keywords dict should have weights showing they processed the items.
+        self.assertIn(18, profile['genres'])
+        self.assertIn(100, profile['keywords'])
+        
+        # The genre weight should reflect log-scaled play count sum
+        self.assertGreater(profile['genres'][18], 15.0)
