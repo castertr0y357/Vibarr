@@ -110,6 +110,10 @@ All generated code must be clean, maintainable, and production-ready.
 22. **Maintain Git Exclusion Policies (.gitignore)**:
     - Actively maintain the `.gitignore` file to ensure that local database files (e.g. `db.sqlite3` or local data directories), local logs, runtime caches, and sensitive environment config files (like `.env`) are strictly excluded from the repository. Review `.gitignore` whenever introducing new persistent files, logs directories, or local configuration files to prevent untracked local state from being committed.
 
+23. **Single Page App (SPA) UX Behavior & Dynamic Rendering**:
+    - Ensure all user interface applications are designed to dynamically render changes, page content, and state transitions without forcing a full page refresh.
+    - Maintain standard multi-page and deep-linking capabilities by combining technologies like HTMX, Alpine.js, or custom JavaScript pushState/history API controls. Navigation and dynamic layout shifts must preserve clean browser histories and distinct shareable URLs, delivering a fluid, single-page app feel while retaining searchability and page structures.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 

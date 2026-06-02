@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: TRAKT.TV & SEERR REQUEST TAGS INTEGRATION (v1.10.0)
-**Last Checkpoint**: 2026-06-02 (Implemented Trakt.tv related items candidate sourcing, public username taste importer and CSV upload, and weighted Seerr request tags inside Heuristic and AI prompt contexts)
+## Current State: TRAKT.TV & SEERR REQUEST TAGS INTEGRATION (v1.10.1)
+**Last Checkpoint**: 2026-06-02 (Added SPA UX and Dynamic Rendering rule to global and local rule configurations; Implemented Trakt.tv related items candidate sourcing, public username taste importer and CSV upload, and weighted Seerr request tags inside Heuristic and AI prompt contexts)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **SPA UX Global Standard (v1.10.1)**: Added Standard 23 (Single Page App (SPA) UX Behavior & Dynamic Rendering) to the global template `project.md` and local workspace rules. Synchronized rules across all multi-format files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`).
 - [x] **Trakt.tv & Seerr Request Tags Integration (v1.10.0)**: Integrated Trakt.tv Related Sourcing as a supplementary discovery engine to boost accuracy. Created a Trakt Taste Importer supporting both a zero-click public username API sync and offline CSV data uploads to bootstrap taste profiles for new users. Fully integrated Seerr custom request tags into both Heuristic weighting models and AI prompt contexts for highly personalized recommendations.
 - [x] **Global Standards & Git Exclusion Policies (.gitignore) (v1.9.11)**: Added Standard 22 (Maintain Git Exclusion Policies (.gitignore)) to the global template `project.md` and local workspace rules. Synchronized rules across all multi-format files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) to enforce exclusions of local SQLite databases, logs, caches, and `.env` configs from being tracked by Git.
 - [x] **Automatic Schedule Initialization (v1.9.10)**: Integrated `python manage.py initialize_schedules` directly into the container `entrypoint.sh` startup script. This guarantees background schedules (e.g. polling, scouts) are automatically registered in the database, avoiding missing schedules in new or fresh production stack deployments.
