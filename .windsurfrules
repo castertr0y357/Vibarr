@@ -92,6 +92,12 @@ All generated code must be clean, maintainable, and production-ready.
 17. **Automatic Workspace Rules Synchronization**:
     - At the start of every session, check if the local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) exist and match the latest global template `C:\Users\caste\.gemini\project.md`. If they are out of sync, outdated, or missing, immediately perform a synchronization cycle to update them, ensuring that the latest global standards are consistently applied across all projects without manual user intervention.
 
+18. **Zero-Config Onboarding & .env Bootstrapping**:
+    - If a local `.env` configuration file is missing on startup or initialization, the agent must automatically copy `.env.example` to `.env`, generate secure random secret keys for session/cryptographic signatures (replacing placeholders), and configure default local ports/credentials so the stack can run out-of-the-box.
+
+19. **Dependency Reconciliation**:
+    - Whenever package metadata files (e.g. `requirements.txt`, `package.json`, `Gemfile`, `Cargo.toml`) are modified, the agent must immediately execute the corresponding package installer or container rebuild command to keep the active runtime environment synchronized.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
