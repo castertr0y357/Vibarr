@@ -1,9 +1,33 @@
+import logging
 from django.test import TestCase, Client
-from django.urls import reverse
+from django.urls import reverse, get_resolver, URLPattern, URLResolver
+from django.urls.exceptions import NoReverseMatch
 from django.http import HttpResponse
 from .models import AppConfig, Persona, Show, ShowState, MediaType
 
-class AppConfigTestCase(TestCase):
+class FailOnErrorHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.errors = []
+
+    def emit(self, record):
+        if record.levelno >= logging.ERROR:
+            self.errors.append(record)
+
+class VibarrTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self._log_handler = FailOnErrorHandler()
+        logging.getLogger().addHandler(self._log_handler)
+
+    def tearDown(self) -> None:
+        logging.getLogger().removeHandler(self._log_handler)
+        if self._log_handler.errors:
+            error_msgs = "\n".join([f"- {r.name} [{r.levelname}]: {r.getMessage()}" for r in self._log_handler.errors])
+            self.fail(f"Unexpected ERROR or CRITICAL logs were generated during test:\n{error_msgs}")
+        super().tearDown()
+
+class AppConfigTestCase(VibarrTestCase):
     def test_singleton_get_solo(self) -> None:
         # get_solo should create one config
         config: AppConfig = AppConfig.get_solo()
@@ -27,7 +51,7 @@ class AppConfigTestCase(TestCase):
         config.delete()
         self.assertEqual(AppConfig.objects.count(), 1)
 
-class PersonaTestCase(TestCase):
+class PersonaTestCase(VibarrTestCase):
     def test_persona_creation(self) -> None:
         persona: Persona = Persona.objects.create(
             name="Kids Persona",
@@ -37,8 +61,9 @@ class PersonaTestCase(TestCase):
         self.assertEqual(persona.name, "Kids Persona")
         self.assertEqual(str(persona), "Kids Persona")
 
-class ShowTestCase(TestCase):
+class ShowTestCase(VibarrTestCase):
     def setUp(self) -> None:
+        super().setUp()
         self.config: AppConfig = AppConfig.get_solo()
         self.kids_persona: Persona = Persona.objects.create(
             name="Kids",
@@ -76,8 +101,9 @@ class ShowTestCase(TestCase):
         # TV-MA (4) is above Kids PG (2)
         self.assertTrue(show.is_above_threshold)
 
-class ViewsTestCase(TestCase):
+class ViewsTestCase(VibarrTestCase):
     def setUp(self) -> None:
+        super().setUp()
         self.client: Client = Client()
         self.config: AppConfig = AppConfig.get_solo()
         # Setup finished/configured to bypass Wizard settings redirect
@@ -100,8 +126,9 @@ class ViewsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class GovernanceTestCase(TestCase):
+class GovernanceTestCase(VibarrTestCase):
     def setUp(self) -> None:
+        super().setUp()
         self.config: AppConfig = AppConfig.get_solo()
         self.config.max_discovered_shows = 2
         self.config.max_discovered_movies = 2
@@ -158,7 +185,7 @@ from .models import MediaWatchEvent
 from .utils.intelligence import get_weighted_history_profile
 from .services.discovery.heuristic_ranking import HeuristicRankingService
 
-class HistoryProfilingTestCase(TestCase):
+class HistoryProfilingTestCase(VibarrTestCase):
     def test_get_weighted_history_profile_blending(self) -> None:
         import datetime
         from django.utils import timezone
@@ -268,7 +295,7 @@ class HistoryProfilingTestCase(TestCase):
         # The genre weight should reflect log-scaled play count sum
         self.assertGreater(profile['genres'][18], 15.0)
 
-class RobustAIJsonParsingTestCase(TestCase):
+class RobustAIJsonParsingTestCase(VibarrTestCase):
     def test_robust_ai_json_parsing_repair(self) -> None:
         from .services.discovery.ai.base import AIBaseService
         
@@ -320,3 +347,117 @@ class RobustAIJsonParsingTestCase(TestCase):
         self.assertEqual(len(parsed), 1)
         self.assertEqual(parsed[0]['title'], "Full House")
         self.assertEqual(parsed[0]['vibe_tags'], ["Found Family", "Sitcom", "Nostalgic", "Comedy"])
+
+class RouteScannerTestCase(VibarrTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.client = Client()
+        self.config = AppConfig.get_solo()
+        self.config.setup_complete = True
+        
+        # Disable authentication requirement during scan to avoid 302 redirects to login
+        from .models import AuthMode
+        self.config.auth_mode = AuthMode.NONE
+        self.config.save()
+        
+        # Create a dummy show for show_id lookups
+        from .models import Show, MediaType
+        Show.objects.get_or_create(
+            id=1,
+            defaults={
+                'title': 'Test Show',
+                'tmdb_id': 9999,
+                'media_type': MediaType.SHOW
+            }
+        )
+        
+        # Create a persona for switcher/lookup
+        from .models import Persona
+        Persona.objects.get_or_create(id=1, defaults={'name': 'Test Persona'})
+
+    @patch('requests.request')
+    @patch('requests.Session.send')
+    @patch('requests.get')
+    @patch('requests.post')
+    @patch('requests.put')
+    @patch('requests.delete')
+    def test_dynamic_route_scanner(self, mock_delete, mock_put, mock_post, mock_get, mock_send, mock_request) -> None:
+        from unittest.mock import MagicMock
+        
+        # Setup standard mock response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'authToken': 'mock-token',
+            'id': 1,
+            'code': 'ABCD',
+            'records': [],
+            'results': [],
+            'choices': [{'message': {'content': '[]'}}]
+        }
+        mock_response.text = '{}'
+        mock_response.content = b'{}'
+        
+        mock_request.return_value = mock_response
+        mock_send.return_value = mock_response
+        mock_get.return_value = mock_response
+        mock_post.return_value = mock_response
+        mock_put.return_value = mock_response
+        mock_delete.return_value = mock_response
+
+        resolver = get_resolver()
+        
+        def collect_url_names(patterns, prefix=''):
+            collected = []
+            for pattern in patterns:
+                if isinstance(pattern, URLPattern):
+                    if pattern.name:
+                        collected.append(pattern.name)
+                elif isinstance(pattern, URLResolver):
+                    collected.extend(collect_url_names(pattern.url_patterns, prefix))
+            return list(set(collected))
+
+        url_names = collect_url_names(resolver.url_patterns)
+        
+        # Standard keyword arguments that endpoints expect
+        default_kwargs = {
+            'show_id': 1,
+            'pin_id': 1,
+            'key_id': 1,
+            'persona_id': 1,
+        }
+        
+        exempt_urls = [
+            'admin:index', 'admin:login', 'admin:logout', 'admin:password_change', 
+            'admin:password_change_done', 'admin:jsi18n', 'admin:view_on_site'
+        ]
+        
+        for name in url_names:
+            if name.startswith('admin:') or name in exempt_urls:
+                continue
+                
+            url = None
+            try:
+                url = reverse(name)
+            except NoReverseMatch:
+                try:
+                    url = reverse(name, kwargs=default_kwargs)
+                except NoReverseMatch:
+                    # Try using individual keyword arguments in case of mismatched signature
+                    for key, val in default_kwargs.items():
+                        try:
+                            url = reverse(name, kwargs={key: val})
+                            break
+                        except NoReverseMatch:
+                            continue
+            
+            if not url:
+                continue
+                
+            response = self.client.get(url)
+            
+            self.assertLess(
+                response.status_code, 
+                500, 
+                msg=f"Endpoint '{name}' at URL '{url}' returned status code {response.status_code}."
+            )

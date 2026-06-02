@@ -170,8 +170,8 @@ class AIBaseService:
                     
                 repaired_truncated = self._repair_json(truncated)
                 return json.loads(repaired_truncated)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"AI Integration - Warning - Truncation repair failed: {e}")
 
         logger.error(f"AI Integration - Error - JSON parse failed. Raw content (truncated): {content[:500]}")
         return default
