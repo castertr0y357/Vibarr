@@ -65,6 +65,9 @@ All generated code must be clean, maintainable, and production-ready.
 10. **Conventional Commits**:
     - Write git commit messages using the Conventional Commits specification (e.g., `feat:`, `fix:`, `test:`, `refactor:`, `chore:`, `docs:`) with descriptive subject lines under 50 characters.
 
+11. **Consistent Deployment of Fixes**:
+    - Ensure that all fixes, database initialization tasks, custom commands, or setup migrations are programmatically encoded into startup or configuration files (such as `entrypoint.sh`, `docker-compose.yml`, or migration modules). Never rely on manual runtime CLI execution to maintain the application. This ensures a consistent and reproducible experience across development, staging, and production instances.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
