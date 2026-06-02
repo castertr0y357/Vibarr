@@ -101,6 +101,9 @@ All generated code must be clean, maintainable, and production-ready.
 20. **Workspace Health Diagnostics (Doctor)**:
     - Maintain a workspace diagnostic script (`doctor.py` or similar) that validates database migrations, checks local network loops, tests external integration endpoints, and verifies service reachability. Run this script first when troubleshooting stack issues to isolate configuration/network drift from code bugs.
 
+21. **Secrets Safety in Diffs**:
+    - Never write raw secrets, private keys, database passwords, or active API credentials into any code file, even temporarily for local testing. All credentials must be loaded dynamically from environment variables, and testing environments must rely exclusively on mocked values or dummy tokens to prevent accidental git commits of sensitive data.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
