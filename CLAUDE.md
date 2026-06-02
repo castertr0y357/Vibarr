@@ -89,6 +89,9 @@ All generated code must be clean, maintainable, and production-ready.
       - `.windsurfrules` (for Windsurf)
     - Whenever you update the project's rules or discover repository-specific behavior, make sure to propagate those changes to all of these formats to maintain alignment.
 
+17. **Automatic Workspace Rules Synchronization**:
+    - At the start of every session, check if the local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) exist and match the latest global template `C:\Users\caste\.gemini\project.md`. If they are out of sync, outdated, or missing, immediately perform a synchronization cycle to update them, ensuring that the latest global standards are consistently applied across all projects without manual user intervention.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
