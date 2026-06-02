@@ -23,6 +23,9 @@ To ensure that projects are robust enough to share with others, you must establi
 2. **Bug Fix Verification**: When fixing a bug, write a test case that reproduces the bug, verify that it fails, and then verify that it passes after the fix is implemented.
 3. **Robust Input Validation**: Ensure tests check boundary conditions, invalid inputs, error handling paths, and API constraints to catch bugs before they reach runtime.
 4. **Zero-Failure Tolerance**: All automated tests must pass successfully before a task is considered complete.
+5. **Dynamic View & API Route Sanity Checking**: Implement and maintain a dynamic route scanner test that loops through all registered HTML and API endpoints to verify that GET requests do not trigger compile or `500 Internal Server Errors`. For API paths, ensure they return valid JSON structures and appropriate status codes, providing instant compile coverage for the entire routing tree.
+6. **Fail-on-Unexpected-Errors**: Configure the test runner or assertions to capture log outputs. Any unexpected `ERROR` or `CRITICAL` logs written during a test execution must fail the test run, transforming silent, swallowed exceptions into loud, test-failing assertions.
+7. **Shared Mock Fixtures**: Centralize mock payloads and external API responses (e.g. TMDB, Plex) into a shared test fixtures folder. Test suites must reuse these mock utilities and decorators instead of writing repetitive inline mocks, saving token quota and maintaining mock consistency.
 
 ## 💎 Code Quality & Production Standards
 All generated code must be clean, maintainable, and production-ready.
@@ -120,7 +123,7 @@ This section contains specific rules and triggers carried over from the legacy `
 4. **Living Rules Document (AGENTS.md)**: Actively treat `AGENTS.md` as a living document. Update it with repository findings, specific bugs/fixes, task checklists, or contextual quirks discovered during work to ensure future sessions carry over these learnings.
 
 ### Command Triggers
-* `/handover`: Immediately execute the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill. Stop current work and prepare for a session refresh.
+* `/handover`: Immediately execute the [session_handover.md](file:///./session_handover.md) skill. Stop current work and prepare for a session refresh.
 * `/health`: Immediately execute the [pre_flight_check.md](file:///./.gemini/skills/pre_flight_check.md) and [api_smoke_test.md](file:///./.gemini/skills/api_smoke_test.md) skills.
 * `/logs`: Immediately execute the [log_forensics.md](file:///./.gemini/skills/log_forensics.md) skill and provide a summary of the latest errors.
 * `/sync`: Immediately execute the [manual_sync_cycle.md](file:///./.gemini/skills/manual_sync_cycle.md) skill.

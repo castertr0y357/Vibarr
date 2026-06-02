@@ -23,6 +23,9 @@ To ensure that projects are robust enough to share with others, you must establi
 2. **Bug Fix Verification**: When fixing a bug, write a test case that reproduces the bug, verify that it fails, and then verify that it passes after the fix is implemented.
 3. **Robust Input Validation**: Ensure tests check boundary conditions, invalid inputs, error handling paths, and API constraints to catch bugs before they reach runtime.
 4. **Zero-Failure Tolerance**: All automated tests must pass successfully before a task is considered complete.
+5. **Dynamic View & API Route Sanity Checking**: Implement and maintain a dynamic route scanner test that loops through all registered HTML and API endpoints to verify that GET requests do not trigger compile or `500 Internal Server Errors`. For API paths, ensure they return valid JSON structures and appropriate status codes, providing instant compile coverage for the entire routing tree.
+6. **Fail-on-Unexpected-Errors**: Configure the test runner or assertions to capture log outputs. Any unexpected `ERROR` or `CRITICAL` logs written during a test execution must fail the test run, transforming silent, swallowed exceptions into loud, test-failing assertions.
+7. **Shared Mock Fixtures**: Centralize mock payloads and external API responses (e.g. TMDB, Plex) into a shared test fixtures folder. Test suites must reuse these mock utilities and decorators instead of writing repetitive inline mocks, saving token quota and maintaining mock consistency.
 
 ## 💎 Code Quality & Production Standards
 All generated code must be clean, maintainable, and production-ready.
