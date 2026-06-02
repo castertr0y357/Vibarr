@@ -44,6 +44,7 @@ All generated code must be clean, maintainable, and production-ready.
 4. **Aesthetics & UI Standards**:
    - Maintain a premium visual design: consistent typography, harmonious color palettes, smooth transitions, proper margins, and descriptive spacing.
    - Do not use inline styles or raw CSS files unless explicitly requested. Always utilize the established local utility framework (like Tailwind CSS) and existing UI primitives.
+   - Ensure the GUI is fully responsive and optimized for mobile viewports (supporting touch-friendly targets, collapsible navigation, adaptive grid counts, and screen-fitting wrappers). Do not focus exclusively on desktop layouts; verify responsiveness on multiple screen sizes.
 
 5. **Framework & Architecture Decisions**:
    - When introducing new frameworks, major dependencies, or architectural shifts, present 2-3 viable options detailing the pros, cons, and trade-offs of each, and wait for user approval before executing.
