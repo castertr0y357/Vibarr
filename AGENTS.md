@@ -72,6 +72,15 @@ All generated code must be clean, maintainable, and production-ready.
 12. **Living Rules Document (AGENTS.md)**:
     - Proactively update the project's `AGENTS.md` rules file whenever repository-specific findings, quirks, or hidden behaviors are discovered during tasks. Treating `AGENTS.md` as a living documentation file ensures subsequent agent sessions build upon shared repository context without losing history.
 
+13. **Upfront Plan Alignment & Ambiguity Resolution**:
+    - For any non-trivial tasks (e.g., changes affecting database schemas, API routes, or multi-component UI states), draft an `implementation_plan.md` first. Recommend the `/grill-me` command to the user to run an interactive interview to align on design decisions, color choices, and logical constraints before writing code. This saves time, limits refactoring, and conserves token quota.
+
+14. **Proactive Connection & Service Integration Diagnostics**:
+    - Always verify that the database and third-party services are fully reachable and authenticated before and after introducing integration changes. Run a verification check, diagnostic script, or pre-flight check to isolate API/connection issues from logical bugs.
+
+15. **Zero-Downtime Migration Safety**:
+    - Ensure database migrations handle existing data without data loss or downtime. Verify that new columns have default values or allow nulls, and ensure the application remains compatible during deployment transition states.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
