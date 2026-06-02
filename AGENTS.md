@@ -98,6 +98,9 @@ All generated code must be clean, maintainable, and production-ready.
 19. **Dependency Reconciliation**:
     - Whenever package metadata files (e.g. `requirements.txt`, `package.json`, `Gemfile`, `Cargo.toml`) are modified, the agent must immediately execute the corresponding package installer or container rebuild command to keep the active runtime environment synchronized.
 
+20. **Workspace Health Diagnostics (Doctor)**:
+    - Maintain a workspace diagnostic script (`doctor.py` or similar) that validates database migrations, checks local network loops, tests external integration endpoints, and verifies service reachability. Run this script first when troubleshooting stack issues to isolate configuration/network drift from code bugs.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
