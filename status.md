@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: AUTOMATIC SCHEDULE INITIALIZATION (v1.9.10)
-**Last Checkpoint**: 2026-06-01 (Integrated automatic task schedule initialization into container entrypoint to prevent missing discovery/polling background tasks in production)
+## Current State: GLOBAL STANDARDS & MULTI-LLM RULES SYNCHRONIZATION (v1.9.11)
+**Last Checkpoint**: 2026-06-02 (Added Standard 22 for .gitignore exclusion maintenance to global templates, synchronized all local rule files, and verified system sanity)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Global Standards & Git Exclusion Policies (.gitignore) (v1.9.11)**: Added Standard 22 (Maintain Git Exclusion Policies (.gitignore)) to the global template `project.md` and local workspace rules. Synchronized rules across all multi-format files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) to enforce exclusions of local SQLite databases, logs, caches, and `.env` configs from being tracked by Git.
 - [x] **Automatic Schedule Initialization (v1.9.10)**: Integrated `python manage.py initialize_schedules` directly into the container `entrypoint.sh` startup script. This guarantees background schedules (e.g. polling, scouts) are automatically registered in the database, avoiding missing schedules in new or fresh production stack deployments.
 - [x] **Robust AI JSON Repair & Balanced Recommendations (v1.9.9)**: Implemented self-healing JSON parsing in `AIBaseService` to automatically close unclosed quotes/brackets/braces, repair mismatched structural elements, and truncate incomplete trailing items. Coupled this with balanced taste profiling and background scouting that integrates the top 10 most recent items with the top 10 overall most played items, using weighted random choice to vary background seed titles.
 - [x] **Mobile-Friendly UI Polish (v1.9.7)**: Enhanced usability on mobile viewports by implementing a responsive slide-over drawer navigation menu controlled via Alpine.js, a sticky mobile top header with a neon logo, responsive page-level padding, and wrapped layout wrappers for flex headers. Cleaned up the vibe search form's absolute layout on smaller screens to prevent button overlapping.

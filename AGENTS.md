@@ -107,6 +107,9 @@ All generated code must be clean, maintainable, and production-ready.
 21. **Secrets Safety in Diffs**:
     - Never write raw secrets, private keys, database passwords, or active API credentials into any code file, even temporarily for local testing. All credentials must be loaded dynamically from environment variables, and testing environments must rely exclusively on mocked values or dummy tokens to prevent accidental git commits of sensitive data.
 
+22. **Maintain Git Exclusion Policies (.gitignore)**:
+    - Actively maintain the `.gitignore` file to ensure that local database files (e.g. `db.sqlite3` or local data directories), local logs, runtime caches, and sensitive environment config files (like `.env`) are strictly excluded from the repository. Review `.gitignore` whenever introducing new persistent files, logs directories, or local configuration files to prevent untracked local state from being committed.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 

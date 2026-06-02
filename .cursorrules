@@ -107,6 +107,9 @@ All generated code must be clean, maintainable, and production-ready.
 21. **Secrets Safety in Diffs**:
     - Never write raw secrets, private keys, database passwords, or active API credentials into any code file, even temporarily for local testing. All credentials must be loaded dynamically from environment variables, and testing environments must rely exclusively on mocked values or dummy tokens to prevent accidental git commits of sensitive data.
 
+22. **Maintain Git Exclusion Policies (.gitignore)**:
+    - Actively maintain the `.gitignore` file to ensure that local database files (e.g. `db.sqlite3` or local data directories), local logs, runtime caches, and sensitive environment config files (like `.env`) are strictly excluded from the repository. Review `.gitignore` whenever introducing new persistent files, logs directories, or local configuration files to prevent untracked local state from being committed.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
@@ -123,7 +126,7 @@ This section contains specific rules and triggers carried over from the legacy `
 4. **Living Rules Document (AGENTS.md)**: Actively treat `AGENTS.md` as a living document. Update it with repository findings, specific bugs/fixes, task checklists, or contextual quirks discovered during work to ensure future sessions carry over these learnings.
 
 ### Command Triggers
-* `/handover`: Immediately execute the [session_handover.md](file:///./session_handover.md) skill. Stop current work and prepare for a session refresh.
+* `/handover`: Immediately execute the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill. Stop current work and prepare for a session refresh.
 * `/health`: Immediately execute the [pre_flight_check.md](file:///./.gemini/skills/pre_flight_check.md) and [api_smoke_test.md](file:///./.gemini/skills/api_smoke_test.md) skills.
 * `/logs`: Immediately execute the [log_forensics.md](file:///./.gemini/skills/log_forensics.md) skill and provide a summary of the latest errors.
 * `/sync`: Immediately execute the [manual_sync_cycle.md](file:///./.gemini/skills/manual_sync_cycle.md) skill.

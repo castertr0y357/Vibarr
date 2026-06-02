@@ -107,6 +107,9 @@ All generated code must be clean, maintainable, and production-ready.
 21. **Secrets Safety in Diffs**:
     - Never write raw secrets, private keys, database passwords, or active API credentials into any code file, even temporarily for local testing. All credentials must be loaded dynamically from environment variables, and testing environments must rely exclusively on mocked values or dummy tokens to prevent accidental git commits of sensitive data.
 
+22. **Maintain Git Exclusion Policies (.gitignore)**:
+    - Actively maintain the `.gitignore` file to ensure that local database files (e.g. `db.sqlite3` or local data directories), local logs, runtime caches, and sensitive environment config files (like `.env`) are strictly excluded from the repository. Review `.gitignore` whenever introducing new persistent files, logs directories, or local configuration files to prevent untracked local state from being committed.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
@@ -123,14 +126,14 @@ This section contains specific rules and triggers carried over from the legacy `
 4. **Living Rules Document (AGENTS.md)**: Actively treat `AGENTS.md` as a living document. Update it with repository findings, specific bugs/fixes, task checklists, or contextual quirks discovered during work to ensure future sessions carry over these learnings.
 
 ### Command Triggers
-* `/handover`: Immediately execute the [session_handover.md](file:///./session_handover.md) skill. Stop current work and prepare for a session refresh.
-* `/health`: Immediately execute the [pre_flight_check.md](file:///./pre_flight_check.md) and [api_smoke_test.md](file:///./api_smoke_test.md) skills.
-* `/logs`: Immediately execute the [log_forensics.md](file:///./log_forensics.md) skill and provide a summary of the latest errors.
-* `/sync`: Immediately execute the [manual_sync_cycle.md](file:///./manual_sync_cycle.md) skill.
-* `/rebuild`: Immediately execute the [rebuild_stack.md](file:///./rebuild_stack.md) skill.
+* `/handover`: Immediately execute the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill. Stop current work and prepare for a session refresh.
+* `/health`: Immediately execute the [pre_flight_check.md](file:///./.gemini/skills/pre_flight_check.md) and [api_smoke_test.md](file:///./.gemini/skills/api_smoke_test.md) skills.
+* `/logs`: Immediately execute the [log_forensics.md](file:///./.gemini/skills/log_forensics.md) skill and provide a summary of the latest errors.
+* `/sync`: Immediately execute the [manual_sync_cycle.md](file:///./.gemini/skills/manual_sync_cycle.md) skill.
+* `/rebuild`: Immediately execute the [rebuild_stack.md](file:///./.gemini/skills/rebuild_stack.md) skill.
 
 ### CI/CD Workflow & Quality Gates
-* **Stack Rebuild**: If any `*.py`, `Dockerfile`, or `docker-compose.yml` was modified, execute the [rebuild_stack.md](file:///./rebuild_stack.md) skill.
+* **Stack Rebuild**: If any `*.py`, `Dockerfile`, or `docker-compose.yml` was modified, execute the [rebuild_stack.md](file:///./.gemini/skills/rebuild_stack.md) skill.
 * **Database Check**: If the pre-flight check fails due to unapplied migrations, attempt to fix them via `docker compose exec web python manage.py migrate` before escalating.
 * **Documentation**: Reflect any changes to API interactions in the relevant `*.md` documentation under `.gemini/skills/`.
 * **Async Backend Execution**: Ensure all heavy backend operations are executed asynchronously (via Django-Q) to prevent UI blocking.
