@@ -23,9 +23,12 @@ class HeuristicRankingService:
         # 2. Fetch Seerr Profile (Optional)
         seerr_profile = self._build_seerr_profile() if self.config.use_seerr else set()
 
+        # 3. Fetch Seerr Tag Profile (Optional)
+        seerr_tag_profile = self._build_seerr_tag_profile() if self.config.use_seerr else {}
+
         ranked_results = []
         for candidate in candidates:
-            score_data = self._calculate_score(candidate, target_type, profile, seerr_profile)
+            score_data = self._calculate_score(candidate, target_type, profile, seerr_profile, seerr_tag_profile)
             ranked_results.append(score_data)
 
         # Sort by score descending
@@ -121,7 +124,25 @@ class HeuristicRankingService:
         seerr_ids = {r.get('media', {}).get('tmdbId') for r in requests if r.get('media', {}).get('tmdbId')}
         return seerr_ids
 
-    def _calculate_score(self, candidate, target_type, profile, seerr_profile):
+    def _build_seerr_tag_profile(self):
+        """
+        Compiles a list of custom tag names from Seerr request history.
+        """
+        seerr = SeerrService()
+        requests = seerr.get_requests()
+        tag_counts = {}
+        for r in requests:
+            tags = r.get("tags", [])
+            for tag in tags:
+                if isinstance(tag, dict) and tag.get("name"):
+                    name = tag["name"].lower().strip()
+                    tag_counts[name] = tag_counts.get(name, 0) + 1
+                elif isinstance(tag, str):
+                    name = tag.lower().strip()
+                    tag_counts[name] = tag_counts.get(name, 0) + 1
+        return tag_counts
+
+    def _calculate_score(self, candidate, target_type, profile, seerr_profile, seerr_tag_profile=None):
         """
         Calculates a score from 0 to 10 for a candidate.
         """
@@ -145,6 +166,7 @@ class HeuristicRankingService:
         
         keyword_score = 0
         collection_match = 0
+        seerr_tag_match = 0
         vibe_tags = []
         
         if details:
@@ -167,6 +189,18 @@ class HeuristicRankingService:
             # Genres from details (more accurate)
             vibe_tags.extend([g['name'] for g in details.get('genres', []) if g['name'] not in vibe_tags][:2])
 
+            # Seerr Tags match
+            if seerr_tag_profile:
+                cand_kws = [k['name'].lower().strip() for k in candidate_keywords]
+                cand_genres = [g['name'].lower().strip() for g in details.get('genres', [])]
+                candidate_terms = set(cand_kws + cand_genres)
+                match_count = 0
+                for term in candidate_terms:
+                    if term in seerr_tag_profile:
+                        match_count += seerr_tag_profile[term]
+                if match_count > 0:
+                    seerr_tag_match = min(match_count * 2.5, 10.0)
+
         # Seerr Match
         seerr_match = 10 if candidate['id'] in seerr_profile else 0
 
@@ -174,7 +208,8 @@ class HeuristicRankingService:
         # Normalize weights to sum to 10
         w_total = (self.config.h_rating_weight + self.config.h_popularity_weight + 
                    self.config.h_genre_weight + self.config.h_keyword_weight + 
-                   self.config.h_seerr_weight + self.config.h_collection_weight) or 1
+                   self.config.h_seerr_weight + self.config.h_seerr_tag_weight + 
+                   self.config.h_collection_weight) or 1
         
         final_score = (
             (rating * self.config.h_rating_weight) +
@@ -182,6 +217,7 @@ class HeuristicRankingService:
             (genre_score * self.config.h_genre_weight) +
             (keyword_score * self.config.h_keyword_weight) +
             (seerr_match * self.config.h_seerr_weight) +
+            (seerr_tag_match * self.config.h_seerr_tag_weight) +
             (collection_match * self.config.h_collection_weight)
         ) / w_total
 
@@ -190,6 +226,7 @@ class HeuristicRankingService:
         if genre_score > 5: reasons.append("matches your favorite genres")
         if keyword_score > 5: reasons.append("shares thematic elements with your history")
         if seerr_match > 0: reasons.append("is trending in your request history")
+        if seerr_tag_match > 5: reasons.append("aligns with your request tags")
         if collection_match > 0: reasons.append("is part of a collection you follow")
         
         reasoning = "This title " + (" and ".join(reasons) if reasons else "matches your general viewing patterns") + "."

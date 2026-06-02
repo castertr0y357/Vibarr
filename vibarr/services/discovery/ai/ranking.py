@@ -111,6 +111,17 @@ class AIRankingService(AIBaseService):
             lines.append(f"  - Preferred Genres: {', '.join(top_genres_text)}")
         if top_keywords_text:
             lines.append(f"  - Preferred Themes/Vibes: {', '.join(top_keywords_text)}")
+        
+        # Inject Seerr request tags
+        config = AppConfig.get_solo()
+        if config.use_seerr:
+            hrs = HeuristicRankingService(config)
+            seerr_tag_profile = hrs._build_seerr_tag_profile()
+            if seerr_tag_profile:
+                sorted_tags = sorted(seerr_tag_profile.items(), key=lambda x: x[1], reverse=True)
+                tags_formatted = [f"{name} (requested {count} times)" for name, count in sorted_tags[:8]]
+                lines.append(f"  - Preferred Custom Tags (from request history): {', '.join(tags_formatted)}")
+
         if comfort_titles:
             lines.append("  - Comfort Titles & Favorites:")
             for t in comfort_titles[:10]:

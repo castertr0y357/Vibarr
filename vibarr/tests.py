@@ -180,7 +180,7 @@ class GovernanceTestCase(VibarrTestCase):
         self.assertTrue(Show.objects.filter(id=show2.id).exists())
         self.assertTrue(Show.objects.filter(id=show3.id).exists())
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from .models import MediaWatchEvent
 from .utils.intelligence import get_weighted_history_profile
 from .services.discovery.heuristic_ranking import HeuristicRankingService
@@ -461,3 +461,140 @@ class RouteScannerTestCase(VibarrTestCase):
                 500, 
                 msg=f"Endpoint '{name}' at URL '{url}' returned status code {response.status_code}."
             )
+
+class TraktAndSeerrTestCase(VibarrTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.config = AppConfig.get_solo()
+        self.config.trakt_client_id = "mock_client_id"
+        self.config.trakt_username = "mock_user"
+        self.config.use_seerr = True
+        self.config.h_seerr_tag_weight = 80
+        self.config.save()
+
+    @patch('requests.get')
+    def test_trakt_service_connection(self, mock_get) -> None:
+        from .services.discovery.trakt_service import TraktService
+        
+        # Test success (200)
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+        
+        service = TraktService()
+        self.assertTrue(service.test_connection())
+        
+        # Test failure (500)
+        mock_response.status_code = 500
+        self.assertFalse(service.test_connection())
+
+    @patch('requests.get')
+    def test_trakt_related_movies(self, mock_get) -> None:
+        from .services.discovery.trakt_service import TraktService
+        
+        # Setup mock responses for TMDB ID resolution and related movies list
+        mock_resolve = MagicMock()
+        mock_resolve.status_code = 200
+        mock_resolve.json.return_value = [{"movie": {"ids": {"trakt": 1234}}}]
+        
+        mock_related = MagicMock()
+        mock_related.status_code = 200
+        mock_related.json.return_value = [{"movie": {"title": "Inception", "ids": {"tmdb": 272}}}]
+        
+        mock_get.side_effect = [mock_resolve, mock_related]
+        
+        service = TraktService()
+        related = service.get_related_movies(272)
+        self.assertEqual(len(related), 1)
+        self.assertEqual(related[0]["movie"]["title"], "Inception")
+
+    @patch('requests.get')
+    def test_trakt_importer_history(self, mock_get) -> None:
+        from .services.discovery.trakt_import import import_trakt_history_from_api
+        
+        mock_history = MagicMock()
+        mock_history.status_code = 200
+        mock_history.json.return_value = [
+            {
+                "id": 99991,
+                "type": "movie",
+                "watched_at": "2026-06-02T16:14:39.000Z",
+                "movie": {
+                    "title": "Interstellar",
+                    "ids": {"tmdb": 157336}
+                }
+            }
+        ]
+        mock_get.return_value = mock_history
+        
+        imported = import_trakt_history_from_api("mock_user")
+        self.assertEqual(imported, 1)
+        
+        # Verify event was created
+        event = MediaWatchEvent.objects.get(event_id="trakt_history_99991")
+        self.assertEqual(event.show_title, "Interstellar")
+        self.assertEqual(event.tmdb_id, 157336)
+        self.assertEqual(event.media_type, MediaType.MOVIE)
+
+    def test_trakt_importer_csv(self) -> None:
+        from .services.discovery.trakt_import import import_trakt_csv
+        
+        csv_data = """title,tmdb_id,type,watched_at
+Gladiator,155,movie,2026-06-02 16:14:39
+The Matrix,603,movie,2026-06-02 16:14:39
+"""
+        imported = import_trakt_csv(csv_data)
+        self.assertEqual(imported, 2)
+        
+        # Verify first event
+        self.assertTrue(MediaWatchEvent.objects.filter(show_title="Gladiator", tmdb_id=155).exists())
+        # Verify second event
+        self.assertTrue(MediaWatchEvent.objects.filter(show_title="The Matrix", tmdb_id=603).exists())
+
+    @patch('vibarr.services.managers.seerr_service.SeerrService.get_requests')
+    @patch('vibarr.services.discovery.tmdb_service.TMDBService.get_movie_details')
+    def test_seerr_tag_heuristic_scoring(self, mock_details, mock_get_requests) -> None:
+        # Mock Seerr requests with custom tags
+        mock_get_requests.return_value = [
+            {
+                "media": {"tmdbId": 12},
+                "tags": [{"id": 1, "name": "cyberpunk"}, "neon"]
+            },
+            {
+                "media": {"tmdbId": 13},
+                "tags": [{"id": 1, "name": "cyberpunk"}]
+            },
+            {
+                "media": {"tmdbId": 14},
+                "tags": [{"id": 1, "name": "cyberpunk"}]
+            }
+        ]
+        
+        # Mock candidate details showing cyberpunk keyword
+        mock_details.return_value = {
+            'genres': [{'id': 28, 'name': 'Action'}],
+            'keywords': {'keywords': [{'id': 101, 'name': 'cyberpunk'}]}
+        }
+        
+        hrs = HeuristicRankingService()
+        
+        # Build profile and mock seerr profiles
+        profile = hrs._build_user_profile(MediaType.MOVIE)
+        seerr_profile = {12}
+        seerr_tag_profile = hrs._build_seerr_tag_profile()
+        
+        self.assertIn("cyberpunk", seerr_tag_profile)
+        self.assertIn("neon", seerr_tag_profile)
+        
+        # Score a candidate matching the tag
+        candidate = {
+            'id': 100,
+            'title': 'Blade Runner',
+            'vote_average': 8.0,
+            'popularity': 50.0,
+            'genre_ids': [28]
+        }
+        
+        score_data = hrs._calculate_score(candidate, MediaType.MOVIE, profile, seerr_profile, seerr_tag_profile)
+        self.assertIn("aligns with your request tags", score_data["reasoning"])
+        self.assertGreater(score_data["score"], 0)

@@ -16,6 +16,12 @@ from ..services.media.plex_auth_service import PlexAuthService
 from ..services.media.jellyfin_service import JellyfinService
 from ..services.discovery.tmdb_service import TMDBService
 from ..services.discovery.tvdb_service import TVDBService
+from ..services.discovery.trakt_service import TraktService
+from ..services.discovery.trakt_import import (
+    import_trakt_history_from_api,
+    import_trakt_watchlist_from_api,
+    import_trakt_csv
+)
 from django_q.tasks import async_task
 from ..tasks.discovery.recommendations import refresh_metadata_backlog, revaluate_all_recommendations, refresh_discovery_tracks
 from django.contrib.auth.hashers import make_password
@@ -145,7 +151,8 @@ class UpdateSettingsView(View):
             'auto_tasting_threshold',
             'ai_api_url', 'ai_model', 'ai_api_key',
             'h_rating_weight', 'h_popularity_weight', 'h_genre_weight',
-            'h_keyword_weight', 'h_seerr_weight', 'h_collection_weight',
+            'h_keyword_weight', 'h_seerr_weight', 'h_seerr_tag_weight', 'h_collection_weight',
+            'trakt_client_id', 'trakt_username',
             'movie_influence_on_shows', 'show_influence_on_movies',
             'ignored_genres',
         ],
@@ -233,7 +240,11 @@ class TestSettingsView(View):
     def post(self, request):
         service_type = request.POST.get('type')
         url = request.POST.get('url') or request.POST.get(f'{service_type}_url')
-        key = request.POST.get('key') or request.POST.get(f'{service_type}_api_key') or request.POST.get('ai_api_key') or request.POST.get('seerr_api_key')
+        key = (request.POST.get('key') or 
+               request.POST.get(f'{service_type}_api_key') or 
+               request.POST.get('ai_api_key') or 
+               request.POST.get('seerr_api_key') or
+               request.POST.get('trakt_client_id'))
         token = request.POST.get('token') or request.POST.get('plex_token') or key
         
         error_msg = None
@@ -253,6 +264,8 @@ class TestSettingsView(View):
                 success = SeerrService(url=url, api_key=key).test_connection()
             elif service_type == 'tmdb':
                 success = TMDBService(api_key=key).test_connection()
+            elif service_type == 'trakt':
+                success = TraktService(client_id=key).test_connection()
             elif service_type == 'tvdb':
                 pin = request.POST.get('pin')
                 success = TVDBService(api_key=key, pin=pin).test_connection()
@@ -312,3 +325,49 @@ class RevaluateRecommendationsView(View):
         response = HttpResponse('<span class="text-rose-500 font-bold text-[10px]">Score Re-evaluation Started</span>')
         response['HX-Trigger'] = '{"show-toast": {"message": "AI Re-evaluation started", "type": "success"}}'
         return response
+
+class ImportTraktTastesView(View):
+    def post(self, request):
+        mode = request.POST.get('mode')
+        
+        # 1. CSV File Import
+        if mode == 'csv':
+            csv_file = request.FILES.get('csv_file')
+            if not csv_file:
+                response = HttpResponse('<span class="text-rose-500 font-bold text-[10px]">No file uploaded</span>')
+                response['HX-Trigger'] = '{"show-toast": {"message": "Error: No CSV file uploaded", "type": "error"}}'
+                return response
+                
+            try:
+                content = csv_file.read().decode('utf-8', errors='ignore')
+                count = import_trakt_csv(content)
+                response = HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Imported {count} items from CSV</span>')
+                response['HX-Trigger'] = f'{{"show-toast": {{"message": "Successfully imported {count} items from CSV", "type": "success"}}}}'
+                return response
+            except Exception as e:
+                logger.error(f"Settings - Error - Trakt CSV import failed: {e}")
+                response = HttpResponse(f'<span class="text-rose-500 font-bold text-[10px]">Import failed: {str(e)[:30]}</span>')
+                response['HX-Trigger'] = f'{{"show-toast": {{"message": "CSV Import failed: {str(e)}", "type": "error"}}}}'
+                return response
+
+        # 2. Public API Username Sync
+        username = request.POST.get('username') or AppConfig.get_solo().trakt_username
+        if not username:
+            response = HttpResponse('<span class="text-rose-500 font-bold text-[10px]">Username required</span>')
+            response['HX-Trigger'] = '{"show-toast": {"message": "Error: Please enter a Trakt username", "type": "error"}}'
+            return response
+
+        try:
+            # Sync history and watchlist
+            history_count = import_trakt_history_from_api(username)
+            watchlist_count = import_trakt_watchlist_from_api(username)
+            total = history_count + watchlist_count
+            
+            response = HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Imported {total} items from API</span>')
+            response['HX-Trigger'] = f'{{"show-toast": {{"message": "Successfully synced {history_count} history and {watchlist_count} watchlist items from Trakt", "type": "success"}}}}'
+            return response
+        except Exception as e:
+            logger.error(f"Settings - Error - Trakt API import failed: {e}")
+            response = HttpResponse(f'<span class="text-rose-500 font-bold text-[10px]">Sync failed: {str(e)[:30]}</span>')
+            response['HX-Trigger'] = f'{{"show-toast": {{"message": "Sync failed: {str(e)}", "type": "error"}}}}'
+            return response

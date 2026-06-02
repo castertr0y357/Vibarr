@@ -194,6 +194,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
             user_profile_movie = hrs._build_user_profile(MediaType.MOVIE)
             user_profile_show = hrs._build_user_profile(MediaType.SHOW)
             seerr_profile = hrs._build_seerr_profile() if config.use_seerr else set()
+            seerr_tag_profile = hrs._build_seerr_tag_profile() if config.use_seerr else {}
             
             for candidate in gathered_candidates:
                 m_type = candidate['media_type']
@@ -206,7 +207,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'popularity': 0.0,
                     'genre_ids': [], # Details will load genres in HeuristicRankingService anyway
                 }
-                res = hrs._calculate_score(cand_adapted, m_type, user_profile, seerr_profile)
+                res = hrs._calculate_score(cand_adapted, m_type, user_profile, seerr_profile, seerr_tag_profile)
                 scores_map[candidate['title'].lower()] = {
                     'score': res['score'],
                     'reasoning': res['reasoning'],

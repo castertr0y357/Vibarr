@@ -1,14 +1,14 @@
 # Project Status: Vibarr
 
-## Current State: GLOBAL STANDARDS & MULTI-LLM RULES SYNCHRONIZATION (v1.9.11)
-**Last Checkpoint**: 2026-06-02 (Added Standard 22 for .gitignore exclusion maintenance to global templates, synchronized all local rule files, and verified system sanity)
+## Current State: TRAKT.TV & SEERR REQUEST TAGS INTEGRATION (v1.10.0)
+**Last Checkpoint**: 2026-06-02 (Implemented Trakt.tv related items candidate sourcing, public username taste importer and CSV upload, and weighted Seerr request tags inside Heuristic and AI prompt contexts)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
 - **Architecture**: Modular Monolith with strictly decoupled tasks and explicit dependency trees.
 - **API Strategy**: Headless Hybrid (Django CBVs + APIMixin supporting JSON & HTMX)
 - **Deployment**: Hardened Docker Compose (Orchestrated Postgres, Redis, Web, and Worker)
-- **Integrations**: Plex/Jellyfin (Media), Sonarr/Radarr (Automation), Overseerr/Jellyseerr (Requests), TMDB, OpenAI-Compatible AI
+- **Integrations**: Plex/Jellyfin (Media), Sonarr/Radarr (Automation), Overseerr/Jellyseerr (Requests), TMDB, OpenAI-Compatible AI, Trakt.tv
 - **Frontend**: Vanilla CSS + HTMX + Alpine.js (Real-time polling, flip-card interactions, animated transitions)
 
 ## Primary Logic
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Trakt.tv & Seerr Request Tags Integration (v1.10.0)**: Integrated Trakt.tv Related Sourcing as a supplementary discovery engine to boost accuracy. Created a Trakt Taste Importer supporting both a zero-click public username API sync and offline CSV data uploads to bootstrap taste profiles for new users. Fully integrated Seerr custom request tags into both Heuristic weighting models and AI prompt contexts for highly personalized recommendations.
 - [x] **Global Standards & Git Exclusion Policies (.gitignore) (v1.9.11)**: Added Standard 22 (Maintain Git Exclusion Policies (.gitignore)) to the global template `project.md` and local workspace rules. Synchronized rules across all multi-format files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) to enforce exclusions of local SQLite databases, logs, caches, and `.env` configs from being tracked by Git.
 - [x] **Automatic Schedule Initialization (v1.9.10)**: Integrated `python manage.py initialize_schedules` directly into the container `entrypoint.sh` startup script. This guarantees background schedules (e.g. polling, scouts) are automatically registered in the database, avoiding missing schedules in new or fresh production stack deployments.
 - [x] **Robust AI JSON Repair & Balanced Recommendations (v1.9.9)**: Implemented self-healing JSON parsing in `AIBaseService` to automatically close unclosed quotes/brackets/braces, repair mismatched structural elements, and truncate incomplete trailing items. Coupled this with balanced taste profiling and background scouting that integrates the top 10 most recent items with the top 10 overall most played items, using weighted random choice to vary background seed titles.

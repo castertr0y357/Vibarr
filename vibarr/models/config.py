@@ -99,7 +99,12 @@ class AppConfig(models.Model):
     h_genre_weight = models.IntegerField(default=100, help_text="Weight for genre matching (0-100)")
     h_keyword_weight = models.IntegerField(default=70, help_text="Weight for keyword matching (0-100)")
     h_seerr_weight = models.IntegerField(default=40, help_text="Weight for Seerr request history (0-100)")
+    h_seerr_tag_weight = models.IntegerField(default=80, help_text="Weight for Seerr request tags (0-100)")
     h_collection_weight = models.IntegerField(default=60, help_text="Weight for collection matching (0-100)")
+    
+    # Trakt Settings
+    trakt_client_id = models.TextField(null=True, blank=True, help_text="Trakt Client ID for API access")
+    trakt_username = models.CharField(max_length=150, null=True, blank=True, help_text="Trakt Username for seeding taste profile")
     
     last_sync = models.DateTimeField(null=True, blank=True)
     is_syncing = models.BooleanField(default=False)

@@ -43,6 +43,29 @@
             </div>
             <div id="tvdb-status"></div>
         </div>
+        
+        <!-- Trakt.tv Integration -->
+        <div class="space-y-4 pt-8 border-t border-white/5">
+            <h3 class="text-xl font-bold text-white">Trakt.tv Integration</h3>
+            <p class="text-[10px] text-gray-500 italic bg-white/5 p-3 rounded-xl border border-white/5">
+                <svg class="w-3 h-3 inline mr-1 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Provide your Trakt.tv Client ID to fetch related recommendations and sync public watch history or watchlists for taste profiling.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Trakt Client ID (API Key)</label>
+                    <div class="flex gap-2">
+                        <input type="password" id="trakt_client_id_input" name="trakt_client_id" value="{{ config.trakt_client_id|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "trakt"}' hx-include="#trakt_client_id_input" hx-target="#trakt-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
+                    </div>
+                    <div id="trakt-status"></div>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Default Trakt Username</label>
+                    <input type="text" name="trakt_username" value="{{ config.trakt_username|default:'' }}" placeholder="e.g. traktuser123" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
+            </div>
+        </div>
 
         <!-- AI Engine -->
         <div class="pt-8 border-t border-white/5 space-y-6">
@@ -166,6 +189,15 @@
                     </div>
                     <input type="range" name="h_seerr_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
                 </div>
+
+                <!-- Seerr Request Tags Weight -->
+                <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_tag_weight }} }">
+                    <div class="flex justify-between items-end">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request Tags</label>
+                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                    </div>
+                    <input type="range" name="h_seerr_tag_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                </div>
             </div>
         </div>
 
@@ -248,6 +280,54 @@
                 </button>
             </div>
             <div id="intel-maint-status" class="mt-2 text-center"></div>
+        </div>
+
+        <!-- Taste Seeding & Bootstrap Importer -->
+        <div class="pt-8 border-t border-white/5 space-y-6">
+            <div class="space-y-2">
+                <h3 class="text-white font-bold flex items-center gap-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Taste Seeding (Trakt Importer)
+                </h3>
+                <p class="text-xs text-gray-500">Seed initial taste history from your Trakt account to bypass the cold start problem.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white/5 p-6 rounded-2xl border border-white/5">
+                <!-- Method 1: Public Username Sync -->
+                <div class="space-y-4">
+                    <h4 class="text-sm font-bold text-white uppercase tracking-widest text-blue-400">Method 1: Sync from Public Username</h4>
+                    <p class="text-[10px] text-gray-400">Pulls your history and watchlist items directly from Trakt's public API to seed your profiles.</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="trakt_import_username" name="username" value="{{ config.trakt_username|default:'' }}" placeholder="Trakt Username" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <button type="button" 
+                                hx-post="{% url 'import_trakt' %}" 
+                                hx-vals='{"mode": "api"}'
+                                hx-include="#trakt_import_username"
+                                hx-target="#import-status"
+                                class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
+                            Sync Tastes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Method 2: Upload Trakt CSV Export -->
+                <div class="space-y-4 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-8">
+                    <h4 class="text-sm font-bold text-white uppercase tracking-widest text-amber-400">Method 2: Upload Trakt CSV Export</h4>
+                    <p class="text-[10px] text-gray-400">Upload your Trakt history CSV export file (works for private accounts too).</p>
+                    <form hx-post="{% url 'import_trakt' %}" 
+                          hx-encoding="multipart/form-data" 
+                          hx-vals='{"mode": "csv"}'
+                          hx-target="#import-status"
+                          class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <input type="file" name="csv_file" accept=".csv" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-2 text-white text-xs file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20">
+                        <button type="submit" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
+                            Upload
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div id="import-status" class="mt-2 text-center text-xs font-bold"></div>
         </div>
     </div>
 </div>

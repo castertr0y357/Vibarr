@@ -15,6 +15,7 @@ class AppConfigForm(forms.ModelForm):
             'tvdb_pin': forms.PasswordInput(render_value=True),
             'telegram_bot_token': forms.PasswordInput(render_value=True),
             'ai_api_key': forms.PasswordInput(render_value=True),
+            'trakt_client_id': forms.PasswordInput(render_value=True),
         }
 
     def __init__(self, *args, **kwargs):

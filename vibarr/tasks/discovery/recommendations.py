@@ -106,12 +106,55 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
     if not search_result: return
 
     tmdb_id = search_result['id']
+    candidates_raw = []
+    
+    # 1. Fetch TMDB Similar items
     if is_movie:
-        candidates_raw = tmdb.get_similar_movies(tmdb_id)[:40]
-        for c in candidates_raw: c['_media_type'] = MediaType.MOVIE
+        tmdb_candidates = tmdb.get_similar_movies(tmdb_id)[:40]
+        for c in tmdb_candidates: c['_media_type'] = MediaType.MOVIE
+        candidates_raw.extend(tmdb_candidates)
     else:
-        candidates_raw = tmdb.get_similar_shows(tmdb_id)[:40]
-        for c in candidates_raw: c['_media_type'] = MediaType.SHOW
+        tmdb_candidates = tmdb.get_similar_shows(tmdb_id)[:40]
+        for c in tmdb_candidates: c['_media_type'] = MediaType.SHOW
+        candidates_raw.extend(tmdb_candidates)
+
+    # 2. Fetch Trakt Related items if Client ID is configured
+    if config.trakt_client_id:
+        from ...services.discovery.trakt_service import TraktService
+        trakt = TraktService(config.trakt_client_id)
+        try:
+            if is_movie:
+                trakt_res = trakt.get_related_movies(tmdb_id)
+            else:
+                trakt_res = trakt.get_related_shows(tmdb_id)
+                
+            for tr in trakt_res:
+                item_key = "movie" if is_movie else "show"
+                media_data = tr.get(item_key)
+                if not media_data:
+                    continue
+                
+                tr_tmdb_id = media_data.get("ids", {}).get("tmdb")
+                if not tr_tmdb_id:
+                    continue
+                
+                # Prevent duplicates
+                if any(c.get('id') == tr_tmdb_id for c in candidates_raw):
+                    continue
+                
+                candidates_raw.append({
+                    'id': tr_tmdb_id,
+                    'title': media_data.get('title'),
+                    'overview': media_data.get('overview', ''),
+                    'poster_path': None,
+                    'vote_average': media_data.get('rating', 0.0),
+                    'vote_count': media_data.get('votes', 0),
+                    'popularity': 0.0,
+                    'genre_ids': [],
+                    '_media_type': target_type
+                })
+        except Exception as e:
+            logger.error(f"Sourcing - Error - Failed to fetch Trakt related items: {e}")
 
     # Filter candidates
     existing_show_ids = set(Show.objects.filter(media_type=target_type).values_list('tmdb_id', flat=True))
@@ -357,10 +400,12 @@ def revaluate_all_recommendations():
             # but we need to pass the target_type which might be mixed here.
             # For simplicity in re-evaluation, we'll use the item's own media_type.
             scores = []
+            seerr_profile = hrs._build_seerr_profile() if config.use_seerr else set()
+            seerr_tag_profile = hrs._build_seerr_tag_profile() if config.use_seerr else {}
             for item, cand in zip(batch, candidates):
                 scores.append(hrs._calculate_score(cand, item.media_type, 
                                                 hrs._build_user_profile(item.media_type), 
-                                                hrs._build_seerr_profile() if config.use_seerr else set()))
+                                                seerr_profile, seerr_tag_profile))
 
         scores_map = {s['title'].lower(): s for s in scores}
         
@@ -428,7 +473,8 @@ def reevaluate_single_show(show):
         hrs = HeuristicRankingService(config)
         user_profile = hrs._build_user_profile(show.media_type)
         seerr_profile = hrs._build_seerr_profile() if config.use_seerr else set()
-        score_data = hrs._calculate_score(candidate, show.media_type, user_profile, seerr_profile)
+        seerr_tag_profile = hrs._build_seerr_tag_profile() if config.use_seerr else {}
+        score_data = hrs._calculate_score(candidate, show.media_type, user_profile, seerr_profile, seerr_tag_profile)
         scores = [score_data]
         
     if not scores:
