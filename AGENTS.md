@@ -68,6 +68,9 @@ All generated code must be clean, maintainable, and production-ready.
 11. **Consistent Deployment of Fixes**:
     - Ensure that all fixes, database initialization tasks, custom commands, or setup migrations are programmatically encoded into startup or configuration files (such as `entrypoint.sh`, `docker-compose.yml`, or migration modules). Never rely on manual runtime CLI execution to maintain the application. This ensures a consistent and reproducible experience across development, staging, and production instances.
 
+12. **Living Rules Document (AGENTS.md)**:
+    - Proactively update the project's `AGENTS.md` rules file whenever repository-specific findings, quirks, or hidden behaviors are discovered during tasks. Treating `AGENTS.md` as a living documentation file ensures subsequent agent sessions build upon shared repository context without losing history.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 
@@ -81,6 +84,7 @@ This section contains specific rules and triggers carried over from the legacy `
 1. **Session Restoration**: Always read [status.md](file:///./status.md) and any active `task.md` at the start of a session to restore state without redundant file scans.
 2. **Proactive Health Checks**: Run the connection verification check ([verify_connections.md](file:///./.gemini/skills/verify_connections.md)) whenever the `.env` or API services change.
 3. **Context Awareness**: Monitor the length of the session and suggest running the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill if performance degradation is detected.
+4. **Living Rules Document (AGENTS.md)**: Actively treat `AGENTS.md` as a living document. Update it with repository findings, specific bugs/fixes, task checklists, or contextual quirks discovered during work to ensure future sessions carry over these learnings.
 
 ### Command Triggers
 * `/handover`: Immediately execute the [session_handover.md](file:///./.gemini/skills/session_handover.md) skill. Stop current work and prepare for a session refresh.
