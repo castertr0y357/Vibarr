@@ -36,6 +36,10 @@ else
     echo "Applying database migrations..."
     python manage.py migrate --no-input
 
+    # Initialize background task schedules
+    echo "Initializing background task schedules..."
+    python manage.py initialize_schedules
+
     # Collect static files
     echo "Collecting static files..."
     python manage.py collectstatic --no-input

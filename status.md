@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: ROBUST AI JSON REPAIR & BALANCED RECOMMENDATIONS (v1.9.9)
-**Last Checkpoint**: 2026-05-31 (Added robust self-healing JSON parsing for AI models and balanced watch history recommendations)
+## Current State: AUTOMATIC SCHEDULE INITIALIZATION (v1.9.10)
+**Last Checkpoint**: 2026-06-01 (Integrated automatic task schedule initialization into container entrypoint to prevent missing discovery/polling background tasks in production)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Automatic Schedule Initialization (v1.9.10)**: Integrated `python manage.py initialize_schedules` directly into the container `entrypoint.sh` startup script. This guarantees background schedules (e.g. polling, scouts) are automatically registered in the database, avoiding missing schedules in new or fresh production stack deployments.
 - [x] **Robust AI JSON Repair & Balanced Recommendations (v1.9.9)**: Implemented self-healing JSON parsing in `AIBaseService` to automatically close unclosed quotes/brackets/braces, repair mismatched structural elements, and truncate incomplete trailing items. Coupled this with balanced taste profiling and background scouting that integrates the top 10 most recent items with the top 10 overall most played items, using weighted random choice to vary background seed titles.
 - [x] **Mobile-Friendly UI Polish (v1.9.7)**: Enhanced usability on mobile viewports by implementing a responsive slide-over drawer navigation menu controlled via Alpine.js, a sticky mobile top header with a neon logo, responsive page-level padding, and wrapped layout wrappers for flex headers. Cleaned up the vibe search form's absolute layout on smaller screens to prevent button overlapping.
 - [x] **Feed Performance & Governance (v1.9.6)**: Resolved UI sluggishness in the Discovery Feed, Active Tastings, and Vibe Search by migrating Alpine.js hovers to pure CSS/Tailwind `group-hover` and enabling image lazy loading. Enforced suggestions backlog limits (`max_discovered_movies` and `max_discovered_shows`) using a new database-pruning function triggered on full page load, universe architect syncs, and background scouts, cleaning up the user's database from 1,310 suggestions down to a strict 100 suggestion ceiling.
