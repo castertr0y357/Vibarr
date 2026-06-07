@@ -4,11 +4,17 @@
 {% block section_name %}Intelligence Profile{% endblock %}
 
 {% block settings_section %}
-<div class="space-y-8">
-    <div class="glass p-8 rounded-3xl space-y-8" x-data="{ useAI: {% if config.use_ai_recommendations %}true{% else %}false{% endif %}, enableAutoTasting: {% if config.enable_auto_tasting %}true{% else %}false{% endif %} }">
+<div class="space-y-8" x-data="{ useAI: {% if config.use_ai_recommendations %}true{% else %}false{% endif %}, enableAutoTasting: {% if config.enable_auto_tasting %}true{% else %}false{% endif %} }">
+    <!-- Metadata APIs -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="pb-4 border-b border-white/5">
+            <h3 class="text-xl font-bold text-white">Metadata APIs</h3>
+            <p class="text-xs text-gray-500">Configure external API integrations to pull rich media details and classifications.</p>
+        </div>
+        
         <!-- TMDB -->
         <div class="space-y-4">
-            <h3 class="text-xl font-bold text-white">TMDB Integration</h3>
+            <h4 class="text-lg font-bold text-white">TMDB Integration</h4>
             <div class="space-y-2">
                 <label class="block text-[10px] font-bold text-gray-400 uppercase">API Key</label>
                 <div class="flex gap-2">
@@ -20,9 +26,9 @@
         </div>
         
         <!-- TVDB -->
-        <div class="space-y-4 pt-8 border-t border-white/5">
+        <div class="space-y-4 pt-6 border-t border-white/5">
             <div class="flex items-center justify-between">
-                <h3 class="text-xl font-bold text-white">TVDB Integration <span class="text-xs text-gray-500 font-normal ml-2">(Optional / Advanced)</span></h3>
+                <h4 class="text-lg font-bold text-white">TVDB Integration <span class="text-xs text-gray-500 font-normal ml-2">(Optional / Advanced)</span></h4>
             </div>
             <p class="text-[10px] text-gray-500 italic bg-white/5 p-3 rounded-xl border border-white/5">
                 <svg class="w-3 h-3 inline mr-1 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -43,278 +49,277 @@
             </div>
             <div id="tvdb-status"></div>
         </div>
-        
-        <!-- Trakt.tv Integration -->
-        <div class="space-y-4 pt-8 border-t border-white/5">
+    </section>
+    
+    <!-- Trakt.tv Integration -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="pb-4 border-b border-white/5">
             <h3 class="text-xl font-bold text-white">Trakt.tv Integration</h3>
-            <p class="text-[10px] text-gray-500 italic bg-white/5 p-3 rounded-xl border border-white/5">
-                <svg class="w-3 h-3 inline mr-1 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Provide your Trakt.tv Client ID to fetch related recommendations and sync public watch history or watchlists for taste profiling.
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Trakt Client ID (API Key)</label>
-                    <div class="flex gap-2">
-                        <input type="password" id="trakt_client_id_input" name="trakt_client_id" value="{{ config.trakt_client_id|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "trakt"}' hx-include="#trakt_client_id_input" hx-target="#trakt-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
-                    </div>
-                    <div id="trakt-status"></div>
+            <p class="text-xs text-gray-500">Configure Trakt client credentials to sync user watch history and discover related titles.</p>
+        </div>
+        <p class="text-[10px] text-gray-500 italic bg-white/5 p-3 rounded-xl border border-white/5">
+            <svg class="w-3 h-3 inline mr-1 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Provide your Trakt.tv Client ID to fetch related recommendations and sync public watch history or watchlists for taste profiling.
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">Trakt Client ID (API Key)</label>
+                <div class="flex gap-2">
+                    <input type="password" id="trakt_client_id_input" name="trakt_client_id" value="{{ config.trakt_client_id|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "trakt"}' hx-include="#trakt_client_id_input" hx-target="#trakt-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
                 </div>
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Default Trakt Username</label>
-                    <input type="text" name="trakt_username" value="{{ config.trakt_username|default:'' }}" placeholder="e.g. traktuser123" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                </div>
+                <div id="trakt-status"></div>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase">Default Trakt Username</label>
+                <input type="text" name="trakt_username" value="{{ config.trakt_username|default:'' }}" placeholder="e.g. traktuser123" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
             </div>
         </div>
+    </section>
 
-        <!-- AI Engine -->
-        <div class="pt-8 border-t border-white/5 space-y-6">
-            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+    <!-- AI Recommendation Engine -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-white/5">
+            <div>
+                <h3 class="text-xl font-bold text-white">AI Recommendation Engine</h3>
+                <p class="text-xs text-gray-500">Enable advanced semantic matching for highly personalized recommendations.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="use_ai_recommendations" class="sr-only peer" x-model="useAI" {% if config.use_ai_recommendations %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+        </div>
+
+        <div x-show="useAI" x-transition class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">AI API URL (OpenAI Compatible)</label>
+                    <input type="text" id="ai_url_input" name="ai_api_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
                 <div>
-                    <h4 class="text-white font-bold">Use AI for Recommendations</h4>
-                    <p class="text-xs text-gray-500">Enable advanced semantic matching for discovery.</p>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Model Identifier</label>
+                    <input type="text" id="ai_model_input" name="ai_model" value="{{ config.ai_model }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                 </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" name="use_ai_recommendations" class="sr-only peer" x-model="useAI" {% if config.use_ai_recommendations %}checked{% endif %}>
-                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                </label>
-            </div>
-
-            <div x-show="useAI" x-transition class="space-y-6 pt-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="md:col-span-2">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">AI API URL (OpenAI Compatible)</label>
-                        <input type="text" id="ai_url_input" name="ai_api_url" value="{{ config.ai_api_url }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">Model Identifier</label>
-                        <input type="text" id="ai_model_input" name="ai_model" value="{{ config.ai_model }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">API Key (Optional)</label>
-                        <div class="flex gap-2">
-                            <input type="password" id="ai_key_input" name="ai_api_key" value="{{ config.ai_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                            <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "ai"}' hx-include="#ai_url_input, #ai_model_input, #ai_key_input" hx-target="#ai-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
-                        </div>
-                    </div>
-                </div>
-                <div id="ai-status"></div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
-                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div>
-                            <h4 class="text-white font-bold text-sm">Enable Auto-Tasting</h4>
-                            <p class="text-[9px] text-gray-500">Automatically add high-confidence suggestions to Tasting queue.</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="enable_auto_tasting" class="sr-only peer" x-model="enableAutoTasting" {% if config.enable_auto_tasting %}checked{% endif %}>
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                        </label>
-                    </div>
-                    
-                    <div class="space-y-2" x-show="enableAutoTasting" x-transition>
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase">Auto-Tasting Threshold (0-10)</label>
-                        <input type="number" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" step="0.1" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                    </div>
-                    
-
-                </div>
-            </div>
-        </div>
-
-        <!-- Heuristic Matcher Tuning -->
-        <div x-show="!useAI" x-transition class="pt-8 border-t border-white/5 space-y-8">
-            <div class="space-y-2">
-                <h3 class="text-xl font-bold text-white">Heuristic Matcher Tuning</h3>
-                <p class="text-xs text-gray-500">Tune the non-AI recommendation engine. Define which metrics matter most for your discovery feed.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-                <!-- Rating Weight -->
-                <div class="space-y-4" x-data="{ val: {{ config.h_rating_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Critic/User Ratings</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_rating_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Popularity Weight -->
-                <div class="space-y-4" x-data="{ val: {{ config.h_popularity_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Popularity / Trending</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_popularity_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Genre Weight -->
-                <div class="space-y-4" x-data="{ val: {{ config.h_genre_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Genre Match</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_genre_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Keyword Weight -->
-                <div class="space-y-4" x-data="{ val: {{ config.h_keyword_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thematic DNA / Keywords</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_keyword_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Collection Weight -->
-                <div class="space-y-4" x-data="{ val: {{ config.h_collection_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Franchise / Collection</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_collection_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Seerr Weight -->
-                <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request History</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_seerr_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-
-                <!-- Seerr Request Tags Weight -->
-                <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_tag_weight }} }">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request Tags</label>
-                        <span class="text-xl font-black text-rose-500" x-text="val"></span>
-                    </div>
-                    <input type="range" name="h_seerr_tag_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
-                </div>
-            </div>
-        </div>
-
-        <!-- Dual-Track Intelligence Influence -->
-        <div class="pt-8 border-t border-white/5 space-y-8">
-            <div class="space-y-2">
-                <h3 class="text-xl font-bold text-white">Cross-Media Influence</h3>
-                <p class="text-xs text-gray-500">Fine-tune how much your taste in one media type "leaks" into the suggestions for the other.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <!-- Film -> TV -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Film Taste Influence on TV</label>
-                        <span class="text-xl font-black text-blue-500" x-text="filmToTv + '%'"></span>
-                    </div>
-                    <div class="relative pt-1" x-data="{ filmToTv: {{ config.movie_influence_on_shows }} }">
-                        <input type="range" name="movie_influence_on_shows" x-model="filmToTv" min="0" max="100" 
-                               class="w-full h-2 bg-gradient-to-r from-amber-500/20 to-blue-500 rounded-lg appearance-none cursor-pointer accent-blue-500">
-                        <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
-                            <span>Pure TV Profile</span>
-                            <span>Hybrid Habit</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TV -> Film -->
-                <div class="space-y-4">
-                    <div class="flex justify-between items-end">
-                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">TV Taste Influence on Film</label>
-                        <span class="text-xl font-black text-amber-500" x-text="tvToFilm + '%'"></span>
-                    </div>
-                    <div class="relative pt-1" x-data="{ tvToFilm: {{ config.show_influence_on_movies }} }">
-                        <input type="range" name="show_influence_on_movies" x-model="tvToFilm" min="0" max="100" 
-                               class="w-full h-2 bg-gradient-to-r from-blue-500/20 to-amber-500 rounded-lg appearance-none cursor-pointer accent-amber-500">
-                        <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
-                            <span>Pure Film Profile</span>
-                            <span>Hybrid Habit</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-
-        <!-- Manual Intelligence Maintenance -->
-        <div class="pt-8 border-t border-white/5 space-y-6">
-            <div class="space-y-2">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    Intelligence Maintenance
-                </h3>
-                <p class="text-xs text-gray-500">Manually trigger background intelligence tasks.</p>
-            </div>
-            
-            <div class="flex flex-col md:flex-row gap-4">
-                <button type="button" 
-                        hx-post="{% url 'revaluate_recommendations' %}" 
-                        hx-vals='{"mode": "scores"}'
-                        hx-target="#intel-maint-status"
-                        class="flex-1 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
-                    Re-evaluate All Scores
-                </button>
-                <button type="button" 
-                        hx-post="{% url 'revaluate_recommendations' %}" 
-                        hx-vals='{"mode": "discovery"}'
-                        hx-target="#intel-maint-status"
-                        class="flex-1 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
-                    Force Fresh Discovery Scout
-                </button>
-            </div>
-            <div id="intel-maint-status" class="mt-2 text-center"></div>
-        </div>
-
-        <!-- Taste Seeding & Bootstrap Importer -->
-        <div class="pt-8 border-t border-white/5 space-y-6">
-            <div class="space-y-2">
-                <h3 class="text-white font-bold flex items-center gap-2">
-                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Taste Seeding (Trakt Importer)
-                </h3>
-                <p class="text-xs text-gray-500">Seed initial taste history from your Trakt account to bypass the cold start problem.</p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white/5 p-6 rounded-2xl border border-white/5">
-                <!-- Method 1: Public Username Sync -->
-                <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-white uppercase tracking-widest text-blue-400">Method 1: Sync from Public Username</h4>
-                    <p class="text-[10px] text-gray-400">Pulls your history and watchlist items directly from Trakt's public API to seed your profiles.</p>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">API Key (Optional)</label>
                     <div class="flex gap-2">
-                        <input type="text" id="trakt_import_username" name="username" value="{{ config.trakt_username|default:'' }}" placeholder="Trakt Username" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        <button type="button" 
-                                hx-post="{% url 'import_trakt' %}" 
-                                hx-vals='{"mode": "api"}'
-                                hx-include="#trakt_import_username"
-                                hx-target="#import-status"
-                                class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
-                            Sync Tastes
-                        </button>
+                        <input type="password" id="ai_key_input" name="ai_api_key" value="{{ config.ai_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "ai"}' hx-include="#ai_url_input, #ai_model_input, #ai_key_input" hx-target="#ai-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
                     </div>
                 </div>
-
-                <!-- Method 2: Upload Trakt CSV Export -->
-                <div class="space-y-4 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-8">
-                    <h4 class="text-sm font-bold text-white uppercase tracking-widest text-amber-400">Method 2: Upload Trakt CSV Export</h4>
-                    <p class="text-[10px] text-gray-400">Upload your Trakt history CSV export file (works for private accounts too).</p>
-                    <form hx-post="{% url 'import_trakt' %}" 
-                          hx-encoding="multipart/form-data" 
-                          hx-vals='{"mode": "csv"}'
-                          hx-target="#import-status"
-                          class="flex items-center gap-2">
-                        {% csrf_token %}
-                        <input type="file" name="csv_file" accept=".csv" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-2 text-white text-xs file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20">
-                        <button type="submit" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
-                            Upload
-                        </button>
-                    </form>
+            </div>
+            <div id="ai-status"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div>
+                        <h4 class="text-white font-bold text-sm">Enable Auto-Tasting</h4>
+                        <p class="text-[9px] text-gray-500">Automatically add high-confidence suggestions to Tasting queue.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="enable_auto_tasting" class="sr-only peer" x-model="enableAutoTasting" {% if config.enable_auto_tasting %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+                
+                <div class="space-y-2" x-show="enableAutoTasting" x-transition>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Auto-Tasting Threshold (0-10)</label>
+                    <input type="number" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" step="0.1" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                 </div>
             </div>
-            <div id="import-status" class="mt-2 text-center text-xs font-bold"></div>
         </div>
-    </div>
+    </section>
+
+    <!-- Heuristic Matcher Tuning -->
+    <section class="glass p-8 rounded-3xl space-y-6" x-show="!useAI" x-transition>
+        <div class="pb-4 border-b border-white/5">
+            <h3 class="text-xl font-bold text-white">Heuristic Matcher Tuning</h3>
+            <p class="text-xs text-gray-500">Tune the fallback non-AI recommendation weights for content scoring.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            <!-- Rating Weight -->
+            <div class="space-y-4" x-data="{ val: {{ config.h_rating_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Critic/User Ratings</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_rating_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Popularity Weight -->
+            <div class="space-y-4" x-data="{ val: {{ config.h_popularity_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Popularity / Trending</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_popularity_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Genre Weight -->
+            <div class="space-y-4" x-data="{ val: {{ config.h_genre_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Genre Match</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_genre_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Keyword Weight -->
+            <div class="space-y-4" x-data="{ val: {{ config.h_keyword_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thematic DNA / Keywords</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_keyword_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Collection Weight -->
+            <div class="space-y-4" x-data="{ val: {{ config.h_collection_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Franchise / Collection</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_collection_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Seerr Weight -->
+            <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request History</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_seerr_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+
+            <!-- Seerr Request Tags Weight -->
+            <div class="space-y-4 {% if not config.use_seerr %}opacity-30 grayscale pointer-events-none{% endif %}" x-data="{ val: {{ config.h_seerr_tag_weight }} }">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Seerr Request Tags</label>
+                    <span class="text-xl font-black text-rose-500" x-text="val"></span>
+                </div>
+                <input type="range" name="h_seerr_tag_weight" x-model="val" min="0" max="100" class="w-full h-2 bg-white/5 rounded-lg appearance-none cursor-pointer accent-rose-500">
+            </div>
+        </div>
+    </section>
+
+    <!-- Cross-Media Influence -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="pb-4 border-b border-white/5">
+            <h3 class="text-xl font-bold text-white">Cross-Media Influence</h3>
+            <p class="text-xs text-gray-500">Adjust the weight of movie tastes shaping TV recommendations, and vice versa.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <!-- Film -> TV -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Film Taste Influence on TV</label>
+                    <span class="text-xl font-black text-blue-500" x-text="filmToTv + '%'"></span>
+                </div>
+                <div class="relative pt-1" x-data="{ filmToTv: {{ config.movie_influence_on_shows }} }">
+                    <input type="range" name="movie_influence_on_shows" x-model="filmToTv" min="0" max="100" 
+                           class="w-full h-2 bg-gradient-to-r from-amber-500/20 to-blue-500 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                    <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
+                        <span>Pure TV Profile</span>
+                        <span>Hybrid Habit</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TV -> Film -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-end">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">TV Taste Influence on Film</label>
+                    <span class="text-xl font-black text-amber-500" x-text="tvToFilm + '%'"></span>
+                </div>
+                <div class="relative pt-1" x-data="{ tvToFilm: {{ config.show_influence_on_movies }} }">
+                    <input type="range" name="show_influence_on_movies" x-model="tvToFilm" min="0" max="100" 
+                           class="w-full h-2 bg-gradient-to-r from-blue-500/20 to-amber-500 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                    <div class="flex justify-between text-[8px] text-gray-500 font-bold uppercase mt-2">
+                        <span>Pure Film Profile</span>
+                        <span>Hybrid Habit</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Taste Seeding (Trakt Importer) -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="pb-4 border-b border-white/5">
+            <h3 class="text-white font-bold text-xl flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Taste Seeding (Trakt Importer)
+            </h3>
+            <p class="text-xs text-gray-500">Seed initial watchlist and play history from Trakt to bypass the cold start problem.</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white/5 p-6 rounded-2xl border border-white/5">
+            <!-- Method 1: Public Username Sync -->
+            <div class="space-y-4">
+                <h4 class="text-sm font-bold text-white uppercase tracking-widest text-blue-400">Method 1: Sync from Public Username</h4>
+                <p class="text-[10px] text-gray-400">Pulls your history and watchlist items directly from Trakt's public API to seed your profiles.</p>
+                <div class="flex gap-2">
+                    <input type="text" id="trakt_import_username" name="username" value="{{ config.trakt_username|default:'' }}" placeholder="Trakt Username" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                    <button type="button" 
+                            hx-post="{% url 'import_trakt' %}" 
+                            hx-vals='{"mode": "api"}'
+                            hx-include="#trakt_import_username"
+                            hx-target="#import-status"
+                            class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
+                        Sync Tastes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Method 2: Upload Trakt CSV Export -->
+            <div class="space-y-4 border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-8">
+                <h4 class="text-sm font-bold text-white uppercase tracking-widest text-amber-400">Method 2: Upload Trakt CSV Export</h4>
+                <p class="text-[10px] text-gray-400">Upload your Trakt history CSV export file (works for private accounts too).</p>
+                <form hx-post="{% url 'import_trakt' %}" 
+                      hx-encoding="multipart/form-data" 
+                      hx-vals='{"mode": "csv"}'
+                      hx-target="#import-status"
+                      class="flex items-center gap-2">
+                    {% csrf_token %}
+                    <input type="file" name="csv_file" accept=".csv" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-2 text-white text-xs file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20">
+                    <button type="submit" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs transition uppercase tracking-wider">
+                        Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div id="import-status" class="mt-2 text-center text-xs font-bold"></div>
+    </section>
+
+    <!-- Intelligence Maintenance -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="pb-4 border-b border-white/5">
+            <h3 class="text-white font-bold text-xl flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Intelligence Maintenance
+            </h3>
+            <p class="text-xs text-gray-500">Manually trigger recommendation re-scoring and active discovery tasks.</p>
+        </div>
+        
+        <div class="flex flex-col md:flex-row gap-4">
+            <button type="button" 
+                    hx-post="{% url 'revaluate_recommendations' %}" 
+                    hx-vals='{"mode": "scores"}'
+                    hx-target="#intel-maint-status"
+                    class="flex-1 py-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Re-evaluate All Scores
+            </button>
+            <button type="button" 
+                    hx-post="{% url 'revaluate_recommendations' %}" 
+                    hx-vals='{"mode": "discovery"}'
+                    hx-target="#intel-maint-status"
+                    class="flex-1 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-500 font-bold rounded-xl transition text-xs uppercase tracking-widest">
+                Force Fresh Discovery Scout
+            </button>
+        </div>
+        <div id="intel-maint-status" class="mt-2 text-center"></div>
+    </section>
 </div>
 {% endblock %}

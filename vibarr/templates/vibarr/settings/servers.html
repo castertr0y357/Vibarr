@@ -5,101 +5,86 @@
 
 {% block settings_section %}
 <div class="space-y-8" x-data="{ serverType: '{{ config.media_server_type }}' }">
-    <div class="glass p-8 rounded-3xl space-y-8">
-        <div class="flex justify-between items-center pb-6 border-b border-white/5">
-            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest">Active Server Type</h3>
-            <select name="media_server_type" x-model="serverType" class="bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-xs text-white focus:border-rose-500 outline-none">
+    <!-- Active Server Type Selection -->
+    <section class="glass p-8 rounded-3xl">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h3 class="text-xl font-bold text-white">Active Server Type</h3>
+                <p class="text-xs text-gray-400">Choose which media server ecosystems connect to Vibarr.</p>
+            </div>
+            <select name="media_server_type" x-model="serverType" class="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-rose-500 outline-none w-full sm:w-auto">
                 <option value="PLEX">Plex Only</option>
                 <option value="JELLYFIN">Jellyfin Only</option>
                 <option value="BOTH">Hybrid (Both)</option>
             </select>
         </div>
+    </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-             <!-- Plex -->
-             <div class="space-y-6" x-show="serverType === 'PLEX' || serverType === 'BOTH'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
-                 <div class="flex justify-between items-center">
-                     <h4 class="text-xl font-bold text-white">Plex</h4>
-                     {% if config.plex_token %}<span class="text-[10px] text-green-500 font-bold uppercase tracking-widest">● Connected</span>{% endif %}
+    <!-- Plex Settings -->
+    <section class="glass p-8 rounded-3xl space-y-6" x-show="serverType === 'PLEX' || serverType === 'BOTH'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
+         <div class="flex justify-between items-center pb-4 border-b border-white/5">
+             <h3 class="text-xl font-bold text-white">Plex Media Server</h3>
+             {% if config.plex_token %}<span class="text-[10px] text-green-500 font-bold uppercase tracking-widest">● Connected</span>{% endif %}
+         </div>
+         
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div class="space-y-4">
+                 <div class="space-y-2">
+                     <label class="block text-[10px] font-bold text-gray-400 uppercase">Server URL</label>
+                     <input type="text" id="plex_url_input" name="plex_url" value="{{ config.plex_url|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                  </div>
+                 <input type="hidden" id="plex_token_hidden" name="plex_token" value="{{ config.plex_token|default:'' }}">
                  
-                 <div class="space-y-4">
-                     <div class="space-y-2">
-                         <label class="block text-[10px] font-bold text-gray-400 uppercase">Server URL</label>
-                         <input type="text" id="plex_url_input" name="plex_url" value="{{ config.plex_url|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                     </div>
-                     <input type="hidden" id="plex_token_hidden" name="plex_token" value="{{ config.plex_token|default:'' }}">
-                     
-                     <div id="plex-auth-section">
-                         <div class="flex gap-2">
-                              <button type="button" 
-                                      hx-get="{% url 'plex_pin_request' %}" 
-                                      hx-target="#plex-auth-section"
-                                      hx-swap="innerHTML"
-                                      onclick="window.open('https://plex.tv/link', '_blank')"
-                                      class="flex-grow py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition text-xs">
-                                  {% if config.plex_token %}Re-Auth with Plex.tv{% else %}Authenticate with Plex.tv{% endif %}
-                              </button>
-                              <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "plex"}' hx-include="#plex_url_input, #plex_token_hidden" hx-target="#plex-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
-                         </div>
-                     </div>
-                     <div id="plex-status"></div>
-                     
-                     <div class="space-y-2 pt-2">
-                         <label class="block text-[10px] font-bold text-gray-400 uppercase">Plex User Filter (Optional)</label>
-                         <input type="text" name="plex_user_filter" value="{{ config.plex_user_filter|default:'' }}" placeholder="Only learn from this User ID" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                         <p class="text-[9px] text-gray-500">Filters database watch logs to only sync from a specific user profile.</p>
+                 <div id="plex-auth-section">
+                     <div class="flex gap-2">
+                          <button type="button" 
+                                  hx-get="{% url 'plex_pin_request' %}" 
+                                  hx-target="#plex-auth-section"
+                                  hx-swap="innerHTML"
+                                  onclick="window.open('https://plex.tv/link', '_blank')"
+                                  class="flex-grow py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition text-xs">
+                              {% if config.plex_token %}Re-Auth with Plex.tv{% else %}Authenticate with Plex.tv{% endif %}
+                          </button>
+                          <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "plex"}' hx-include="#plex_url_input, #plex_token_hidden" hx-target="#plex-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
                      </div>
                  </div>
+                 <div id="plex-status"></div>
              </div>
 
-             <!-- Jellyfin -->
-             <div class="space-y-6" x-show="serverType === 'JELLYFIN' || serverType === 'BOTH'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
-                 <div class="flex justify-between items-center">
-                     <h4 class="text-xl font-bold text-white">Jellyfin</h4>
-                     <div hx-get="{% url 'test_jellyfin' %}?mini=true" hx-trigger="load" class="text-[10px] font-bold uppercase"></div>
-                 </div>
-                 
-                 <div class="space-y-4">
-                     <div class="space-y-2">
-                         <label class="block text-[10px] font-bold text-gray-400 uppercase">Server URL</label>
-                         <input type="text" id="jellyfin_url_input" name="jellyfin_url" value="{{ config.jellyfin_url|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                     </div>
-                     <div class="space-y-2">
-                         <label class="block text-[10px] font-bold text-gray-400 uppercase">API Key</label>
-                         <div class="flex gap-2">
-                             <input type="password" id="jellyfin_key_input" name="jellyfin_api_key" value="{{ config.jellyfin_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                             <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "jellyfin"}' hx-include="#jellyfin_url_input, #jellyfin_key_input" hx-target="#jellyfin-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
-                         </div>
-                     </div>
-                     <div id="jellyfin-status"></div>
+             <div class="space-y-2">
+                 <label class="block text-[10px] font-bold text-gray-400 uppercase">Plex User Filter (Optional)</label>
+                 <input type="text" name="plex_user_filter" value="{{ config.plex_user_filter|default:'' }}" placeholder="Only learn from this User ID" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                 <p class="text-[9px] text-gray-500">Filters database watch logs to only sync from a specific user profile.</p>
+             </div>
+         </div>
+    </section>
+
+    <!-- Jellyfin Settings -->
+    <section class="glass p-8 rounded-3xl space-y-6" x-show="serverType === 'JELLYFIN' || serverType === 'BOTH'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform -translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
+         <div class="flex justify-between items-center pb-4 border-b border-white/5">
+             <h3 class="text-xl font-bold text-white">Jellyfin Media Server</h3>
+             <div hx-get="{% url 'test_jellyfin' %}?mini=true" hx-trigger="load" class="text-[10px] font-bold uppercase"></div>
+         </div>
+         
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div class="space-y-2">
+                 <label class="block text-[10px] font-bold text-gray-400 uppercase">Server URL</label>
+                 <input type="text" id="jellyfin_url_input" name="jellyfin_url" value="{{ config.jellyfin_url|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+             </div>
+             <div class="space-y-2">
+                 <label class="block text-[10px] font-bold text-gray-400 uppercase">API Key</label>
+                 <div class="flex gap-2">
+                     <input type="password" id="jellyfin_key_input" name="jellyfin_api_key" value="{{ config.jellyfin_api_key|default:'' }}" class="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                     <button type="button" hx-post="{% url 'test_settings' %}" hx-vals='{"type": "jellyfin"}' hx-include="#jellyfin_url_input, #jellyfin_key_input" hx-target="#jellyfin-status" class="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-xs font-bold">Test</button>
                  </div>
              </div>
-        </div>
-
-        <div class="pt-8 border-t border-white/5 space-y-6">
-            <div class="flex justify-between items-center">
-                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Library Visibility</h4>
-                <button type="button" 
-                        hx-post="{% url 'get_libraries' %}" 
-                        hx-include="#plex_url_input, #plex_token_hidden, #jellyfin_url_input, #jellyfin_key_input" 
-                        hx-target="#library-list" 
-                        hx-swap="innerHTML"
-                        class="text-[10px] text-rose-500 hover:underline">Scan for Libraries</button>
-            </div>
-            <div id="library-list" 
-                 hx-post="{% url 'get_libraries' %}" 
-                 hx-trigger="load" 
-                 hx-include="#plex_url_input, #plex_token_hidden, #jellyfin_url_input, #jellyfin_key_input"
-                 hx-swap="innerHTML">
-                 <p class="text-xs text-gray-500 italic">Loading libraries...</p>
-            </div>
-        </div>
-    </div>
+         </div>
+         <div id="jellyfin-status"></div>
+    </section>
 
     <!-- Plex Analytics (Tautulli Integration) -->
-    <div class="glass p-8 rounded-3xl space-y-6" x-show="serverType === 'PLEX' || serverType === 'BOTH'" x-transition>
-        <div class="flex items-center justify-between">
+    <section class="glass p-8 rounded-3xl space-y-6" x-show="serverType === 'PLEX' || serverType === 'BOTH'" x-transition>
+        <div class="flex items-center justify-between pb-4 border-b border-white/5">
             <div>
                 <h4 class="text-xl font-bold text-white">Tautulli Integration</h4>
                 <p class="text-xs text-gray-500">Query detailed Plex play history from Tautulli for highly accurate taste profiling.</p>
@@ -118,6 +103,29 @@
                 <input type="password" name="tautulli_api_key" value="{{ config.tautulli_api_key|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- Library Visibility -->
+    <section class="glass p-8 rounded-3xl space-y-6">
+        <div class="flex justify-between items-center pb-4 border-b border-white/5">
+            <div>
+                <h3 class="text-xl font-bold text-white">Library Visibility</h3>
+                <p class="text-xs text-gray-500">Select which media libraries Vibarr is allowed to monitor.</p>
+            </div>
+            <button type="button" 
+                    hx-post="{% url 'get_libraries' %}" 
+                    hx-include="#plex_url_input, #plex_token_hidden, #jellyfin_url_input, #jellyfin_key_input" 
+                    hx-target="#library-list" 
+                    hx-swap="innerHTML"
+                    class="text-xs text-rose-500 hover:underline">Scan for Libraries</button>
+        </div>
+        <div id="library-list" 
+             hx-post="{% url 'get_libraries' %}" 
+             hx-trigger="load" 
+             hx-include="#plex_url_input, #plex_token_hidden, #jellyfin_url_input, #jellyfin_key_input"
+             hx-swap="innerHTML">
+             <p class="text-xs text-gray-500 italic">Loading libraries...</p>
+        </div>
+    </section>
 </div>
 {% endblock %}
