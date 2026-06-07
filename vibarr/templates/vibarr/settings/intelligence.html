@@ -117,13 +117,7 @@
                         <input type="number" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" step="0.1" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
                     </div>
                     
-                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 md:col-span-2">
-                        <h4 class="text-white font-bold text-sm">Auto Universe Discovery</h4>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="auto_universe_discovery" class="sr-only peer" {% if config.auto_universe_discovery %}checked{% endif %}>
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-                        </label>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -243,15 +237,7 @@
             </div>
         </div>
 
-        <!-- Genres -->
-        <div class="pt-8 border-t border-white/5 space-y-4">
-            <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest">Genre Filtering</h3>
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase">Ignored Genres</label>
-                <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="e.g. Horror, Reality TV" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                <p class="text-[9px] text-gray-500">Comma-separated list of genres to never recommend.</p>
-            </div>
-        </div>
+
 
         <!-- Manual Intelligence Maintenance -->
         <div class="pt-8 border-t border-white/5 space-y-6">

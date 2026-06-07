@@ -43,40 +43,37 @@
 
             <div class="space-y-4">
                 <h3 class="text-white font-bold text-sm">Global Safety</h3>
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Max Content Rating</label>
-                    <select name="max_content_rating" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                        <option value="NR" {% if config.max_content_rating == 'NR' %}selected{% endif %}>No Restriction</option>
-                        <option value="G" {% if config.max_content_rating == 'G' %}selected{% endif %}>General (G)</option>
-                        <option value="PG" {% if config.max_content_rating == 'PG' %}selected{% endif %}>Parental Guidance (PG)</option>
-                        <option value="PG-13" {% if config.max_content_rating == 'PG-13' %}selected{% endif %}>Teen (PG-13)</option>
-                        <option value="R" {% if config.max_content_rating == 'R' %}selected{% endif %}>Mature (R)</option>
-                    </select>
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Max Content Rating</label>
+                        <select name="max_content_rating" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                            <option value="NR" {% if config.max_content_rating == 'NR' %}selected{% endif %}>No Restriction</option>
+                            <option value="G" {% if config.max_content_rating == 'G' %}selected{% endif %}>General (G)</option>
+                            <option value="PG" {% if config.max_content_rating == 'PG' %}selected{% endif %}>Parental Guidance (PG)</option>
+                            <option value="PG-13" {% if config.max_content_rating == 'PG-13' %}selected{% endif %}>Teen (PG-13)</option>
+                            <option value="R" {% if config.max_content_rating == 'R' %}selected{% endif %}>Mature (R)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ignored Genres</label>
+                        <input type="text" name="ignored_genres" value="{{ config.ignored_genres }}" placeholder="e.g. Horror, Reality TV" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                        <p class="text-[9px] text-gray-500">Comma-separated list of genres to never recommend globally.</p>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Networking & Tautulli -->
+    <!-- Networking & Proxy -->
     <section class="glass p-8 rounded-3xl space-y-6">
         <h3 class="text-white font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.826a4 4 0 005.656 0l4-4a4 4 0 00-5.656 0l4 4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            Networking & Tautulli
+            Networking & Proxy
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-2 col-span-2">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base URL Path</label>
-                <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="e.g. /vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-                <p class="text-[9px] text-gray-500">Only needed if running Vibarr behind a reverse proxy subfolder.</p>
-            </div>
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tautulli URL</label>
-                <input type="text" name="tautulli_url" value="{{ config.tautulli_url|default:'' }}" placeholder="http://ip:8181" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-            </div>
-            <div class="space-y-2">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tautulli API Key</label>
-                <input type="password" name="tautulli_api_key" value="{{ config.tautulli_api_key|default:'' }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
-            </div>
+        <div class="space-y-2">
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base URL Path</label>
+            <input type="text" name="url_base" value="{{ config.url_base }}" placeholder="e.g. /vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+            <p class="text-[9px] text-gray-500">Only needed if running Vibarr behind a reverse proxy subfolder.</p>
         </div>
     </section>
 

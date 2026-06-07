@@ -128,9 +128,8 @@ class UpdateSettingsView(View):
     SECTION_FIELDS = {
         'general': [
             'tmdb_region', 'tmdb_language', 'timezone',
-            'max_content_rating',
+            'max_content_rating', 'ignored_genres',
             'url_base',
-            'tautulli_url', 'tautulli_api_key',
             'discord_webhook_url', 'telegram_bot_token', 'telegram_chat_id',
         ],
         'servers': [
@@ -138,29 +137,28 @@ class UpdateSettingsView(View):
             'plex_url', 'plex_token',
             'jellyfin_url', 'jellyfin_api_key',
             'plex_user_filter',
+            'tautulli_url', 'tautulli_api_key',
         ],
         'automation': [
             'sonarr_url', 'sonarr_api_key', 'sonarr_root_folder', 'sonarr_quality_profile_id',
             'radarr_url', 'radarr_api_key', 'radarr_root_folder', 'radarr_quality_profile_id',
             'use_seerr', 'seerr_url', 'seerr_api_key',
-            'auto_collection_sync',
         ],
         'intelligence': [
             'tmdb_api_key', 'tvdb_api_key', 'tvdb_pin',
-            'use_ai_recommendations', 'enable_auto_tasting', 'auto_universe_discovery',
+            'use_ai_recommendations', 'enable_auto_tasting',
             'auto_tasting_threshold',
             'ai_api_url', 'ai_model', 'ai_api_key',
             'h_rating_weight', 'h_popularity_weight', 'h_genre_weight',
             'h_keyword_weight', 'h_seerr_weight', 'h_seerr_tag_weight', 'h_collection_weight',
             'trakt_client_id', 'trakt_username',
             'movie_influence_on_shows', 'show_influence_on_movies',
-            'ignored_genres',
         ],
         'governance': [
             'default_tasting_count', 'tasting_percentage',
             'max_discovered_movies', 'max_discovered_shows',
             'max_tasting_items', 'auto_purge_inactive',
-            'universe_page_enabled',
+            'universe_page_enabled', 'auto_universe_discovery', 'auto_collection_sync',
         ],
         'household': [],  # Handled separately via Persona model
         'security': [

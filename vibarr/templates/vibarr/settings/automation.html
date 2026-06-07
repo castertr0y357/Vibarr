@@ -96,23 +96,7 @@
         </div>
     </section>
     
-    <!-- Universe Architect -->
-    <section class="glass p-8 rounded-3xl space-y-6">
-        <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-            <div>
-                <h4 class="text-white font-bold">Auto Collection Sync</h4>
-                <p class="text-xs text-gray-500">Automatically create and sync franchise collections in Plex or BoxSets in Jellyfin.</p>
-            </div>
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="auto_collection_sync" class="sr-only peer" {% if config.auto_collection_sync %}checked{% endif %}>
-                <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
-            </label>
-        </div>
-        <p class="text-[10px] text-amber-500/80 italic px-4">
-            <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            Enabling this will modify metadata on your media server to group related titles.
-        </p>
-    </section>
+
     <!-- Maintenance & Healing -->
     <section class="glass p-8 rounded-3xl space-y-6">
         <div class="flex items-center justify-between">
