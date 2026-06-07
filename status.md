@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: SETTINGS REORGANIZATION & STYLE UNIFICATION (v1.10.3)
-**Last Checkpoint**: 2026-06-07 (Unified styling across all settings sections by refactoring Media Servers and Intelligence pages to use separate glassmorphic cards; added dynamic visibility animations for Plex and Jellyfin settings)
+## Current State: GLOBAL STANDARDS SYNCHRONIZATION (v1.10.4)
+**Last Checkpoint**: 2026-06-07 (Synchronized all multi-format rules files—AGENTS.md, CLAUDE.md, .cursorrules, .windsurfrules—with the latest global template project.md while maintaining Vibarr-specific triggers)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Global Standards Synchronization (v1.10.4)**: Synchronized local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) with the latest global template `project.md`, ensuring all multi-LLM configuration files are in perfect lockstep while preserving the Vibarr-specific custom rules of engagement and command triggers.
 - [x] **Settings Style Unification (v1.10.3)**: Unified settings view layouts by breaking up giant card forms on the Media Servers and Intelligence pages into separate, distinct glassmorphic cards. Configured Plex and Jellyfin cards to dynamically show/hide with transition animations based on server selection.
 - [x] **Settings Reorganization & Consolidation (v1.10.2)**: Grouped settings into logical categories. Moved Ignored Genres under General (Safety). Relocated Tautulli under Media Servers (Plex). Consolidated Cinematic Universe Architect settings (enabled toggle, auto discovery, collection sync) under Governance. Restored Plex User Filter input under Plex settings.
 - [x] **SPA UX Global Standard (v1.10.1)**: Added Standard 23 (Single Page App (SPA) UX Behavior & Dynamic Rendering) to the global template `project.md` and local workspace rules. Synchronized rules across all multi-format files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`).

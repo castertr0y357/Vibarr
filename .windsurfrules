@@ -64,7 +64,7 @@ All generated code must be clean, maintainable, and production-ready.
    - When introducing new variables to `.env`, immediately document them in `.env.example` with placeholders or dummy values to prevent configuration drift.
 
 9. **No Code Stubs**:
-   - Never write code stubs, temporary `TODO` comments, or truncated snippets (e.g., `// ... rest of code remains the same`). Code edits must always be fully complete and ready to run.
+    - Never write code stubs, temporary `TODO` comments, or truncated snippets (e.g., `// ... rest of code remains the same`). Code edits must always be fully complete and ready to run.
 
 10. **Conventional Commits**:
     - Write git commit messages using the Conventional Commits specification (e.g., `feat:`, `fix:`, `test:`, `refactor:`, `chore:`, `docs:`) with descriptive subject lines under 50 characters.
@@ -119,7 +119,6 @@ To maintain high speed and prevent burning through API limits:
 
 1. **Diff-Only Modifications**:
    - Never overwrite a whole code file to make small edits. Always use targeted replacements (`replace_file_content` or `multi_replace_file_content` on specific line ranges) to minimize token transfer.
-
 ## 🤖 Vibarr Agent Rules of Engagement & Command Triggers
 This section contains specific rules and triggers carried over from the legacy `AGENCY.md` rules.
 
