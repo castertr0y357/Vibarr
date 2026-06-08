@@ -1,6 +1,6 @@
-<div class="flex gap-8 relative items-start">
+<div class="flex relative items-start">
     <!-- Main Content Area -->
-    <div class="flex-1 min-w-0 space-y-12">
+    <div class="flex-grow min-w-0 space-y-12 md:pr-10">
         {% if not universes %}
         <div class="glass p-12 rounded-3xl text-center space-y-6">
             <div class="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto text-rose-500">
@@ -110,20 +110,18 @@
 
     <!-- Plex-style A-Z Sidebar -->
     {% if universes %}
-    <div class="hidden md:block w-8 shrink-0 sticky top-24 z-20">
-        <div class="flex flex-col items-center gap-0.5 text-[10px] font-black uppercase text-gray-500 bg-white/5 border border-white/10 rounded-2xl py-4 px-1 backdrop-blur-md">
-            {% for letter in alphabet %}
-                {% if letter in active_letters %}
-                    <a href="#group-{{ letter }}" class="text-rose-500 hover:text-rose-400 transition-colors py-0.5 w-full text-center" title="Jump to {{ letter }}">
-                        {{ letter }}
-                    </a>
-                {% else %}
-                    <span class="text-gray-700 py-0.5 select-none cursor-default w-full text-center">
-                        {{ letter }}
-                    </span>
-                {% endif %}
-            {% endfor %}
-        </div>
+    <div class="hidden md:flex flex-col justify-between items-center fixed right-4 top-[100px] bottom-6 w-8 z-30 py-4 text-[9px] font-black uppercase text-gray-500 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md shadow-2xl">
+        {% for letter in alphabet %}
+            {% if letter in active_letters %}
+                <a href="#group-{{ letter }}" class="text-rose-500 hover:text-rose-400 transition-colors w-full text-center py-0.5" title="Jump to {{ letter }}">
+                    {{ letter }}
+                </a>
+            {% else %}
+                <span class="text-gray-700 select-none cursor-default w-full text-center py-0.5">
+                    {{ letter }}
+                </span>
+            {% endif %}
+        {% endfor %}
     </div>
     {% endif %}
 </div>
