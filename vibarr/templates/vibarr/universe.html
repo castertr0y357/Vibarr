@@ -58,12 +58,15 @@
                         <p class="text-xs text-gray-500">Suggested merges to consolidate fragmented continuities.</p>
                     </div>
                     <button hx-post="{% url 'analyze_universe_ecosystem' %}" 
-                            hx-swap="none"
+                            hx-target="#universe-scan-status-container"
+                            hx-swap="outerHTML"
                             class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-[10px] font-black text-rose-400 uppercase tracking-widest transition-all flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
                         Scan Ecosystem
                     </button>
                 </div>
+
+                {% include 'vibarr/partials/universe_scan_status.html' with running=scan_running progress=scan_progress status=scan_status %}
 
                 <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2 scroll-hide">
                     {% if not suggestions %}

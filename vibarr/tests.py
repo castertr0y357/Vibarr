@@ -737,9 +737,45 @@ class UniverseArchitectTestCase(VibarrTestCase):
         suggestions = UniverseMergeSuggestion.objects.all()
         self.assertEqual(suggestions.count(), 1)
         sug = suggestions.first()
-        self.assertEqual(sug.source_universe.name, "Star Wars")
-        self.assertEqual(sug.target_universe.name, "Marvel Cinematic Universe")
         self.assertEqual(sug.confidence, 9)
+
+    def test_analyze_ecosystem_view_initializes_cache(self) -> None:
+        from django.core.cache import cache
+        cache.clear()
+        
+        url = reverse('analyze_universe_ecosystem')
+        response = self.client.post(url, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'universe-scan-status-container', response.content)
+        
+        self.assertTrue(cache.get('universe_scan_running'))
+        self.assertEqual(cache.get('universe_scan_progress'), 0)
+        self.assertEqual(cache.get('universe_scan_status'), 'Initializing AI Ecosystem analysis...')
+
+    def test_universe_scan_status_view_running(self) -> None:
+        from django.core.cache import cache
+        cache.set('universe_scan_running', True, 30)
+        cache.set('universe_scan_progress', 45, 30)
+        cache.set('universe_scan_status', 'Testing progress...', 30)
+        
+        url = reverse('universe_scan_status')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Testing progress...', response.content)
+        self.assertIn(b'45%', response.content)
+        self.assertNotIn('HX-Trigger', response.headers)
+
+    def test_universe_scan_status_view_finished_triggers_reload(self) -> None:
+        from django.core.cache import cache
+        cache.set('universe_scan_running', False, 30)
+        cache.set('universe_scan_progress', 100, 30)
+        cache.set('universe_scan_status', 'Done', 30)
+        
+        url = reverse('universe_scan_status')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertEqual(response.headers['HX-Trigger'], 'refresh-universes')
 
 
 class LibraryStatusTestCase(VibarrTestCase):

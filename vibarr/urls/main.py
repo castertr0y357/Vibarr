@@ -9,7 +9,7 @@ from ..views.api_keys import APIKeyListView, CreateAPIKeyView, RevokeAPIKeyView
 from ..views.personas import SwitchPersonaView, CreatePersonaView
 from ..views.history import HistoryView, BackfillHistoryView
 from ..views.media_views import DiscoveryListView, TastingListView, CommittedListView
-from ..views.universe import UniverseListView, RefreshUniverseView, ReanalyzeUniverseView, MergeUniversesView, AnalyzeEcosystemView, DismissSuggestionView
+from ..views.universe import UniverseListView, RefreshUniverseView, ReanalyzeUniverseView, MergeUniversesView, AnalyzeEcosystemView, DismissSuggestionView, UniverseScanStatusView
 from ..views.auth import LoginView, LogoutView
 from ..views.about import AboutView, CheckUpdateView
 
@@ -20,6 +20,7 @@ urlpatterns = [
     path('universe/reanalyze/', ReanalyzeUniverseView.as_view(), name='reanalyze_universe'),
     path('universe/merge/', MergeUniversesView.as_view(), name='merge_universes'),
     path('universe/analyze-ecosystem/', AnalyzeEcosystemView.as_view(), name='analyze_universe_ecosystem'),
+    path('universe/scan-status/', UniverseScanStatusView.as_view(), name='universe_scan_status'),
     path('universe/dismiss-suggestion/<int:suggestion_id>/', DismissSuggestionView.as_view(), name='dismiss_suggestion'),
     path('committed/', CommittedListView.as_view(), name='committed_list'),
     path('', DashboardView.as_view(), name='dashboard'),

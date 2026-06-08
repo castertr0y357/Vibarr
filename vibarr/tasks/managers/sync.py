@@ -491,8 +491,12 @@ def analyze_universe_ecosystem_task():
     """
     from ...models.universe import Universe, UniverseMergeSuggestion
     from ...services.discovery.ai_service import AIService
+    from django.core.cache import cache
     
     logger.info("Universe Alignment - Info - Starting background AI ecosystem analysis.")
+    cache.set('universe_scan_running', True, 300)
+    cache.set('universe_scan_progress', 10, 300)
+    cache.set('universe_scan_status', 'Gathering active universes...', 300)
     
     # 1. Gather all current universes that have items
     universes = Universe.objects.prefetch_related('shows').all()
@@ -511,14 +515,24 @@ def analyze_universe_ecosystem_task():
                 "items": items
             })
             
+    cache.set('universe_scan_progress', 30, 300)
+    cache.set('universe_scan_status', f'Analyzing {len(universes_data)} universes with AI...', 300)
+    
     if not universes_data:
         logger.info("Universe Alignment - Info - No universes to analyze.")
         UniverseMergeSuggestion.objects.all().delete()
+        cache.set('universe_scan_progress', 100, 300)
+        cache.set('universe_scan_status', 'Done. No universes to analyze.', 300)
+        cache.set('universe_scan_running', False, 300)
         return
         
     try:
         ai = AIService()
+        cache.set('universe_scan_progress', 50, 300)
         suggestions = ai.analyze_universe_ecosystem(universes_data)
+        
+        cache.set('universe_scan_progress', 75, 300)
+        cache.set('universe_scan_status', 'Updating database alignment suggestions...', 300)
         
         from django.db import transaction
         with transaction.atomic():
@@ -550,6 +564,12 @@ def analyze_universe_ecosystem_task():
                     continue
                     
             logger.info(f"Universe Alignment - Info - Completed background AI analysis. Generated {created_count} suggestions.")
+            cache.set('universe_scan_progress', 100, 300)
+            cache.set('universe_scan_status', f'Scan complete! Generated {created_count} suggestions.', 300)
     except Exception as e:
         logger.error(f"Universe Alignment - Error - AI ecosystem analysis failed: {e}")
+        cache.set('universe_scan_status', f'Scan failed: {str(e)}', 300)
+        cache.set('universe_scan_progress', 100, 300)
+    finally:
+        cache.set('universe_scan_running', False, 300)
 

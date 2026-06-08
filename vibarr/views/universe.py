@@ -78,10 +78,14 @@ class UniverseListView(ConfigMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         import string
+        from django.core.cache import cache
         context['alphabet'] = list(string.ascii_uppercase) + ['#']
         context['active_letters'] = getattr(self, 'active_letters', set())
         context['suggestions'] = UniverseMergeSuggestion.objects.select_related('source_universe', 'target_universe').all()
         context['all_universes'] = Universe.objects.all()
+        context['scan_running'] = cache.get('universe_scan_running', False)
+        context['scan_progress'] = cache.get('universe_scan_progress', 0)
+        context['scan_status'] = cache.get('universe_scan_status', '')
         return context
 
 class CompleteUniverseView(ConfigMixin, View):
@@ -257,21 +261,42 @@ class MergeUniversesView(ConfigMixin, View):
 
 class AnalyzeEcosystemView(ConfigMixin, View):
     def post(self, request):
+        from django.core.cache import cache
+        
+        cache.set('universe_scan_running', True, 300)
+        cache.set('universe_scan_progress', 0, 300)
+        cache.set('universe_scan_status', 'Initializing AI Ecosystem analysis...', 300)
+        
         async_task('vibarr.tasks.managers.sync.analyze_universe_ecosystem_task')
         
-        msg = "AI Ecosystem analysis triggered in background."
         if request.headers.get('HX-Request'):
-            response = HttpResponse("")
-            response['HX-Trigger'] = json.dumps({
-                'show-toast': {
-                    'message': msg,
-                    'type': 'success'
-                }
+            return render(request, 'vibarr/partials/universe_scan_status.html', {
+                'running': True,
+                'progress': 0,
+                'status': 'Initializing AI Ecosystem analysis...'
             })
-            return response
             
-        messages.success(request, msg)
+        messages.success(request, "AI Ecosystem analysis triggered in background.")
         return redirect('universe_architect_list')
+
+class UniverseScanStatusView(ConfigMixin, View):
+    def get(self, request):
+        from django.core.cache import cache
+        
+        running = cache.get('universe_scan_running', False)
+        progress = cache.get('universe_scan_progress', 0)
+        status = cache.get('universe_scan_status', '')
+        
+        response = render(request, 'vibarr/partials/universe_scan_status.html', {
+            'running': running,
+            'progress': progress,
+            'status': status
+        })
+        
+        if not running:
+            response['HX-Trigger'] = 'refresh-universes'
+            
+        return response
 
 class DismissSuggestionView(ConfigMixin, View):
     def post(self, request, suggestion_id):
