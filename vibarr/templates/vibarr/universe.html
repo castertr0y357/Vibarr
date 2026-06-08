@@ -6,6 +6,11 @@
 <style>
     html {
         scroll-behavior: smooth;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    html::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
     }
     .scrollbar-none {
         scrollbar-width: none; /* Firefox */

@@ -15,7 +15,7 @@
 
         {% for universe in universes %}
         <section {% if universe.group_letter %}id="group-{{ universe.group_letter }}"{% endif %} class="space-y-6 animate-fade-in universe-row" style="animation-delay: {{ forloop.counter0|add:1 }}00ms">
-            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-2 border-b border-white/5 pb-3">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 px-2 border-b border-white/5 pb-3 flex-wrap">
                 <div class="flex items-center gap-4">
                     <h3 class="text-2xl font-bold text-white tracking-tight">{{ universe.name }}</h3>
                     <span class="px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 text-[10px] font-black uppercase border border-rose-500/20">
@@ -110,14 +110,14 @@
 
     <!-- Plex-style A-Z Sidebar -->
     {% if universes %}
-    <div class="hidden md:flex flex-col justify-between items-center fixed right-4 top-[100px] bottom-6 w-8 z-30 py-4 text-[9px] font-black uppercase text-gray-500 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md shadow-2xl overflow-y-auto scrollbar-none">
+    <div class="hidden md:flex flex-col justify-between items-center fixed right-4 top-[100px] bottom-6 w-8 z-30 py-4 text-[9px] font-black uppercase text-gray-500 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md shadow-2xl overflow-hidden">
         {% for letter in alphabet %}
             {% if letter in active_letters %}
-                <a href="#group-{{ letter }}" class="text-rose-500 hover:text-rose-400 transition-colors w-full text-center py-0.5" title="Jump to {{ letter }}">
+                <a href="#group-{{ letter }}" class="text-rose-500 hover:text-rose-400 transition-colors w-full text-center" title="Jump to {{ letter }}">
                     {{ letter }}
                 </a>
             {% else %}
-                <span class="text-gray-700 select-none cursor-default w-full text-center py-0.5">
+                <span class="text-gray-700 select-none cursor-default w-full text-center">
                     {{ letter }}
                 </span>
             {% endif %}
