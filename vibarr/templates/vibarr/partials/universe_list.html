@@ -110,7 +110,7 @@
 
     <!-- Plex-style A-Z Sidebar -->
     {% if universes %}
-    <div class="hidden md:flex flex-col justify-between items-center fixed right-4 top-[100px] bottom-6 w-8 z-30 py-4 text-[9px] font-black uppercase text-gray-500 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md shadow-2xl">
+    <div class="hidden md:flex flex-col justify-between items-center fixed right-4 top-[100px] bottom-6 w-8 z-30 py-4 text-[9px] font-black uppercase text-gray-500 bg-black/40 border border-white/5 rounded-2xl backdrop-blur-md shadow-2xl overflow-y-auto scrollbar-none">
         {% for letter in alphabet %}
             {% if letter in active_letters %}
                 <a href="#group-{{ letter }}" class="text-rose-500 hover:text-rose-400 transition-colors w-full text-center py-0.5" title="Jump to {{ letter }}">

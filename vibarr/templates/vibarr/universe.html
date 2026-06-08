@@ -7,6 +7,13 @@
     html {
         scroll-behavior: smooth;
     }
+    .scrollbar-none {
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE and Edge */
+    }
+    .scrollbar-none::-webkit-scrollbar {
+        display: none; /* Chrome, Safari and Opera */
+    }
     .scroll-hide::-webkit-scrollbar {
         height: 5px;
     }
