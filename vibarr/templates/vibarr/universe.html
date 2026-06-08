@@ -159,7 +159,7 @@
     
     <div id="universe-list-container" 
          hx-get="{% url 'universe_architect_list' %}?partial=true" 
-         hx-trigger="sync-complete from:body, refresh-universes from:body">
+         hx-trigger="sync-complete from:body">
         {% include 'vibarr/partials/universe_list.html' %}
     </div>
 </div>

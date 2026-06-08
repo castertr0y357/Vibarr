@@ -151,6 +151,14 @@ Q_CLUSTER = {
     'redis': env('REDIS_URL', default='redis://localhost:6379/0')
 }
 
+# Shared Redis Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/0'),
+    }
+}
+
 # External API settings are managed via the in-app Application Configuration (AppConfig model).
 # Environment variables can still be used for initial setup or overrides in services if needed,
 # but the primary source of truth is the database.
