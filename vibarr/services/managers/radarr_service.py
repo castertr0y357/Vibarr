@@ -127,3 +127,14 @@ class RadarrService:
         except Exception as e:
             logger.error(f"Radarr Integration - Error - Failed to fetch TMDB IDs map: {e}")
             return {}
+
+    def get_all_movies_data(self):
+        if not self.base_url: return {}
+        try:
+            url = f"{self.base_url}/api/v3/movie"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return {str(m['tmdbId']): m for m in response.json() if m.get('tmdbId')}
+        except Exception as e:
+            logger.error(f"Radarr Integration - Error - Failed to fetch all movies: {e}")
+            return {}

@@ -320,78 +320,134 @@ def batch_universe_sync():
 
 def sync_external_states():
     """
-    Periodic maintenance task to ensure Vibarr's state matches Sonarr/Radarr.
-    Fixes monitoring issues and handles cases where items were deleted externally.
+    Periodic maintenance task to ensure Vibarr's state matches Sonarr/Radarr and media servers.
+    Detects when items are added/monitored in Sonarr/Radarr, heals their IDs, 
+    accurately sets `is_downloaded` based on physical file availability in managers and media servers,
+    and updates the UI state (e.g. SUGGESTED -> COMMITTED if added in manager).
     """
-    active_items = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED])
+    logger.info("State Sync - Info - Starting external state sync with Sonarr, Radarr, and media servers.")
+    
     sonarr = SonarrService()
     radarr = RadarrService()
     
-    for item in active_items:
+    # 1. Fetch bulk data from managers and media servers
+    all_sonarr_shows = sonarr.get_all_series_data()  # maps str(tvdbId) -> series dict
+    all_radarr_movies = radarr.get_all_movies_data()  # maps str(tmdbId) -> movie dict
+    
+    media_server_ids = {}
+    from ...utils.providers import get_active_providers
+    providers = get_active_providers()
+    for _, provider in providers:
         try:
-            if item.media_type == MediaType.SHOW and item.sonarr_id:
-                s_details = sonarr.get_series(item.sonarr_id)
-                if not s_details:
-                    logger.warning(f"State Sync - Warning - Show '{item.title}' (ID: {item.sonarr_id}) not found in Sonarr. Marking as REJECTED.")
-                    item.state = ShowState.REJECTED
-                    item.save()
-                    continue
-
-                # 1. Health Check: Monitoring Status
-                is_monitored = s_details.get('monitored', False)
+            media_server_ids.update(provider.get_library_identifiers())
+        except Exception as lib_err:
+            logger.error(f"State Sync - Error - Failed to fetch library identifiers: {lib_err}")
+            
+    # Ensure all keys are strings for robust lookup
+    media_server_ids = {str(k): v for k, v in media_server_ids.items()}
+    
+    # We want to sync status for all shows that are not rejected (Suggested, Tasting, Committed, Watched)
+    shows = Show.objects.exclude(state=ShowState.REJECTED)
+    
+    for item in shows:
+        try:
+            in_media_server = str(item.tmdb_id) in media_server_ids or (item.tvdb_id and str(item.tvdb_id) in media_server_ids) or item.title.lower() in media_server_ids
+            
+            if item.media_type == MediaType.SHOW:
+                tvdb_id_str = str(item.tvdb_id) if item.tvdb_id else None
+                s_details = all_sonarr_shows.get(tvdb_id_str) if tvdb_id_str else None
                 
-                if item.state == ShowState.COMMITTED:
-                    # For committed shows, series AND all seasons should be monitored
-                    has_unmonitored_season = any(not s.get('monitored') for s in s_details.get('seasons', []))
-                    if not is_monitored or has_unmonitored_season:
-                        logger.info(f"State Sync - Info - Healing monitoring for committed show: {item.title} (Series: {is_monitored}, Seasons: {not has_unmonitored_season})")
-                        sonarr.commit_series(item.sonarr_id)
+                # If we don't have the TVDB ID mapped but we have the sonarr_id, try that
+                if not s_details and item.sonarr_id:
+                    s_details = next((s for s in all_sonarr_shows.values() if s.get('id') == item.sonarr_id), None)
                 
-                elif item.state == ShowState.TASTING:
-                    # For tasting, series must be monitored
-                    if not is_monitored:
-                        logger.info(f"State Sync - Info - Healing series-level monitoring for tasting show: {item.title}")
-                        s_details['monitored'] = True
-                        sonarr.update_series(s_details)
-                        # Re-run granular monitoring to be safe
-                        sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
-                    else:
-                        # Even if series is monitored, ensure Season 1 and some episodes are
-                        has_monitored_season = any(s.get('monitored') and s.get('seasonNumber') == 1 for s in s_details.get('seasons', []))
-                        if not has_monitored_season:
-                            logger.info(f"State Sync - Info - Healing season-level monitoring for tasting show: {item.title}")
+                if s_details:
+                    # Update manager ID if not set
+                    if not item.sonarr_id:
+                        item.sonarr_id = s_details['id']
+                        
+                    is_monitored = s_details.get('monitored', False)
+                    
+                    # If this was suggested but is added to Sonarr, promote it to COMMITTED
+                    if item.state == ShowState.SUGGESTED:
+                        logger.info(f"State Sync - Info - Show '{item.title}' detected in Sonarr. Promoting state to COMMITTED.")
+                        item.state = ShowState.COMMITTED
+                        
+                    # Health Check: Monitoring Status for TASTING/COMMITTED
+                    if item.state == ShowState.COMMITTED:
+                        has_unmonitored_season = any(not s.get('monitored') for s in s_details.get('seasons', []))
+                        if not is_monitored or has_unmonitored_season:
+                            logger.info(f"State Sync - Info - Healing monitoring for committed show: {item.title} (Series: {is_monitored}, Seasons: {not has_unmonitored_season})")
+                            sonarr.commit_series(item.sonarr_id)
+                    
+                    elif item.state == ShowState.TASTING:
+                        if not is_monitored:
+                            logger.info(f"State Sync - Info - Healing series-level monitoring for tasting show: {item.title}")
+                            s_details['monitored'] = True
+                            sonarr.update_series(s_details)
                             sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
+                        else:
+                            has_monitored_season = any(s.get('monitored') and s.get('seasonNumber') == 1 for s in s_details.get('seasons', []))
+                            if not has_monitored_season:
+                                logger.info(f"State Sync - Info - Healing season-level monitoring for tasting show: {item.title}")
+                                sonarr.monitor_episodes(item.sonarr_id, item.tasting_episodes_count)
 
-                # 2. Check if it's actually downloading
-                queue = sonarr.get_series_queue(item.sonarr_id)
-                if not queue and item.state == ShowState.TASTING:
-                    logger.debug(f"State Sync - Debug - Tasting '{item.title}' is monitored in Sonarr but nothing in queue.")
-
-                stats = s_details.get('statistics', {})
-                episode_file_count = stats.get('episodeFileCount', 0)
-                item.is_downloaded = (episode_file_count > 0)
-                item.save()
-
-            elif item.media_type == MediaType.MOVIE and item.radarr_id:
-                m_details = radarr.get_movie(item.radarr_id)
-                if not m_details:
-                    logger.warning(f"State Sync - Warning - Movie '{item.title}' (ID: {item.radarr_id}) not found in Radarr. Marking as REJECTED.")
-                    item.state = ShowState.REJECTED
+                    # Determine physical file status
+                    stats = s_details.get('statistics', {})
+                    episode_file_count = stats.get('episodeFileCount', 0)
+                    item.is_downloaded = in_media_server or (episode_file_count > 0)
                     item.save()
-                    continue
+                    
+                else:
+                    # If it has sonarr_id but not found in Sonarr, and state was active, it was deleted externally!
+                    if item.sonarr_id and item.state in [ShowState.TASTING, ShowState.COMMITTED]:
+                        logger.warning(f"State Sync - Warning - Show '{item.title}' (ID: {item.sonarr_id}) not found in Sonarr. Marking as REJECTED.")
+                        item.state = ShowState.REJECTED
+                        item.is_downloaded = False
+                        item.save()
+                    elif in_media_server:
+                        if not item.is_downloaded:
+                            item.is_downloaded = True
+                            item.save()
+
+            elif item.media_type == MediaType.MOVIE:
+                tmdb_id_str = str(item.tmdb_id) if item.tmdb_id else None
+                m_details = all_radarr_movies.get(tmdb_id_str) if tmdb_id_str else None
                 
-                # Ensure it is monitored
-                if not m_details.get('monitored'):
-                    logger.info(f"State Sync - Info - Healing monitoring for movie in Radarr: {item.title}")
-                    m_details['monitored'] = True
-                    radarr.update_movie(m_details)
-
-                item.is_downloaded = m_details.get('hasFile', False)
-                item.save()
-
-                # Queue check for Radarr
-                # (I haven't implemented get_movie_queue yet, so we'll just check full queue if needed)
-                # For now, Radarr is usually more straightforward.
+                # If we don't have the TMDB ID mapped but we have the radarr_id, try that
+                if not m_details and item.radarr_id:
+                    m_details = next((m for m in all_radarr_movies.values() if m.get('id') == item.radarr_id), None)
+                
+                if m_details:
+                    # Update manager ID if not set
+                    if not item.radarr_id:
+                        item.radarr_id = m_details['id']
+                        
+                    # If this was suggested but is added to Radarr, promote it to COMMITTED
+                    if item.state == ShowState.SUGGESTED:
+                        logger.info(f"State Sync - Info - Movie '{item.title}' detected in Radarr. Promoting state to COMMITTED.")
+                        item.state = ShowState.COMMITTED
+                        
+                    # Ensure it is monitored for committed
+                    if item.state in [ShowState.TASTING, ShowState.COMMITTED] and not m_details.get('monitored'):
+                        logger.info(f"State Sync - Info - Healing monitoring for movie in Radarr: {item.title}")
+                        m_details['monitored'] = True
+                        radarr.update_movie(m_details)
+                        
+                    item.is_downloaded = in_media_server or m_details.get('hasFile', False)
+                    item.save()
+                    
+                else:
+                    # If it has radarr_id but not found in Radarr, and state was active, it was deleted externally!
+                    if item.radarr_id and item.state in [ShowState.TASTING, ShowState.COMMITTED]:
+                        logger.warning(f"State Sync - Warning - Movie '{item.title}' (ID: {item.radarr_id}) not found in Radarr. Marking as REJECTED.")
+                        item.state = ShowState.REJECTED
+                        item.is_downloaded = False
+                        item.save()
+                    elif in_media_server:
+                        if not item.is_downloaded:
+                            item.is_downloaded = True
+                            item.save()
 
         except Exception as e:
             logger.error(f"State Sync - Error - Error maintaining state for {item.title}: {e}")

@@ -695,24 +695,28 @@ class LibraryStatusTestCase(VibarrTestCase):
         mock_radarr_inst = mock_radarr.return_value
         
         # Mock Sonarr/Radarr APIs
-        mock_sonarr_inst.get_series.return_value = {
-            'id': 1,
-            'monitored': True,
-            'seasons': [{'seasonNumber': 1, 'monitored': True}],
-            'statistics': {'episodeFileCount': 3}
+        mock_sonarr_inst.get_all_series_data.return_value = {
+            '9999': {
+                'id': 1,
+                'monitored': True,
+                'seasons': [{'seasonNumber': 1, 'monitored': True}],
+                'statistics': {'episodeFileCount': 3}
+            }
         }
-        mock_sonarr_inst.get_series_queue.return_value = []
         
-        mock_radarr_inst.get_movie.return_value = {
-            'id': 2,
-            'monitored': True,
-            'hasFile': True
+        mock_radarr_inst.get_all_movies_data.return_value = {
+            '8883': {
+                'id': 2,
+                'monitored': True,
+                'hasFile': True
+            }
         }
 
         # Create tasting show and committed movie
         show = Show.objects.create(
             title="Test Show Downloaded",
             tmdb_id=8882,
+            tvdb_id=9999,
             sonarr_id=1,
             media_type=MediaType.SHOW,
             state=ShowState.TASTING
