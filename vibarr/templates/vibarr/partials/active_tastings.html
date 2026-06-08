@@ -59,7 +59,14 @@
                     <div class="flex items-center justify-between">
                         <div class="flex gap-2">
                             <span class="text-[8px] bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10 uppercase font-black">{{ show.content_rating|default:"NR" }}</span>
+                            {% if show.is_downloaded %}
+                            <span class="text-[8px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded border uppercase font-black tracking-tighter flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Ready to Watch
+                            </span>
+                            {% else %}
                             <span class="text-[8px] {% if show.media_type == 'MOVIE' %}bg-amber-500/10 text-amber-500 border-amber-500/20{% else %}bg-blue-500/10 text-blue-500 border-blue-500/20{% endif %} px-2 py-0.5 rounded border uppercase font-black tracking-tighter">In {% if show.media_type == 'MOVIE' %}Radarr{% else %}Sonarr{% endif %}</span>
+                            {% endif %}
                         </div>
                         <button hx-post="{% url 'stop_and_delete' show.id %}"
                                 hx-swap="none"

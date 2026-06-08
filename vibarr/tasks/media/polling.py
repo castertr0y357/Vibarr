@@ -38,6 +38,24 @@ def poll_media_servers(hours=1):
             config.save()
             poll_provider_history(server_type, hours=hours)
         
+        # Update is_downloaded status for all active/tasting/committed shows based on current media server libraries
+        library_ids = {}
+        for _, provider in providers:
+            try:
+                library_ids.update(provider.get_library_identifiers())
+            except Exception as lib_err:
+                logger.error(f"Library Sync - Error - Failed to fetch library identifiers for update: {lib_err}")
+        
+        # Ensure all library_ids keys are strings
+        library_ids = {str(k): v for k, v in library_ids.items()}
+        
+        shows = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED])
+        for show in shows:
+            in_media_server = str(show.tmdb_id) in library_ids or (show.tvdb_id and str(show.tvdb_id) in library_ids) or show.title.lower() in library_ids
+            if in_media_server and not show.is_downloaded:
+                show.is_downloaded = True
+                show.save()
+
         config.last_sync = timezone.now()
         config.is_syncing = False
         config.sync_status = "Sync complete."

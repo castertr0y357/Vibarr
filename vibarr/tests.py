@@ -676,3 +676,63 @@ class UniverseArchitectTestCase(VibarrTestCase):
         reevaluate_universe_shows('Marvel Cinematic Universe')
         mock_reevaluate.assert_called_once_with(self.show1)
 
+
+class LibraryStatusTestCase(VibarrTestCase):
+    def test_show_is_downloaded_default(self) -> None:
+        show = Show.objects.create(
+            title="Test Movie Status",
+            tmdb_id=8881,
+            media_type=MediaType.MOVIE,
+            state=ShowState.SUGGESTED
+        )
+        self.assertFalse(show.is_downloaded)
+
+    @patch('vibarr.tasks.managers.sync.RadarrService')
+    @patch('vibarr.tasks.managers.sync.SonarrService')
+    def test_sync_external_states_updates_is_downloaded(self, mock_sonarr, mock_radarr) -> None:
+        # Setup mocks
+        mock_sonarr_inst = mock_sonarr.return_value
+        mock_radarr_inst = mock_radarr.return_value
+        
+        # Mock Sonarr/Radarr APIs
+        mock_sonarr_inst.get_series.return_value = {
+            'id': 1,
+            'monitored': True,
+            'seasons': [{'seasonNumber': 1, 'monitored': True}],
+            'statistics': {'episodeFileCount': 3}
+        }
+        mock_sonarr_inst.get_series_queue.return_value = []
+        
+        mock_radarr_inst.get_movie.return_value = {
+            'id': 2,
+            'monitored': True,
+            'hasFile': True
+        }
+
+        # Create tasting show and committed movie
+        show = Show.objects.create(
+            title="Test Show Downloaded",
+            tmdb_id=8882,
+            sonarr_id=1,
+            media_type=MediaType.SHOW,
+            state=ShowState.TASTING
+        )
+        movie = Show.objects.create(
+            title="Test Movie Downloaded",
+            tmdb_id=8883,
+            radarr_id=2,
+            media_type=MediaType.MOVIE,
+            state=ShowState.COMMITTED
+        )
+
+        from .tasks.managers.sync import sync_external_states
+        sync_external_states()
+
+        # Refresh from DB
+        show.refresh_from_db()
+        movie.refresh_from_db()
+
+        self.assertTrue(show.is_downloaded)
+        self.assertTrue(movie.is_downloaded)
+
+

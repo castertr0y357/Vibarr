@@ -160,6 +160,17 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
     existing_show_ids = set(Show.objects.filter(media_type=target_type).values_list('tmdb_id', flat=True))
     existing_event_ids = set(MediaWatchEvent.objects.filter(media_type=target_type).values_list('tmdb_id', flat=True))
 
+    radarr_ids = set()
+    sonarr_ids = set()
+    try:
+        radarr_ids = RadarrService().get_all_tmdb_ids()
+    except Exception as err:
+        logger.warning(f"Sourcing - Warning - Failed to fetch Radarr IDs for scouting filter: {err}")
+    try:
+        sonarr_ids = SonarrService().get_all_tvdb_ids()
+    except Exception as err:
+        logger.warning(f"Sourcing - Warning - Failed to fetch Sonarr IDs for scouting filter: {err}")
+
     if library_titles is None:
         library_titles = set()
         for _, provider in get_active_providers():
@@ -171,6 +182,7 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
         if c['id'] in existing_show_ids: continue
         if c['id'] in existing_event_ids: continue
         if title_lower in library_titles: continue
+        if target_type == MediaType.MOVIE and str(c['id']) in radarr_ids: continue
         
         candidates.append({
             'id': c['id'],
@@ -209,6 +221,10 @@ def scout_for_media_type(target_type, limit=5, library_titles=None, seed_title=N
         
         imdb_id = details.get('external_ids', {}).get('imdb_id')
         tvdb_id = details.get('external_ids', {}).get('tvdb_id')
+        
+        if not is_movie and tvdb_id and str(tvdb_id) in sonarr_ids:
+            logger.info(f"[AI Scout] Skipping candidate '{match['title']}' because its TVDB ID {tvdb_id} is already in Sonarr.")
+            continue
         # Extract Season 1 episode count if available
         season_one_episodes = 0
         if not is_movie and details.get('seasons'):

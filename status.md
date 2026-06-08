@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: UNIVERSE ARCHITECT ENHANCEMENTS (v1.11.0)
-**Last Checkpoint**: 2026-06-08 (Added alphabetical universe list sorting, A-Z sticky sidebar navigation, universe-specific refresh action, and collection reanalysis on demand)
+## Current State: LIBRARY VS GRABBER TRACKING (v1.12.0)
+**Last Checkpoint**: 2026-06-08 (Introduced is_downloaded database field, updated sync/polling tasks, and enhanced templates to differentiate "In Library", "Downloading", and "Added" states)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Library vs Grabber Tracking (v1.12.0)**: Added `is_downloaded` Boolean field to the `Show` model. Differentiated media server identifiers (Plex/Jellyfin) from manager library identifiers (Radarr/Sonarr) in sync tasks. Updated media server polling and external manager sync jobs to automatically sync the downloaded state based on physical file availability. Enhanced candidate filtering in discovery scouts to prevent suggesting items already added in Radarr/Sonarr. Updated UI/templates (Universe Architect cards, Discovery cards, Active tastings badges) to visually distinguish "In Library" (green), "Downloading" (pulsing rose), and "Added" (blue).
 - [x] **Universe Architect Enhancements (v1.11.0)**: Sorted cinematic universes alphabetically by name (case-insensitive) and implemented a Plex-style A-Z vertical sidebar navigation on the right to jump smoothly to the corresponding letter's section. Added inline quick actions to trigger discovery/refresh of a specific universe and reanalysis/re-scoring of suggestions and tastings in a collection on demand.
 - [x] **Global Standards Synchronization (v1.10.4)**: Synchronized local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) with the latest global template `project.md`, ensuring all multi-LLM configuration files are in perfect lockstep while preserving the Vibarr-specific custom rules of engagement and command triggers.
 - [x] **Settings Style Unification (v1.10.3)**: Unified settings view layouts by breaking up giant card forms on the Media Servers and Intelligence pages into separate, distinct glassmorphic cards. Configured Plex and Jellyfin cards to dynamically show/hide with transition animations based on server selection.

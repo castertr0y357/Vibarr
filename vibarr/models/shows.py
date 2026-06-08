@@ -26,6 +26,7 @@ class Show(models.Model):
         default=ShowState.SUGGESTED,
         db_index=True
     )
+    is_downloaded = models.BooleanField(default=False, db_index=True)
     is_pinned = models.BooleanField(default=False, db_index=True)
     has_notified_ready = models.BooleanField(default=False)
     first_season_episodes = models.IntegerField(null=True, blank=True, help_text="Episode count of the first season")

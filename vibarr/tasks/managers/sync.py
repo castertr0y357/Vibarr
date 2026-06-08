@@ -62,17 +62,22 @@ def discover_universe_and_sync(show_id, library_ids=None):
         for _, provider in providers:
             provider.sync_collection(list(members), collection_name)
     
+    media_server_ids = {}
+    manager_ids = {}
     if library_ids is None:
-        library_ids = {}
         for _, provider in providers:
-            library_ids.update(provider.get_library_identifiers())
+            media_server_ids.update(provider.get_library_identifiers())
         
         # Cross-check with Managers (Radarr/Sonarr)
-        library_ids.update({str(id): "Radarr" for id in RadarrService().get_all_tmdb_ids()})
-        library_ids.update({str(id): "Sonarr" for id in SonarrService().get_all_tvdb_ids()})
-    
+        manager_ids.update({str(id): "Radarr" for id in RadarrService().get_all_tmdb_ids()})
+        manager_ids.update({str(id): "Sonarr" for id in SonarrService().get_all_tvdb_ids()})
+    else:
+        # If passed from the caller, assume they are media server IDs
+        media_server_ids = library_ids
+
     # Ensure all keys are strings for robust lookup
-    library_ids = {str(k): v for k, v in library_ids.items()}
+    media_server_ids = {str(k): v for k, v in media_server_ids.items()}
+    manager_ids = {str(k): v for k, v in manager_ids.items()}
 
     # gathered_candidates will hold the rich metadata and resolved IDs
     gathered_candidates = []
@@ -123,7 +128,9 @@ def discover_universe_and_sync(show_id, library_ids=None):
             imdb_id = details.get('external_ids', {}).get('imdb_id')
             
             # Match against library (Plex/Jellyfin) OR Managers (Radarr/Sonarr)
-            in_library = tmdb_id in library_ids or tvdb_id in library_ids or member_title.lower() in library_ids
+            in_media_server = tmdb_id in media_server_ids or tvdb_id in media_server_ids or member_title.lower() in media_server_ids
+            in_managers = tmdb_id in manager_ids or tvdb_id in manager_ids
+            in_library = in_media_server or in_managers
             
             rating, advisory = tmdb.parse_advisory(details, is_movie=(m_type == MediaType.MOVIE))
             avg_runtime = details.get('episode_run_time', [0])[0] if details.get('episode_run_time') else details.get('runtime', 120)
@@ -143,6 +150,8 @@ def discover_universe_and_sync(show_id, library_ids=None):
             existing_show = Show.objects.filter(tmdb_id=tmdb_id, media_type=m_type).first()
             state = existing_show.state if existing_show else (ShowState.COMMITTED if in_library else ShowState.SUGGESTED)
             if state == ShowState.SUGGESTED and in_library: state = ShowState.COMMITTED
+            
+            is_downloaded = in_media_server
 
             gathered_candidates.append({
                 'tmdb_id': tmdb_id,
@@ -158,6 +167,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 'content_advisory': advisory,
                 'streaming_providers': providers_str,
                 'state': state,
+                'is_downloaded': is_downloaded,
                 'first_season_episodes': season_one_episodes if m_type == MediaType.SHOW else None,
                 'tasting_episodes_count': 1 if m_type == MediaType.MOVIE else calculate_tasting_count(avg_runtime, season_one_episodes)
             })
@@ -236,6 +246,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'content_advisory': candidate['content_advisory'],
                     'streaming_providers': candidate['streaming_providers'],
                     'state': candidate['state'],
+                    'is_downloaded': candidate['is_downloaded'],
                     'first_season_episodes': candidate.get('first_season_episodes'),
                     'tasting_episodes_count': candidate['tasting_episodes_count']
                 }
@@ -266,7 +277,12 @@ def discover_universe_and_sync(show_id, library_ids=None):
             show_obj, _ = Show.objects.update_or_create(
                 tmdb_id=candidate['tmdb_id'],
                 media_type=candidate['media_type'],
-                defaults={'title': candidate['title'], 'universe_name': collection_name, 'state': candidate['state']}
+                defaults={
+                    'title': candidate['title'],
+                    'universe_name': collection_name,
+                    'state': candidate['state'],
+                    'is_downloaded': candidate['is_downloaded']
+                }
             )
             Recommendation.objects.get_or_create(
                 suggested_show=show_obj,
@@ -339,6 +355,11 @@ def sync_external_states():
                 if not queue and item.state == ShowState.TASTING:
                     logger.debug(f"State Sync - Debug - Tasting '{item.title}' is monitored in Sonarr but nothing in queue.")
 
+                stats = s_details.get('statistics', {})
+                episode_file_count = stats.get('episodeFileCount', 0)
+                item.is_downloaded = (episode_file_count > 0)
+                item.save()
+
             elif item.media_type == MediaType.MOVIE and item.radarr_id:
                 m_details = radarr.get_movie(item.radarr_id)
                 if not m_details:
@@ -352,6 +373,9 @@ def sync_external_states():
                     logger.info(f"State Sync - Info - Healing monitoring for movie in Radarr: {item.title}")
                     m_details['monitored'] = True
                     radarr.update_movie(m_details)
+
+                item.is_downloaded = m_details.get('hasFile', False)
+                item.save()
 
                 # Queue check for Radarr
                 # (I haven't implemented get_movie_queue yet, so we'll just check full queue if needed)

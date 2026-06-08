@@ -4,7 +4,9 @@ from django.db.models import Count
 from django.contrib import messages
 from django_q.tasks import async_task
 from .mixins import ConfigMixin
-from ..models import Show, ShowState
+from ..models import Show, ShowState, MediaType
+from ..services.managers.sonarr_service import SonarrService
+from ..services.managers.radarr_service import RadarrService
 
 class UniverseListView(ConfigMixin, ListView):
     model = Show
@@ -20,9 +22,23 @@ class UniverseListView(ConfigMixin, ListView):
         # We want to group by universe_name and only include those with items
         qs = Show.objects.filter(universe_name__isnull=False).exclude(universe_name='')
         
+        # Enrich with download status from Managers
+        sonarr = SonarrService()
+        radarr = RadarrService()
+        s_queue = sonarr.get_full_queue()
+        r_queue = radarr.get_full_queue()
+        
+        s_queued_ids = {item.get('seriesId') for item in s_queue if item.get('seriesId')}
+        r_queued_ids = {item.get('movieId') for item in r_queue if item.get('movieId')}
+
         # We'll return a list of dictionaries grouped by universe_name sorted alphabetically
         universes = {}
         for show in qs.prefetch_related('recommendations'):
+            if show.media_type == MediaType.SHOW:
+                show.is_downloading = show.sonarr_id in s_queued_ids
+            else:
+                show.is_downloading = show.radarr_id in r_queued_ids
+
             u_name = show.universe_name
             if u_name not in universes:
                 universes[u_name] = []
