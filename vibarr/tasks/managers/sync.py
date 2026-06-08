@@ -360,3 +360,25 @@ def sync_external_states():
         except Exception as e:
             logger.error(f"State Sync - Error - Error maintaining state for {item.title}: {e}")
             continue
+
+
+def reevaluate_universe_shows(universe_name):
+    """
+    On-demand task to re-evaluate the recommendations scores for all suggested
+    and tasting items belonging to a specific cinematic universe.
+    """
+    from ...tasks.discovery.recommendations import reevaluate_single_show
+
+    shows = Show.objects.filter(universe_name=universe_name, state__in=[ShowState.SUGGESTED, ShowState.TASTING])
+    logger.info(f"Universe Architect - Info - Starting on-demand reanalysis for universe: '{universe_name}' ({shows.count()} items)")
+
+    count = 0
+    for show in shows:
+        try:
+            reevaluate_single_show(show)
+            count += 1
+        except Exception as e:
+            logger.error(f"Universe Architect - Error - On-demand reanalysis failed for show '{show.title}': {e}")
+
+    logger.info(f"Universe Architect - Info - Completed on-demand reanalysis for universe: '{universe_name}' (Processed {count}/{shows.count()} items)")
+

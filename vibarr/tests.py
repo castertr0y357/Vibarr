@@ -598,3 +598,81 @@ The Matrix,603,movie,2026-06-02 16:14:39
         score_data = hrs._calculate_score(candidate, MediaType.MOVIE, profile, seerr_profile, seerr_tag_profile)
         self.assertIn("aligns with your request tags", score_data["reasoning"])
         self.assertGreater(score_data["score"], 0)
+
+
+class UniverseArchitectTestCase(VibarrTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.client = Client()
+        self.config = AppConfig.get_solo()
+        self.config.setup_complete = True
+        self.config.save()
+        
+        # Create some shows in universes
+        self.show1 = Show.objects.create(
+            title="Marvel Movie",
+            tmdb_id=101,
+            media_type=MediaType.MOVIE,
+            universe_name="Marvel Cinematic Universe",
+            state=ShowState.SUGGESTED
+        )
+        self.show2 = Show.objects.create(
+            title="Star Wars Movie",
+            tmdb_id=102,
+            media_type=MediaType.MOVIE,
+            universe_name="Star Wars",
+            state=ShowState.SUGGESTED
+        )
+        # Add recommendation for show1 to make sure reanalysis doesn't fail on missing rec
+        from .models import Recommendation
+        Recommendation.objects.create(
+            suggested_show=self.show1,
+            source_title="Marvel Movie",
+            score=7.5,
+            reasoning="Part of MCU."
+        )
+
+    def test_universe_list_view_alphabetical_sorting(self) -> None:
+        url = reverse('universe_architect_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        
+        universes = response.context['universes']
+        self.assertEqual(len(universes), 2)
+        # Alphabetically: "Marvel Cinematic Universe" then "Star Wars"
+        self.assertEqual(universes[0]['name'], "Marvel Cinematic Universe")
+        self.assertEqual(universes[1]['name'], "Star Wars")
+        
+        # Check alphabet and active letters
+        self.assertIn('M', response.context['active_letters'])
+        self.assertIn('S', response.context['active_letters'])
+        self.assertIn('A', response.context['alphabet'])
+
+    @patch('vibarr.views.universe.async_task')
+    def test_refresh_universe_view(self, mock_async_task) -> None:
+        url = reverse('refresh_universe')
+        # Empty universe parameter should redirect
+        response = self.client.post(url, {})
+        self.assertEqual(response.status_code, 302)
+        
+        # Valid universe name should trigger discover_universe_and_sync task
+        response = self.client.post(url, {'universe': 'Star Wars'})
+        self.assertEqual(response.status_code, 302)
+        mock_async_task.assert_called_once_with('vibarr.tasks.managers.sync.discover_universe_and_sync', self.show2.id)
+
+    @patch('vibarr.views.universe.async_task')
+    def test_reanalyze_universe_view(self, mock_async_task) -> None:
+        url = reverse('reanalyze_universe')
+        response = self.client.post(url, {})
+        self.assertEqual(response.status_code, 302)
+        
+        response = self.client.post(url, {'universe': 'Marvel Cinematic Universe'})
+        self.assertEqual(response.status_code, 302)
+        mock_async_task.assert_called_once_with('vibarr.tasks.managers.sync.reevaluate_universe_shows', 'Marvel Cinematic Universe')
+
+    @patch('vibarr.tasks.discovery.recommendations.reevaluate_single_show')
+    def test_reevaluate_universe_shows_task(self, mock_reevaluate) -> None:
+        from .tasks.managers.sync import reevaluate_universe_shows
+        reevaluate_universe_shows('Marvel Cinematic Universe')
+        mock_reevaluate.assert_called_once_with(self.show1)
+

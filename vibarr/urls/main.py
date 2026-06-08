@@ -9,13 +9,15 @@ from ..views.api_keys import APIKeyListView, CreateAPIKeyView, RevokeAPIKeyView
 from ..views.personas import SwitchPersonaView, CreatePersonaView
 from ..views.history import HistoryView, BackfillHistoryView
 from ..views.media_views import DiscoveryListView, TastingListView, CommittedListView
-from ..views.universe import UniverseListView
+from ..views.universe import UniverseListView, RefreshUniverseView, ReanalyzeUniverseView
 from ..views.auth import LoginView, LogoutView
 from ..views.about import AboutView, CheckUpdateView
 
 
 urlpatterns = [
     path('universes/', UniverseListView.as_view(), name='universe_architect_list'),
+    path('universe/refresh/', RefreshUniverseView.as_view(), name='refresh_universe'),
+    path('universe/reanalyze/', ReanalyzeUniverseView.as_view(), name='reanalyze_universe'),
     path('committed/', CommittedListView.as_view(), name='committed_list'),
     path('', DashboardView.as_view(), name='dashboard'),
     path('discoveries/', DiscoveryListView.as_view(), name='discoveries_list'),
