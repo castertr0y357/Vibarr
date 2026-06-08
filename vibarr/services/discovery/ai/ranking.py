@@ -4,7 +4,7 @@ import requests
 import logging
 import math
 
-from ....models import Show, ShowState, MediaType, MediaWatchEvent
+from ....models import Show, ShowState, MediaType, MediaWatchEvent, AppConfig
 from ..tmdb_service import TMDBService
 from ..heuristic_ranking import HeuristicRankingService
 

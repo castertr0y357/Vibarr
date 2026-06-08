@@ -241,3 +241,14 @@ class SonarrService:
         except Exception as e:
             logger.error(f"Sonarr Integration - Error - Failed to fetch all TVDB IDs: {e}")
             return set()
+
+    def get_all_tvdb_ids_map(self):
+        if not self.base_url: return {}
+        try:
+            url = f"{self.base_url}/api/v3/series"
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            return {str(s['tvdbId']): s['id'] for s in response.json() if s.get('tvdbId')}
+        except Exception as e:
+            logger.error(f"Sonarr Integration - Error - Failed to fetch TVDB IDs map: {e}")
+            return {}

@@ -63,21 +63,23 @@ def discover_universe_and_sync(show_id, library_ids=None):
             provider.sync_collection(list(members), collection_name)
     
     media_server_ids = {}
-    manager_ids = {}
+    radarr_ids_map = {}
+    sonarr_ids_map = {}
     if library_ids is None:
         for _, provider in providers:
             media_server_ids.update(provider.get_library_identifiers())
         
         # Cross-check with Managers (Radarr/Sonarr)
-        manager_ids.update({str(id): "Radarr" for id in RadarrService().get_all_tmdb_ids()})
-        manager_ids.update({str(id): "Sonarr" for id in SonarrService().get_all_tvdb_ids()})
+        radarr_ids_map = RadarrService().get_all_tmdb_ids_map()
+        sonarr_ids_map = SonarrService().get_all_tvdb_ids_map()
     else:
         # If passed from the caller, assume they are media server IDs
         media_server_ids = library_ids
 
     # Ensure all keys are strings for robust lookup
     media_server_ids = {str(k): v for k, v in media_server_ids.items()}
-    manager_ids = {str(k): v for k, v in manager_ids.items()}
+    radarr_ids_map = {str(k): v for k, v in radarr_ids_map.items()}
+    sonarr_ids_map = {str(k): v for k, v in sonarr_ids_map.items()}
 
     # gathered_candidates will hold the rich metadata and resolved IDs
     gathered_candidates = []
@@ -129,7 +131,11 @@ def discover_universe_and_sync(show_id, library_ids=None):
             
             # Match against library (Plex/Jellyfin) OR Managers (Radarr/Sonarr)
             in_media_server = tmdb_id in media_server_ids or tvdb_id in media_server_ids or member_title.lower() in media_server_ids
-            in_managers = tmdb_id in manager_ids or tvdb_id in manager_ids
+            
+            radarr_id = radarr_ids_map.get(tmdb_id) if m_type == MediaType.MOVIE else None
+            sonarr_id = sonarr_ids_map.get(tvdb_id) if m_type == MediaType.SHOW else None
+            in_managers = (radarr_id is not None) or (sonarr_id is not None)
+            
             in_library = in_media_server or in_managers
             
             rating, advisory = tmdb.parse_advisory(details, is_movie=(m_type == MediaType.MOVIE))
@@ -161,6 +167,8 @@ def discover_universe_and_sync(show_id, library_ids=None):
                 'poster_path': search_res.get('poster_path'),
                 'imdb_id': imdb_id,
                 'tvdb_id': tvdb_id,
+                'radarr_id': radarr_id,
+                'sonarr_id': sonarr_id,
                 'imdb_rating': search_res.get('vote_average'),
                 'runtime': avg_runtime,
                 'content_rating': rating,
@@ -247,6 +255,8 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'streaming_providers': candidate['streaming_providers'],
                     'state': candidate['state'],
                     'is_downloaded': candidate['is_downloaded'],
+                    'radarr_id': candidate.get('radarr_id'),
+                    'sonarr_id': candidate.get('sonarr_id'),
                     'first_season_episodes': candidate.get('first_season_episodes'),
                     'tasting_episodes_count': candidate['tasting_episodes_count']
                 }
@@ -281,7 +291,9 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'title': candidate['title'],
                     'universe_name': collection_name,
                     'state': candidate['state'],
-                    'is_downloaded': candidate['is_downloaded']
+                    'is_downloaded': candidate['is_downloaded'],
+                    'radarr_id': candidate.get('radarr_id'),
+                    'sonarr_id': candidate.get('sonarr_id')
                 }
             )
             Recommendation.objects.get_or_create(
