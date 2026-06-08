@@ -676,6 +676,71 @@ class UniverseArchitectTestCase(VibarrTestCase):
         reevaluate_universe_shows('Marvel Cinematic Universe')
         mock_reevaluate.assert_called_once_with(self.show1)
 
+    def test_multiple_universes_on_show(self) -> None:
+        from .models.universe import Universe
+        universe2 = Universe.objects.create(name="Multiverse")
+        self.show1.universes.add(universe2)
+        
+        self.assertEqual(self.show1.universes.count(), 2)
+        names = [u.name for u in self.show1.universes.all()]
+        self.assertIn("Marvel Cinematic Universe", names)
+        self.assertIn("Multiverse", names)
+
+    def test_merge_universes_view(self) -> None:
+        url = reverse('merge_universes')
+        response = self.client.post(url, {
+            'source_universe': 'Star Wars',
+            'target_universe': 'Marvel Cinematic Universe'
+        })
+        self.assertEqual(response.status_code, 302)
+        
+        from .models.universe import Universe
+        self.assertFalse(Universe.objects.filter(name='Star Wars').exists())
+        
+        self.show2.refresh_from_db()
+        self.assertTrue(self.show2.universes.filter(name='Marvel Cinematic Universe').exists())
+        self.assertEqual(self.show2.universe_name, 'Marvel Cinematic Universe')
+
+    def test_dismiss_suggestion_view(self) -> None:
+        from .models.universe import Universe, UniverseMergeSuggestion
+        univ1 = Universe.objects.get(name="Marvel Cinematic Universe")
+        univ2 = Universe.objects.get(name="Star Wars")
+        sug = UniverseMergeSuggestion.objects.create(
+            source_universe=univ2,
+            target_universe=univ1,
+            confidence=8,
+            reasoning="Crossover suggestion"
+        )
+        
+        url = reverse('dismiss_suggestion', kwargs={'suggestion_id': sug.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+        
+        self.assertFalse(UniverseMergeSuggestion.objects.filter(id=sug.id).exists())
+
+    @patch('vibarr.services.discovery.ai_service.AIService.analyze_universe_ecosystem')
+    def test_analyze_universe_ecosystem_task(self, mock_analyze) -> None:
+        from .tasks.managers.sync import analyze_universe_ecosystem_task
+        from .models.universe import Universe, UniverseMergeSuggestion
+        
+        mock_analyze.return_value = [
+            {
+                "source_universe": "Star Wars",
+                "target_universe": "Marvel Cinematic Universe",
+                "confidence": 9,
+                "reasoning": "Both are Disney properties."
+            }
+        ]
+        
+        analyze_universe_ecosystem_task()
+        
+        suggestions = UniverseMergeSuggestion.objects.all()
+        self.assertEqual(suggestions.count(), 1)
+        sug = suggestions.first()
+        self.assertEqual(sug.source_universe.name, "Star Wars")
+        self.assertEqual(sug.target_universe.name, "Marvel Cinematic Universe")
+        self.assertEqual(sug.confidence, 9)
+
 
 class LibraryStatusTestCase(VibarrTestCase):
     def test_show_is_downloaded_default(self) -> None:

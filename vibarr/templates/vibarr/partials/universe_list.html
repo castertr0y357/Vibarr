@@ -109,6 +109,7 @@
                                     </div>
                                     <div class="mt-auto pt-3 border-t border-white/5">
                                         <button hx-post="{% url 'remove_from_universe' show.id %}"
+                                                hx-vals='{"universe": "{{ universe.name }}"}'
                                                 hx-swap="none"
                                                 hx-indicator="this"
                                                 hx-confirm="Are you sure you want to remove this from the '{{ universe.name }}' universe?"

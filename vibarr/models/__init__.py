@@ -4,3 +4,5 @@ from .shows import Show
 from .recommendations import Recommendation
 from .events import MediaWatchEvent
 from .api import APIKey
+from .universe import Universe, UniverseMergeSuggestion
+

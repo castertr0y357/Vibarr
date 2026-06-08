@@ -1,4 +1,4 @@
-<div class="flip-card group h-[520px] w-full" x-data="{ flipped: {% if flipped %}true{% else %}false{% endif %}, hidden: false, hasUniverse: {% if show.universe_name %}true{% else %}false{% endif %} }" 
+<div class="flip-card group h-[520px] w-full" x-data="{ flipped: {% if flipped %}true{% else %}false{% endif %}, hidden: false, hasUniverse: {% if show.universes.exists %}true{% else %}false{% endif %} }" 
      x-show="!hidden" x-transition.opacity.duration.300ms :class="flipped ? 'flipped' : ''"
      hx-disinherit="hx-include">
     <div class="flip-card-inner">
@@ -36,8 +36,8 @@
                 <div class="mb-1">
                     <div class="flex items-start justify-between gap-2">
                         <h3 class="text-white font-bold text-sm truncate flex-grow" title="{{ show.title }}">{{ show.title }}</h3>
-                        {% if show.universe_name %}
-                        <span x-show="hasUniverse" class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex-shrink-0 animate-pulse" title="Part of the {{ show.universe_name }} Universe">
+                        {% if show.universes.exists %}
+                        <span x-show="hasUniverse" class="bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex-shrink-0 animate-pulse" title="Part of the {% for u in show.universes.all %}{{ u.name }}{% if not forloop.last %}, {% endif %}{% endfor %} Universe">
                             🌌 Universe
                         </span>
                         {% endif %}
@@ -169,17 +169,21 @@
                     {% endif %}
                 </div>
 
-                {% if show.universe_name %}
-                <button hx-post="{% url 'remove_from_universe' show.id %}"
-                        hx-swap="none"
-                        hx-indicator="this"
-                        hx-confirm="Are you sure you want to remove this from the '{{ show.universe_name }}' universe?"
-                        x-show="hasUniverse"
-                        @htmx:after-request="if(event.detail.successful) { hasUniverse = false; flipped = false; }"
-                        class="w-full py-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/20 hover:border-rose-500/40 rounded-xl transition text-[9px] font-bold text-rose-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    Remove from Universe
-                </button>
+                {% if show.universes.exists %}
+                <div x-show="hasUniverse" class="space-y-2 w-full">
+                    {% for universe in show.universes.all %}
+                    <button hx-post="{% url 'remove_from_universe' show.id %}"
+                            hx-vals='{"universe": "{{ universe.name }}"}'
+                            hx-swap="none"
+                            hx-indicator="this"
+                            hx-confirm="Are you sure you want to remove this from the '{{ universe.name }}' universe?"
+                            @htmx:after-request="if(event.detail.successful) { event.target.remove(); if(event.target.parentElement.querySelectorAll('button').length === 0) { hasUniverse = false; flipped = false; } }"
+                            class="w-full py-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/20 hover:border-rose-500/40 rounded-xl transition text-[9px] font-bold text-rose-400 uppercase tracking-widest flex items-center justify-center gap-1.5">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Remove from {{ universe.name }}
+                    </button>
+                    {% endfor %}
+                </div>
                 {% endif %}
 
                 <p class="text-[9px] text-gray-500 font-medium text-center">↩ Click anywhere to return to poster</p>

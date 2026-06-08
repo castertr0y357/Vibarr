@@ -15,6 +15,9 @@ class AIService:
     def identify_cross_media_bridge(self, title, media_type):
         return self.universe.identify_cross_media_bridge(title, media_type)
 
+    def analyze_universe_ecosystem(self, universes):
+        return self.universe.analyze_universe_ecosystem(universes)
+
     def vibe_search(self, query):
         return self.search.vibe_search(query)
 

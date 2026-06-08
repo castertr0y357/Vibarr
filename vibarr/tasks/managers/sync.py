@@ -54,6 +54,9 @@ def discover_universe_and_sync(show_id, library_ids=None):
     logger.info(f"Universe Architect - Info - Architecting the '{collection_name}' universe for '{show.title}'.")
     
     # Tag current show with universe
+    from ...models.universe import Universe
+    universe_obj, _ = Universe.objects.get_or_create(name=collection_name)
+    show.universes.add(universe_obj)
     show.universe_name = collection_name
     show.save()
     
@@ -261,6 +264,9 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'tasting_episodes_count': candidate['tasting_episodes_count']
                 }
             )
+            from ...models.universe import Universe
+            universe_obj, _ = Universe.objects.get_or_create(name=collection_name)
+            show_obj.universes.add(universe_obj)
 
             # Save Recommendation
             Recommendation.objects.update_or_create(
@@ -296,6 +302,10 @@ def discover_universe_and_sync(show_id, library_ids=None):
                     'sonarr_id': candidate.get('sonarr_id')
                 }
             )
+            from ...models.universe import Universe
+            universe_obj, _ = Universe.objects.get_or_create(name=collection_name)
+            show_obj.universes.add(universe_obj)
+
             Recommendation.objects.get_or_create(
                 suggested_show=show_obj,
                 defaults={'source_title': show.title, 'score': 5.0, 'reasoning': f"Part of {collection_name}."}
@@ -461,7 +471,7 @@ def reevaluate_universe_shows(universe_name):
     """
     from ...tasks.discovery.recommendations import reevaluate_single_show
 
-    shows = Show.objects.filter(universe_name=universe_name, state__in=[ShowState.SUGGESTED, ShowState.TASTING])
+    shows = Show.objects.filter(universes__name=universe_name, state__in=[ShowState.SUGGESTED, ShowState.TASTING]).distinct()
     logger.info(f"Universe Architect - Info - Starting on-demand reanalysis for universe: '{universe_name}' ({shows.count()} items)")
 
     count = 0
@@ -473,4 +483,73 @@ def reevaluate_universe_shows(universe_name):
             logger.error(f"Universe Architect - Error - On-demand reanalysis failed for show '{show.title}': {e}")
 
     logger.info(f"Universe Architect - Info - Completed on-demand reanalysis for universe: '{universe_name}' (Processed {count}/{shows.count()} items)")
+
+
+def analyze_universe_ecosystem_task():
+    """
+    Background task to analyze current universes and generate merge/alignment suggestions.
+    """
+    from ...models.universe import Universe, UniverseMergeSuggestion
+    from ...services.discovery.ai_service import AIService
+    
+    logger.info("Universe Alignment - Info - Starting background AI ecosystem analysis.")
+    
+    # 1. Gather all current universes that have items
+    universes = Universe.objects.prefetch_related('shows').all()
+    
+    universes_data = []
+    for universe in universes:
+        items = []
+        for show in universe.shows.all():
+            items.append({
+                "title": show.title,
+                "type": show.media_type
+            })
+        if items:
+            universes_data.append({
+                "name": universe.name,
+                "items": items
+            })
+            
+    if not universes_data:
+        logger.info("Universe Alignment - Info - No universes to analyze.")
+        UniverseMergeSuggestion.objects.all().delete()
+        return
+        
+    try:
+        ai = AIService()
+        suggestions = ai.analyze_universe_ecosystem(universes_data)
+        
+        from django.db import transaction
+        with transaction.atomic():
+            UniverseMergeSuggestion.objects.all().delete()
+            
+            created_count = 0
+            for sug in suggestions:
+                src_name = sug.get('source_universe')
+                tgt_name = sug.get('target_universe')
+                confidence = sug.get('confidence', 5)
+                reasoning = sug.get('reasoning', '')
+                
+                if not src_name or not tgt_name or src_name == tgt_name:
+                    continue
+                    
+                try:
+                    src_univ = Universe.objects.get(name=src_name)
+                    tgt_univ = Universe.objects.get(name=tgt_name)
+                    
+                    UniverseMergeSuggestion.objects.create(
+                        source_universe=src_univ,
+                        target_universe=tgt_univ,
+                        confidence=confidence,
+                        reasoning=reasoning
+                    )
+                    created_count += 1
+                except Universe.DoesNotExist:
+                    logger.warning(f"Universe Alignment - Warning - AI recommended merging '{src_name}' into '{tgt_name}', but one of them does not exist in DB.")
+                    continue
+                    
+            logger.info(f"Universe Alignment - Info - Completed background AI analysis. Generated {created_count} suggestions.")
+    except Exception as e:
+        logger.error(f"Universe Alignment - Error - AI ecosystem analysis failed: {e}")
 

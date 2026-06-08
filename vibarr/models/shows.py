@@ -33,6 +33,7 @@ class Show(models.Model):
     tasting_episodes_count = models.IntegerField(default=3, help_text="Number of episodes to download for tasting")
     streaming_providers = models.TextField(null=True, blank=True)
     universe_name = models.TextField(null=True, blank=True, db_index=True)
+    universes = models.ManyToManyField('Universe', related_name='shows', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -40,6 +41,14 @@ class Show(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['tmdb_id', 'media_type'], name='unique_tmdb_id_media_type')
         ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.universe_name:
+            from .universe import Universe
+            universe, _ = Universe.objects.get_or_create(name=self.universe_name)
+            if not self.universes.filter(id=universe.id).exists():
+                self.universes.add(universe)
 
     def __str__(self):
         return self.title

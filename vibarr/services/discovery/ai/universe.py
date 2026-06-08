@@ -42,3 +42,38 @@ class AIUniverseService(AIBaseService):
         """
         content = self._post(prompt, temperature=0.3, json_mode=True)
         return self._parse_json_response(content, {"title": None})
+
+    def analyze_universe_ecosystem(self, universes):
+        """Analyzes current universes and suggests merges for alignment."""
+        import json
+        prompt = f"""
+        You are the Cinematic Universe Architect. You are analyzing a list of user-defined 'Cinematic Universes' to find potential fragmentation, overlaps, and redundancy, and recommend merges to align them.
+        
+        Here are the current universes and their titles:
+        {json.dumps(universes, indent=2)}
+        
+        Identify which universes should be merged/combined.
+        (e.g., if there is a 'Sony's Spider-Man Universe' and a 'Marvel Cinematic Universe', or separate entries for sequels/spin-offs like 'Star Wars' and 'The Mandalorian' that should be consolidated).
+        
+        Rules:
+        1. Only suggest a merge if there is a strong canonical or narrative continuity link between them.
+        2. A merge suggestion MUST specify the "source_universe" (the name of the universe to be merged) and the "target_universe" (the name of the universe to merge it into). Both MUST be exact names from the list provided above.
+        3. Do not suggest merging unrelated universes (e.g. do not merge Marvel and Star Wars).
+        4. For each suggestion, provide a "confidence" score (integer 1-10) and a clear "reasoning" text explaining the crossover/link.
+        
+        Return a JSON list of objects:
+        [
+          {{
+            "source_universe": "Name of Source",
+            "target_universe": "Name of Target",
+            "confidence": 8,
+            "reasoning": "Detailed explanation..."
+          }}
+        ]
+        
+        If no merges are recommended, return an empty list: [].
+        Return ONLY valid JSON.
+        """
+        content = self._post(prompt, temperature=0.3, json_mode=True)
+        return self._parse_json_response(content, [])
+

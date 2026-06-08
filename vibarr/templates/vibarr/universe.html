@@ -31,7 +31,7 @@
     }
 </style>
 
-<div class="space-y-12">
+<div id="universe-page-container" class="space-y-12" hx-get="{% url 'universe_architect_list' %}" hx-trigger="refresh-universes from:body" hx-select="#universe-page-container" hx-target="self" hx-swap="outerHTML">
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
             <h2 class="text-4xl font-black text-white tracking-tight">Universe <span class="text-rose-500">Architect</span></h2>
@@ -43,10 +43,120 @@
             Trigger Discovery
         </button>
     </div>
+
+    <!-- Ecosystem Health & Manual Combine Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- AI Ecosystem Alignment suggestions -->
+        <div class="lg:col-span-2 glass p-6 rounded-3xl border border-white/5 space-y-6 flex flex-col justify-between">
+            <div class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <span class="flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+                            AI Ecosystem Alignment
+                        </h3>
+                        <p class="text-xs text-gray-500">Suggested merges to consolidate fragmented continuities.</p>
+                    </div>
+                    <button hx-post="{% url 'analyze_universe_ecosystem' %}" 
+                            hx-swap="none"
+                            class="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl text-[10px] font-black text-rose-400 uppercase tracking-widest transition-all flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        Scan Ecosystem
+                    </button>
+                </div>
+
+                <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2 scroll-hide">
+                    {% if not suggestions %}
+                    <div class="text-center py-12 text-gray-500 text-xs">
+                        No active alignment recommendations. Run a scan to analyze your universes.
+                    </div>
+                    {% else %}
+                        {% for suggestion in suggestions %}
+                        <div class="glass p-4 rounded-2xl border border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-rose-500/10 transition-colors">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs font-bold text-gray-300">{{ suggestion.source_universe.name }}</span>
+                                    <svg class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                    <span class="text-xs font-bold text-white">{{ suggestion.target_universe.name }}</span>
+                                    <span class="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                        Conf: {{ suggestion.confidence }}/10
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-gray-400 leading-relaxed italic">"{{ suggestion.reasoning }}"</p>
+                            </div>
+                            <div class="flex items-center gap-3 shrink-0 self-end md:self-auto">
+                                <button hx-post="{% url 'merge_universes' %}" 
+                                        hx-vals='{"source_universe": "{{ suggestion.source_universe.name }}", "target_universe": "{{ suggestion.target_universe.name }}"}' 
+                                        hx-swap="none"
+                                        hx-confirm="Are you sure you want to merge '{{ suggestion.source_universe.name }}' into '{{ suggestion.target_universe.name }}'?"
+                                        class="px-3.5 py-1.5 bg-rose-500 hover:bg-rose-600 rounded-xl text-[9px] font-black text-white uppercase tracking-wider transition-all">
+                                    Apply Merge
+                                </button>
+                                <button hx-post="{% url 'dismiss_suggestion' suggestion.id %}" 
+                                        hx-swap="none"
+                                        hx-confirm="Dismiss this suggestion?"
+                                        class="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl text-[9px] font-black text-gray-400 hover:text-white uppercase tracking-wider transition-all">
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Merge tool -->
+        <div class="glass p-6 rounded-3xl border border-white/5 flex flex-col justify-between space-y-6">
+            <div>
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    Manual Merge Tool
+                </h3>
+                <p class="text-xs text-gray-500 mt-1">Combine two universes manually or rename/consolidate under a new name.</p>
+            </div>
+
+            <form hx-post="{% url 'merge_universes' %}" hx-swap="none" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Source Universe</label>
+                    <select name="source_universe" required class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 transition">
+                        <option value="" disabled selected>Select universe to merge...</option>
+                        {% for u in all_universes %}
+                            <option value="{{ u.name }}">{{ u.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="space-y-1" x-data="{ newTarget: false }">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target Universe</label>
+                        <button type="button" @click="newTarget = !newTarget" class="text-[9px] text-rose-400 font-bold hover:text-rose-300">
+                            <span x-text="newTarget ? 'Select Existing' : 'Create New'">Create New</span>
+                        </button>
+                    </div>
+                    <div x-show="!newTarget">
+                        <select name="target_universe" :required="!newTarget" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 transition">
+                            <option value="" disabled selected>Select target universe...</option>
+                            {% for u in all_universes %}
+                                <option value="{{ u.name }}">{{ u.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div x-show="newTarget">
+                        <input type="text" name="custom_target_universe" :required="newTarget" placeholder="Type new universe name..." class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-rose-500 transition">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all">
+                    Merge Universes
+                </button>
+            </form>
+        </div>
+    </div>
     
     <div id="universe-list-container" 
          hx-get="{% url 'universe_architect_list' %}?partial=true" 
-         hx-trigger="sync-complete from:body">
+         hx-trigger="sync-complete from:body, refresh-universes from:body">
         {% include 'vibarr/partials/universe_list.html' %}
     </div>
 </div>
