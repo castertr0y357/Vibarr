@@ -4,7 +4,7 @@
 {% block section_name %}Intelligence Profile{% endblock %}
 
 {% block settings_section %}
-<div class="space-y-8" x-data="{ useAI: {% if config.use_ai_recommendations %}true{% else %}false{% endif %}, enableAutoTasting: {% if config.enable_auto_tasting %}true{% else %}false{% endif %} }">
+<div class="space-y-8" x-data="{ useAI: {% if config.use_ai_recommendations %}true{% else %}false{% endif %}, enableAutoTasting: {% if config.enable_auto_tasting %}true{% else %}false{% endif %}, aiThinking: {% if config.ai_thinking %}true{% else %}false{% endif %} }">
     <!-- Metadata APIs -->
     <section class="glass p-8 rounded-3xl space-y-6">
         <div class="pb-4 border-b border-white/5">
@@ -125,6 +125,28 @@
                 <div class="space-y-2" x-show="enableAutoTasting" x-transition>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase">Auto-Tasting Threshold (0-10)</label>
                     <input type="number" name="auto_tasting_threshold" value="{{ config.auto_tasting_threshold }}" step="0.1" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div>
+                        <h4 class="text-white font-bold text-sm">AI Thinking (Reasoning)</h4>
+                        <p class="text-[9px] text-gray-500">Enable model thinking/reasoning for complex analysis (e.g. o1/o3/Claude 3.7).</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="ai_thinking" class="sr-only peer" x-model="aiThinking" {% if config.ai_thinking %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+                
+                <div class="space-y-2" x-show="aiThinking" x-transition>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase">Thinking Effort</label>
+                    <select name="ai_thinking_effort" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        <option value="low" {% if config.ai_thinking_effort == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if config.ai_thinking_effort == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if config.ai_thinking_effort == 'high' %}selected{% endif %}>High</option>
+                    </select>
                 </div>
             </div>
         </div>

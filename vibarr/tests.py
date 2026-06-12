@@ -840,4 +840,58 @@ class LibraryStatusTestCase(VibarrTestCase):
         self.assertTrue(show.is_downloaded)
         self.assertTrue(movie.is_downloaded)
 
+class AIThinkingTestCase(VibarrTestCase):
+    def test_default_thinking_fields(self) -> None:
+        config = AppConfig.get_solo()
+        self.assertFalse(config.ai_thinking)
+        self.assertEqual(config.ai_thinking_effort, "medium")
+
+    def test_prepare_payload_thinking_disabled(self) -> None:
+        from .services.discovery.ai.base import AIBaseService
+        
+        config = AppConfig.get_solo()
+        config.ai_thinking = False
+        config.ai_model = "gpt-4o"
+        config.ai_api_url = "https://api.openai.com/v1"
+        config.save()
+        
+        service = AIBaseService()
+        payload = {
+            "model": "gpt-4o",
+            "messages": [{"role": "user", "content": "hello"}],
+            "temperature": 0.5
+        }
+        prepared = service._prepare_payload(payload, json_mode=True)
+        
+        # Check standard gpt JSON mode formatting applied
+        self.assertEqual(prepared["response_format"], {"type": "json_object"})
+        # Check thinking keys not added
+        self.assertNotIn("reasoning_effort", prepared)
+        self.assertNotIn("thinking", prepared)
+        self.assertEqual(prepared["temperature"], 0.5)
+
+    def test_prepare_payload_thinking_enabled(self) -> None:
+        from .services.discovery.ai.base import AIBaseService
+        
+        config = AppConfig.get_solo()
+        config.ai_thinking = True
+        config.ai_thinking_effort = "high"
+        config.ai_model = "claude-3-7-sonnet"
+        config.ai_api_url = "https://api.anthropic.com/v1"
+        config.save()
+        
+        service = AIBaseService()
+        payload = {
+            "model": "claude-3-7-sonnet",
+            "messages": [{"role": "user", "content": "hello"}],
+            "temperature": 0.5
+        }
+        prepared = service._prepare_payload(payload, json_mode=False)
+        
+        # Check thinking settings added
+        self.assertEqual(prepared["reasoning_effort"], "high")
+        self.assertEqual(prepared["thinking"], {"type": "enabled", "budget_tokens": 4096})
+        # Check temperature overridden to 1.0
+        self.assertEqual(prepared["temperature"], 1.0)
+
 

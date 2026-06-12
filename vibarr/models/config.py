@@ -69,6 +69,13 @@ class AppConfig(models.Model):
     ai_api_url = models.URLField(default="http://localhost:11434/v1/chat/completions")
     ai_model = models.CharField(max_length=100, default="gemma3:4b")
     ai_api_key = models.CharField(max_length=255, null=True, blank=True, help_text="Optional API Key for remote instances")
+    ai_thinking = models.BooleanField(default=False, help_text="Enable thinking/reasoning effort for compatible models (e.g. o1, o3-mini, Claude 3.7).")
+    ai_thinking_effort = models.CharField(
+        max_length=20, 
+        default="medium", 
+        choices=[("low", "Low"), ("medium", "Medium"), ("high", "High")], 
+        help_text="Thinking effort for compatible reasoning models."
+    )
     
     # Content Filtering
     tmdb_region = models.CharField(max_length=2, default="US", help_text="ISO-3166-1 region code for ratings and availability")

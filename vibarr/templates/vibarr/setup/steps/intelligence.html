@@ -58,6 +58,28 @@
                     <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Model Name</label>
                     <input type="text" name="ai_model" value="{{ config.ai_model|default:'llama3' }}" placeholder="llama3" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
                 </div>
+
+                <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <div>
+                        <h4 class="text-white font-bold text-sm">AI Thinking (Reasoning)</h4>
+                        <p class="text-[9px] text-gray-500">Enable model thinking/reasoning for complex analysis (e.g. o1/o3/Claude 3.7).</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="ai_thinking" class="sr-only peer" 
+                               {% if config.ai_thinking %}checked{% endif %}
+                               onchange="document.getElementById('wizard-ai-effort-group').classList.toggle('hidden', !this.checked)">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+                
+                <div id="wizard-ai-effort-group" class="space-y-3 {% if not config.ai_thinking %}hidden{% endif %}">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">Thinking Effort</label>
+                    <select name="ai_thinking_effort" class="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-rose-500 transition">
+                        <option value="low" {% if config.ai_thinking_effort == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if config.ai_thinking_effort == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if config.ai_thinking_effort == 'high' %}selected{% endif %}>High</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>

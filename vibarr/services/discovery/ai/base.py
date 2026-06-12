@@ -14,6 +14,8 @@ class AIBaseService:
         self.url = config.ai_api_url
         self.model = config.ai_model
         self.api_key = config.ai_api_key
+        self.ai_thinking = getattr(config, 'ai_thinking', False)
+        self.ai_thinking_effort = getattr(config, 'ai_thinking_effort', 'medium')
         
         self.headers = {
             "Content-Type": "application/json"
@@ -176,6 +178,35 @@ class AIBaseService:
         logger.error(f"AI Integration - Error - JSON parse failed. Raw content (truncated): {content[:500]}")
         return default
 
+    def _prepare_payload(self, payload, json_mode=False):
+        """Prepares the request payload by applying JSON formatting and AI thinking preferences."""
+        if json_mode:
+            if "gpt-" in self.model.lower():
+                payload["response_format"] = { "type": "json_object" }
+            if "localhost" in self.url or "11434" in self.url:
+                payload["format"] = "json"
+
+        if getattr(self, 'ai_thinking', False):
+            # 1. Standard OpenAI reasoning_effort
+            payload["reasoning_effort"] = getattr(self, 'ai_thinking_effort', 'medium')
+            
+            # 2. Anthropic style thinking parameters
+            budget_map = {
+                "low": 1024,
+                "medium": 2048,
+                "high": 4096
+            }
+            budget = budget_map.get(getattr(self, 'ai_thinking_effort', 'medium'), 2048)
+            payload["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": budget
+            }
+            
+            # 3. Handle temperature restriction for thinking models
+            payload["temperature"] = 1.0
+            
+        return payload
+
     def _post(self, prompt, temperature=0.3, timeout=60, json_mode=False):
         payload = {
             "model": self.model,
@@ -184,11 +215,7 @@ class AIBaseService:
             "chat_id": ""
         }
         
-        if json_mode:
-            if "gpt-" in self.model.lower():
-                payload["response_format"] = { "type": "json_object" }
-            if "localhost" in self.url or "11434" in self.url:
-                payload["format"] = "json"
+        payload = self._prepare_payload(payload, json_mode=json_mode)
 
         try:
             response = self._session.post(self.url, headers=self.headers, json=payload, timeout=timeout)

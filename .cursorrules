@@ -114,6 +114,14 @@ All generated code must be clean, maintainable, and production-ready.
     - Ensure all user interface applications are designed to dynamically render changes, page content, and state transitions without forcing a full page refresh.
     - Maintain standard multi-page and deep-linking capabilities by combining technologies like HTMX, Alpine.js, or custom JavaScript pushState/history API controls. Navigation and dynamic layout shifts must preserve clean browser histories and distinct shareable URLs, delivering a fluid, single-page app feel while retaining searchability and page structures.
 
+24. **Coolify Deployments & Production Volume Mounts**:
+    - When deploying to Coolify or similar containerized orchestration platforms, keep all local development volume mounts (such as mounting the source code `- .:/app`) exclusively in `docker-compose.override.yml`. The main `docker-compose.yml` file must never contain runtime volume mounts that map local host files into the container. Under Coolify, the host repository's file structure is not mounted automatically; hence a volume mount in `docker-compose.yml` will overwrite the container's baked-in code with stale, empty, or missing directories from the host, causing silent or diagnostic-less deployment failures.
+
+25. **CSRF & SSL Termination behind Reverse Proxies**:
+    - When applications are deployed behind reverse proxies (like Coolify's default Traefik router or Nginx reverse proxies), CSRF origin verification can fail if the proxy terminates SSL and forwards requests to the application server over HTTP (causing an HTTPS/HTTP origin scheme mismatch). Always ensure:
+      - `CSRF_TRUSTED_ORIGINS` is parameterized via environment variables and includes both `http://` and `https://` schemas for the production domain.
+      - A custom CSRF middleware or setting (like matching the request host header against the origin hostname) is configured to handle reverse-proxy setups correctly without exposing the app to security vulnerabilities.
+
 ## 💡 Token & Quota Conservation Rules
 To maintain high speed and prevent burning through API limits:
 

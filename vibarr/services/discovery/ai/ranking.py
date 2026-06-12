@@ -209,7 +209,7 @@ class AIRankingService(AIBaseService):
             "temperature": 0.7,
             "chat_id": ""
         }
-        if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
+        payload = self._prepare_payload(payload, json_mode=True)
 
         try:
             response = requests.post(self.url, headers=self.headers, json=payload, timeout=120)
@@ -274,7 +274,7 @@ class AIRankingService(AIBaseService):
             "temperature": 0.3, # Lower temperature for more consistent scoring
             "chat_id": ""
         }
-        if "localhost" in self.url or "11434" in self.url: payload["format"] = "json"
+        payload = self._prepare_payload(payload, json_mode=True)
 
         try:
             response = requests.post(self.url, headers=self.headers, json=payload, timeout=180)

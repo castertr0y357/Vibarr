@@ -149,6 +149,7 @@ class UpdateSettingsView(View):
             'use_ai_recommendations', 'enable_auto_tasting',
             'auto_tasting_threshold',
             'ai_api_url', 'ai_model', 'ai_api_key',
+            'ai_thinking', 'ai_thinking_effort',
             'h_rating_weight', 'h_popularity_weight', 'h_genre_weight',
             'h_keyword_weight', 'h_seerr_weight', 'h_seerr_tag_weight', 'h_collection_weight',
             'trakt_client_id', 'trakt_username',

@@ -86,6 +86,8 @@ class SetupActionView(View):
             config.use_ai_recommendations = request.POST.get('use_ai') == 'on'
             config.ai_api_url = request.POST.get('ai_url')
             config.ai_model = request.POST.get('ai_model')
+            config.ai_thinking = request.POST.get('ai_thinking') == 'on'
+            config.ai_thinking_effort = request.POST.get('ai_thinking_effort') or 'medium'
             config.setup_complete = True
             config.save()
             return render(request, 'vibarr/setup/steps/finish.html', {'config': config})
