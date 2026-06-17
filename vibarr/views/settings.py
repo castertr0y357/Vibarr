@@ -118,7 +118,12 @@ class SettingsView(ConfigMixin, TemplateView):
             context['personas'] = Persona.objects.all()
             
         elif section == 'security':
-            context['api_keys'] = APIKey.objects.all()
+            context['api_keys'] = APIKey.objects.filter(deleted_at__isnull=True).order_by('-created_at')
+            new_raw_key = self.request.session.pop('new_raw_key', None)
+            new_key_id = self.request.session.pop('new_key_id', None)
+            if new_raw_key:
+                context['new_raw_key'] = new_raw_key
+                context['new_key_id'] = new_key_id
             
         return context
 
@@ -304,9 +309,9 @@ class RefreshMetadataView(View):
             response['HX-Trigger'] = '{"show-toast": {"message": "Deep Metadata Refresh started in background", "type": "success"}}'
             return response
         
-        count = refresh_metadata_backlog(full_sweep=False)
-        response = HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Refreshed {count} items</span>')
-        response['HX-Trigger'] = f'{{"show-toast": {{"message": "Successfully refreshed {count} items", "type": "success"}}}}'
+        async_task('vibarr.tasks.discovery.recommendations.refresh_metadata_backlog', full_sweep=False)
+        response = HttpResponse('<span class="text-green-500 font-bold text-[10px]">Refresh Started in Background</span>')
+        response['HX-Trigger'] = '{"show-toast": {"message": "Metadata Refresh started in background", "type": "success"}}'
         return response
 
 class RevaluateRecommendationsView(View):
@@ -339,9 +344,9 @@ class ImportTraktTastesView(View):
                 
             try:
                 content = csv_file.read().decode('utf-8', errors='ignore')
-                count = import_trakt_csv(content)
-                response = HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Imported {count} items from CSV</span>')
-                response['HX-Trigger'] = f'{{"show-toast": {{"message": "Successfully imported {count} items from CSV", "type": "success"}}}}'
+                async_task('vibarr.tasks.discovery.recommendations.import_trakt_csv_task', content)
+                response = HttpResponse('<span class="text-green-500 font-bold text-[10px]">CSV Import Started in Background</span>')
+                response['HX-Trigger'] = '{"show-toast": {"message": "CSV Import started in background", "type": "success"}}'
                 return response
             except Exception as e:
                 logger.error(f"Settings - Error - Trakt CSV import failed: {e}")
@@ -357,13 +362,9 @@ class ImportTraktTastesView(View):
             return response
 
         try:
-            # Sync history and watchlist
-            history_count = import_trakt_history_from_api(username)
-            watchlist_count = import_trakt_watchlist_from_api(username)
-            total = history_count + watchlist_count
-            
-            response = HttpResponse(f'<span class="text-green-500 font-bold text-[10px]">Imported {total} items from API</span>')
-            response['HX-Trigger'] = f'{{"show-toast": {{"message": "Successfully synced {history_count} history and {watchlist_count} watchlist items from Trakt", "type": "success"}}}}'
+            async_task('vibarr.tasks.discovery.recommendations.sync_trakt_user_task', username)
+            response = HttpResponse('<span class="text-green-500 font-bold text-[10px]">Trakt Sync Started in Background</span>')
+            response['HX-Trigger'] = '{"show-toast": {"message": "Trakt Sync started in background", "type": "success"}}'
             return response
         except Exception as e:
             logger.error(f"Settings - Error - Trakt API import failed: {e}")

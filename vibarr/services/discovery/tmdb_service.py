@@ -33,6 +33,47 @@ class TMDBService:
             return False
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):
+        if getattr(settings, 'MOCK_MODE', False):
+            if "configuration" in endpoint:
+                return {"images": {"base_url": "http://image.tmdb.org/t/p/", "secure_base_url": "https://image.tmdb.org/t/p/"}}
+            elif "search/tv" in endpoint:
+                return {"results": [{"id": 1, "name": "Mock TV Show", "overview": "Mock Overview", "first_air_date": "2020-01-01"}]}
+            elif "search/movie" in endpoint:
+                return {"results": [{"id": 2, "title": "Mock Movie", "overview": "Mock Overview", "release_date": "2020-01-01"}]}
+            elif "recommendations" in endpoint:
+                return {"results": [{"id": 101, "name": "Similar Show", "title": "Similar Show", "overview": "Overview"}]}
+            elif "tv/" in endpoint:
+                return {
+                    "id": 1,
+                    "name": "Mock Show details",
+                    "overview": "Overview of mock show",
+                    "content_ratings": {"results": [{"iso_3166_1": self.region, "rating": "TV-14"}]},
+                    "keywords": {"results": [{"id": 1, "name": "violence"}]},
+                    "watch/providers": {"results": {self.region: {"flatrate": [{"provider_name": "Netflix"}]}}},
+                    "external_ids": {"imdb_id": "tt1234567"},
+                    "genres": [{"id": 18, "name": "Drama"}],
+                    "first_air_date": "2020-01-01"
+                }
+            elif "movie/" in endpoint:
+                return {
+                    "id": 2,
+                    "title": "Mock Movie details",
+                    "overview": "Overview of mock movie",
+                    "release_dates": {"results": [{"iso_3166_1": self.region, "release_dates": [{"certification": "PG-13"}]}]},
+                    "keywords": {"keywords": [{"id": 1, "name": "violence"}]},
+                    "watch/providers": {"results": {self.region: {"flatrate": [{"provider_name": "Netflix"}]}}},
+                    "external_ids": {"imdb_id": "tt1234567"},
+                    "genres": [{"id": 18, "name": "Drama"}],
+                    "release_date": "2020-01-01"
+                }
+            elif "collection/" in endpoint:
+                return {"parts": []}
+            elif "genre/" in endpoint:
+                return {"genres": [{"id": 18, "name": "Drama"}]}
+            elif "discover/" in endpoint:
+                return {"results": []}
+            return {}
+
         if cache_key:
             # Sanitize cache key for backends like memcached
             cache_key = cache_key.replace(':', '_').replace(' ', '_').replace('(', '').replace(')', '')

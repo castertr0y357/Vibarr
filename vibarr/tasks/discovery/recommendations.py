@@ -522,3 +522,35 @@ def reevaluate_single_show(show):
             promoted = True
             
     return rec, promoted
+
+def reevaluate_single_show_task(show_id):
+    """Asynchronous wrapper task to reevaluate a single show."""
+    from ...models import Show
+    from django.core.cache import cache
+    try:
+        show = Show.objects.get(id=show_id)
+        reevaluate_single_show(show)
+    finally:
+        # Clear the rescoring cache marker when done
+        cache.delete(f"rescoring_{show_id}")
+
+def import_trakt_csv_task(content: str):
+    """Asynchronous task to import Trakt CSV data."""
+    from ...services.discovery.trakt_import import import_trakt_csv
+    logger.info("Trakt Importer - Info - Starting background Trakt CSV import.")
+    try:
+        count = import_trakt_csv(content)
+        logger.info(f"Trakt Importer - Info - Finished background Trakt CSV import. Imported {count} items.")
+    except Exception as e:
+        logger.error(f"Trakt Importer - Error - Background Trakt CSV import failed: {e}")
+
+def sync_trakt_user_task(username: str):
+    """Asynchronous task to sync Trakt user history and watchlist."""
+    from ...services.discovery.trakt_import import import_trakt_history_from_api, import_trakt_watchlist_from_api
+    logger.info(f"Trakt Importer - Info - Starting background Trakt sync for username '{username}'.")
+    try:
+        history_count = import_trakt_history_from_api(username)
+        watchlist_count = import_trakt_watchlist_from_api(username)
+        logger.info(f"Trakt Importer - Info - Finished background Trakt sync for '{username}'. Imported {history_count} history and {watchlist_count} watchlist items.")
+    except Exception as e:
+        logger.error(f"Trakt Importer - Error - Background Trakt sync failed for '{username}': {e}")

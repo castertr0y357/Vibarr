@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     curl \
     gosu \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
@@ -44,5 +45,7 @@ RUN useradd -m vibarr && \
 COPY --chown=vibarr:vibarr . /app/
 
 RUN chmod +x /app/entrypoint.sh
+
+USER vibarr
 
 ENTRYPOINT ["/app/entrypoint.sh"]

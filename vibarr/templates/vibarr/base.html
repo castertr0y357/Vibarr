@@ -20,12 +20,37 @@
             display: none; /* Chrome, Safari and Opera */
         }
         :root {
-            --rose: #e94560;
-            --rose-glow: rgba(233, 69, 96, 0.3);
-            --bg-dark: #0f172a;
-            --bg-sidebar: #1e293b;
-            --movie: #e9a820;
-            --show: #00a1ff;
+            --rose-h: 351;
+            --rose-s: 80%;
+            --rose-l: 60%;
+            --rose: hsl(var(--rose-h), var(--rose-s), var(--rose-l));
+            --rose-glow: hsla(var(--rose-h), var(--rose-s), var(--rose-l), 0.3);
+            
+            --bg-dark-h: 222;
+            --bg-dark-s: 47%;
+            --bg-dark-l: 11%;
+            --bg-dark: hsl(var(--bg-dark-h), var(--bg-dark-s), var(--bg-dark-l));
+            
+            --bg-sidebar-h: 217;
+            --bg-sidebar-s: 33%;
+            --bg-sidebar-l: 17%;
+            --bg-sidebar: hsl(var(--bg-sidebar-h), var(--bg-sidebar-s), var(--bg-sidebar-l));
+            
+            --movie-h: 41;
+            --movie-s: 86%;
+            --movie-l: 52%;
+            --movie: hsl(var(--movie-h), var(--movie-s), var(--movie-l));
+            
+            --show-h: 202;
+            --show-s: 100%;
+            --show-l: 50%;
+            --show: hsl(var(--show-h), var(--show-s), var(--show-l));
+        }
+
+        /* Focus Outlines */
+        *:focus-visible {
+            outline: 2px solid var(--rose);
+            outline-offset: 2px;
         }
         body {
             font-family: 'Outfit', sans-serif;
@@ -122,7 +147,45 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
-<body class="flex flex-col md:flex-row min-h-screen" x-data="{ mobileMenuOpen: false }">
+<body class="flex flex-col md:flex-row min-h-screen" 
+      x-data="{ 
+          mobileMenuOpen: false, 
+          cmdPaletteOpen: false, 
+          cmdQuery: '', 
+          activeIndex: 0, 
+          cmdItems: [
+              { name: 'Overview / Dashboard', url: '{% url 'dashboard' %}', category: 'Navigation' },
+              { name: 'Discovery Feed', url: '{% url 'discoveries_list' %}', category: 'Navigation' },
+              { name: 'Active Tastings', url: '{% url 'tastings_list' %}', category: 'Navigation' },
+              {% if config.universe_page_enabled %}
+              { name: 'Universes List', url: '{% url 'universe_architect_list' %}', category: 'Navigation' },
+              {% endif %}
+              { name: 'Vibe Search', url: '{% url 'vibe_search_page' %}', category: 'Navigation' },
+              { name: 'Watch History', url: '{% url 'history_view' %}', category: 'Navigation' },
+              { name: 'Settings - General', url: '{% url 'settings_general' %}', category: 'Settings' },
+              { name: 'Settings - Media Servers', url: '{% url 'settings_servers' %}', category: 'Settings' },
+              { name: 'Settings - Automation Managers', url: '{% url 'settings_automation' %}', category: 'Settings' },
+              { name: 'Settings - AI Intelligence', url: '{% url 'settings_intelligence' %}', category: 'Settings' },
+              { name: 'Settings - Governance / Rules', url: '{% url 'settings_governance' %}', category: 'Settings' },
+              { name: 'Settings - Household Profiles', url: '{% url 'settings_household' %}', category: 'Settings' },
+              { name: 'Settings - Security / API Keys', url: '{% url 'settings_security' %}', category: 'Settings' },
+              { name: 'System Logs', url: '{% url 'logs_view' %}', category: 'System' },
+              { name: 'About Vibarr', url: '{% url 'about' %}', category: 'System' }
+          ],
+          filteredItems() {
+              if (!this.cmdQuery) return this.cmdItems;
+              return this.cmdItems.filter(item => item.name.toLowerCase().includes(this.cmdQuery.toLowerCase()));
+          },
+          navigateSelected() {
+              const items = this.filteredItems();
+              if (items.length > 0 && this.activeIndex >= 0 && this.activeIndex < items.length) {
+                  window.location.href = items[this.activeIndex].url;
+              }
+          }
+      }"
+      @keydown.window.prevent.cmd.k="cmdPaletteOpen = true; cmdQuery = ''; activeIndex = 0; $nextTick(() => $refs.cmdInput.focus())"
+      @keydown.window.prevent.ctrl.k="cmdPaletteOpen = true; cmdQuery = ''; activeIndex = 0; $nextTick(() => $refs.cmdInput.focus())"
+>
 
     <!-- Mobile Header -->
     <header class="md:hidden flex justify-between items-center bg-black/40 backdrop-blur-xl border-b border-white/5 px-6 py-4 sticky top-0 z-40">
@@ -315,7 +378,116 @@
                 event.detail.headers['X-CSRFToken'] = tokenEl.value;
             }
         });
+
+        // --- Double-Submit Button Disabler & Spinner for Write Requests ---
+        document.body.addEventListener('htmx:beforeRequest', function(evt) {
+            const trigger = evt.detail.elt;
+            if (trigger) {
+                const method = evt.detail.headers['X-HTTP-Method-Override'] || evt.detail.requestConfig.method;
+                if (['POST', 'PUT', 'DELETE'].includes(method.toUpperCase())) {
+                    let btn = trigger;
+                    if (trigger.tagName === 'FORM') {
+                        btn = trigger.querySelector('button[type="submit"]');
+                    }
+                    if (btn && btn.tagName === 'BUTTON' && !btn.hasAttribute('data-loading')) {
+                        btn.setAttribute('data-original-html', btn.innerHTML);
+                        btn.setAttribute('disabled', 'true');
+                        btn.setAttribute('data-loading', 'true');
+                        btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-current inline" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg> Processing...`;
+                    }
+                }
+            }
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(evt) {
+            const trigger = evt.detail.elt;
+            if (trigger) {
+                let btn = trigger;
+                if (trigger.tagName === 'FORM') {
+                    btn = trigger.querySelector('button[type="submit"]');
+                }
+                if (btn && btn.getAttribute('data-loading') === 'true') {
+                    btn.innerHTML = btn.getAttribute('data-original-html');
+                    btn.removeAttribute('disabled');
+                    btn.removeAttribute('data-loading');
+                    btn.removeAttribute('data-original-html');
+                }
+            }
+        });
     </script>
+
+    <!-- Alpine.js Command Palette Modal -->
+    <div x-show="cmdPaletteOpen" 
+         x-cloak 
+         class="fixed inset-0 z-[100] flex items-start justify-center pt-[10vh] px-4 overflow-y-auto"
+         @keydown.escape.window="cmdPaletteOpen = false">
+        
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-md transition-opacity" 
+             @click="cmdPaletteOpen = false"></div>
+        
+        <!-- Palette Container -->
+        <div class="relative w-full max-w-xl rounded-2xl border border-white/10 bg-[#0f172a]/95 text-slate-200 shadow-2xl glass overflow-hidden animate-fade-in"
+             @click.away="cmdPaletteOpen = false">
+            
+            <!-- Input Area -->
+            <div class="flex items-center px-4 border-b border-white/5 bg-slate-900/50">
+                <svg class="w-5 h-5 text-slate-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input x-ref="cmdInput"
+                       type="text" 
+                       x-model="cmdQuery" 
+                       @keydown.down.prevent="activeIndex = filteredItems().length > 0 ? (activeIndex + 1) % filteredItems().length : 0"
+                       @keydown.up.prevent="activeIndex = filteredItems().length > 0 ? (activeIndex - 1 + filteredItems().length) % filteredItems().length : 0"
+                       @keydown.enter.prevent="navigateSelected()"
+                       class="w-full bg-transparent py-4 text-sm text-white focus:outline-none placeholder-slate-500" 
+                       placeholder="Type a command or page name to navigate..." />
+                <span class="text-[10px] font-bold text-slate-500 bg-white/5 border border-white/10 px-2 py-1 rounded">ESC</span>
+            </div>
+            
+            <!-- Items list -->
+            <div class="max-h-[300px] overflow-y-auto p-2 scroll-hide">
+                <template x-if="filteredItems().length === 0">
+                    <div class="p-4 text-sm text-slate-500 text-center">No matching commands or pages found.</div>
+                </template>
+                <template x-for="(item, index) in filteredItems()" :key="item.name">
+                    <div @click="window.location.href = item.url"
+                         @mouseenter="activeIndex = index"
+                         :class="{ 'bg-[#e94560]/10 text-[#e94560] border-l-2 border-[#e94560]': activeIndex === index, 'border-l-2 border-transparent': activeIndex !== index }"
+                         class="flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-colors duration-150">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-4 h-4 opacity-65" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                            <span class="text-sm font-medium" x-text="item.name"></span>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold tracking-wider opacity-40 px-2 py-0.5 rounded bg-white/5" x-text="item.category"></span>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Footer -->
+            <div class="px-4 py-2 bg-slate-900/30 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500">
+                <div class="flex items-center space-x-2">
+                    <span>Use</span>
+                    <span class="bg-white/5 border border-white/10 px-1 rounded">↓↑</span>
+                    <span>to navigate,</span>
+                    <span class="bg-white/5 border border-white/10 px-1 rounded">Enter</span>
+                    <span>to select.</span>
+                </div>
+                <div>
+                    <span>Press</span>
+                    <span class="bg-white/5 border border-white/10 px-1 rounded">Ctrl+K</span>
+                    <span>anytime.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

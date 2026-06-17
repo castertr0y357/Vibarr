@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: GLOBAL STANDARDS SYNCHRONIZATION (v1.15.0)
-**Last Checkpoint**: 2026-06-17 (Synchronized local rules files with the latest global template rules while preserving Vibarr-specific custom rules and commands)
+## Current State: SECURITY & QUALITY REMEDIATION (v1.16.0)
+**Last Checkpoint**: 2026-06-17 (Completed full security, architectural, and visual quality audit, resolving soft-delete logic, rate limiting, request correlation tracing, UI focus/theming HSL, Cmd+K Alpine palette, and zero-vulnerability dependency audits)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,11 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Security & Quality Audit Remediation (v1.16.0)**: Completed an exhaustive audit and implemented standard remediations across multiple domains:
+    - *Security*: Added `deleted_at` soft deletion and `masked_key` properties to `APIKey` model and filtered auth mixins. Hardened `LoginView` with IP-based cache rate-limiting (5 attempts/5m) and cycled session keys on successful authentication. Configured Docker container for non-root execution (`USER vibarr`) and installed `postgresql-client` runtime.
+    - *Performance & Tracing*: Created `CorrelationIDMiddleware` and log filters using `contextvars` to inject Correlation IDs into console/file logs. Built standalone custom 500 error page showing Correlation ID. Completed Task 4 async view offloading (Rescore, Metadata refresh, Trakt import), optimized `MergeUniversesView` bulk SQL query updates, and automated daily database backups.
+    - *Aesthetics & UX*: Anchor primary/accent theme colors to dynamic HSL CSS tokens, implemented explicit visible focus outlines, added a keyboard-accessible Alpine.js `Cmd+K` command palette overlay, and set up global HTMX request listeners to disable write buttons and show spinners.
+    - *Dependency Auditing*: Integrated automated `pip-audit --local` checking inside the smoke test runner, and upgraded Django to a secure `6.0.6` version to pass all CVE vulnerability scans.
 - [x] **Global Standards Synchronization (v1.15.0)**: Synchronized local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) with the latest global template `project.md`, ensuring all multi-LLM configuration files are in perfect lockstep while preserving the Vibarr-specific custom rules of engagement and command triggers.
 - [x] **AI Thinking & Effort Controls (v1.14.0)**: Added configurable controls for toggling AI Thinking and adjusting the thinking effort level (Low, Medium, High). Integrated new properties into the `AppConfig` settings model, views, and settings/wizard HTML templates. Updated the `AIBaseService` layer to dynamically format OpenAI `reasoning_effort` and Anthropic `thinking` token budgets, automatically overriding request temperature to 1.0 when thinking is active to comply with reasoning model requirements. Added comprehensive unit tests validating configuration states and request payloads.
 - [x] **Universe Ecosystem Alignment & Status Bar (v1.13.2)**: Refactored cinematic universes to a relational model. Created a separate `Universe` model and a Many-to-Many `universes` relation on `Show` to support placing shows in multiple universes simultaneously. Implemented database migrations and a data migration to seamlessly import existing text-field data. Introduced a manual "Merge Universes" utility and an "AI Ecosystem Alignment" scanner that uses LLM prompts to analyze universes and suggest merges for fragmented continuities. Exposed controls in the UI for users to approve merges or dismiss suggestions with dynamic HTMX updates. Integrated a real-time progress/status bar for the AI Universe Ecosystem Scan, powered by a shared Redis Cache backend enabling inter-container status updates, and HTMX active polling to update the UI dynamically, with support for automatic container reload when finished, duplicate trigger race condition prevention, and persistence on page reload.

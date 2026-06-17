@@ -20,6 +20,8 @@ class TVDBService:
 
     def _get_token(self):
         """Retrieves or refreshes the bearer token."""
+        if getattr(settings, 'MOCK_MODE', False):
+            return "mock_token"
         cache_key = f"tvdb_token_{self.api_key}"
         token = cache.get(cache_key)
         
@@ -60,6 +62,15 @@ class TVDBService:
             return False
 
     def _get(self, endpoint, params=None, cache_key=None, ttl=3600):
+        if getattr(settings, 'MOCK_MODE', False):
+            if "search/remote" in endpoint:
+                return {"data": [{"id": 1, "name": "Mock TVDB Show"}]}
+            elif "search" in endpoint:
+                return {"data": [{"id": 1, "name": "Mock TVDB Show", "type": "series"}]}
+            elif "series/" in endpoint:
+                return {"data": {"id": 1, "name": "Mock Extended Show"}}
+            return {}
+
         if cache_key:
             cached = cache.get(cache_key)
             if cached: return cached

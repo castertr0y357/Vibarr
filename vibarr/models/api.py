@@ -9,6 +9,12 @@ class APIKey(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    @property
+    def masked_key(self):
+        """Returns a masked version of the key for display purposes."""
+        return "vb-" + "•" * 24
 
     @classmethod
     def create_key(cls, name):

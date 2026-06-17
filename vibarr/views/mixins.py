@@ -33,7 +33,7 @@ class APIMixin:
         if raw_api_key:
             # We must iterate over all keys since we can't look up by hash directly
             # This is fine for a small number of keys. For large scale, a prefix strategy is needed.
-            active_keys = APIKey.objects.filter(is_active=True)
+            active_keys = APIKey.objects.filter(is_active=True, deleted_at__isnull=True)
             for key_obj in active_keys:
                 if key_obj.verify_key(raw_api_key):
                     # Throttle update to once every 10 minutes

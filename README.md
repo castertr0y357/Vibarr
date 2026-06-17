@@ -54,9 +54,32 @@ Vibarr is designed to run in a hardened Docker environment.
 ```bash
 docker-compose up -d
 ```
+* **Default Developer/Admin Credentials**: `admin` / `adminpass` (automatically created on first startup).
 
 ### 3. Setup Wizard
 Visit `http://localhost:8282` to start the interactive 5-step Setup Wizard. Vibarr will guide you through connecting your services and initializing your first library scan.
+
+---
+
+## 💾 Database Backups & Recovery
+
+Automated daily backups are saved inside `data/backups/` in compressed gzip format.
+
+### Backup Database Command
+To manually trigger a database backup:
+```bash
+docker compose exec web python manage.py backup_db
+```
+
+### Restore Database
+* **SQLite (Local)**:
+  ```bash
+  gunzip -c data/backups/db_backup_<timestamp>.sqlite3.gz > db.sqlite3
+  ```
+* **PostgreSQL (Docker)**:
+  ```bash
+  gunzip -c data/backups/db_backup_<timestamp>.sql.gz | docker compose exec -T db psql -U vibarr -d vibarr
+  ```
 
 ---
 

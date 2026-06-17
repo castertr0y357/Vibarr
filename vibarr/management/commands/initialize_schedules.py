@@ -47,6 +47,11 @@ class Command(BaseCommand):
                 'name': 'Recommendation Score Re-evaluation',
                 'func': 'vibarr.tasks.discovery.recommendations.revaluate_all_recommendations',
                 'schedule_type': Schedule.DAILY
+            },
+            {
+                'name': 'Database Backup',
+                'func': 'vibarr.tasks.backup.run_database_backup',
+                'schedule_type': Schedule.DAILY
             }
         ]
 

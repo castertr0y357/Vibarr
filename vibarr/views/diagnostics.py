@@ -74,3 +74,14 @@ class DownloadLogsView(View):
         
         zip_buffer.seek(0)
         return FileResponse(zip_buffer, as_attachment=True, filename='vibarr_logs.zip')
+
+
+def handler500(request, *args, **kwargs):
+    """
+    Custom 500 error handler that displays a user-friendly error page with the correlation ID.
+    """
+    from ..middleware.correlation import get_correlation_id
+    correlation_id = get_correlation_id()
+    # Log the failure with correlation id
+    logger.error(f"Server Error - Error - Internal Server Error (500) occurred. Correlation ID: {correlation_id}")
+    return render(request, 'vibarr/500.html', {'correlation_id': correlation_id}, status=500)

@@ -15,7 +15,7 @@ from ...services.discovery.heuristic_ranking import HeuristicRankingService
 
 logger = logging.getLogger(__name__)
 
-def discover_universe_and_sync(show_id, library_ids=None):
+def discover_universe_and_sync(show_id: int, library_ids: dict = None) -> None:
     try:
         show = Show.objects.get(id=show_id)
     except Show.DoesNotExist:
@@ -54,7 +54,7 @@ def discover_universe_and_sync(show_id, library_ids=None):
     logger.info(f"Universe Architect - Info - Architecting the '{collection_name}' universe for '{show.title}'.")
     
     # Tag current show with universe
-    from ...models.universe import Universe
+    from ...models.universe import Universe  # Local import to prevent circular dependency
     universe_obj, _ = Universe.objects.get_or_create(name=collection_name)
     show.universes.add(universe_obj)
     show.universe_name = collection_name
@@ -315,11 +315,11 @@ def discover_universe_and_sync(show_id, library_ids=None):
     NotificationService().notify_universe_found(show.title, collection_name, len(members))
 
     # Enforce backlog limits
-    from ..discovery.recommendations import prune_discovery_backlog
+    from ..discovery.recommendations import prune_discovery_backlog  # Local import to prevent circular dependency
     prune_discovery_backlog(MediaType.MOVIE)
     prune_discovery_backlog(MediaType.SHOW)
 
-def batch_universe_sync():
+def batch_universe_sync() -> None:
     """Batches universe discovery for all active/watched shows by dispatching individual tasks."""
     active_shows = Show.objects.filter(state__in=[ShowState.TASTING, ShowState.COMMITTED, ShowState.WATCHED])
     
@@ -328,7 +328,7 @@ def batch_universe_sync():
     for show in active_shows:
         async_task(discover_universe_and_sync, show.id)
 
-def sync_external_states():
+def sync_external_states() -> None:
     """
     Periodic maintenance task to ensure Vibarr's state matches Sonarr/Radarr and media servers.
     Detects when items are added/monitored in Sonarr/Radarr, heals their IDs, 
@@ -464,12 +464,12 @@ def sync_external_states():
             continue
 
 
-def reevaluate_universe_shows(universe_name):
+def reevaluate_universe_shows(universe_name: str) -> None:
     """
     On-demand task to re-evaluate the recommendations scores for all suggested
     and tasting items belonging to a specific cinematic universe.
     """
-    from ...tasks.discovery.recommendations import reevaluate_single_show
+    from ...tasks.discovery.recommendations import reevaluate_single_show  # Local import to prevent circular dependency
 
     shows = Show.objects.filter(universes__name=universe_name, state__in=[ShowState.SUGGESTED, ShowState.TASTING]).distinct()
     logger.info(f"Universe Architect - Info - Starting on-demand reanalysis for universe: '{universe_name}' ({shows.count()} items)")
@@ -485,12 +485,12 @@ def reevaluate_universe_shows(universe_name):
     logger.info(f"Universe Architect - Info - Completed on-demand reanalysis for universe: '{universe_name}' (Processed {count}/{shows.count()} items)")
 
 
-def analyze_universe_ecosystem_task():
+def analyze_universe_ecosystem_task() -> None:
     """
     Background task to analyze current universes and generate merge/alignment suggestions.
     """
-    from ...models.universe import Universe, UniverseMergeSuggestion
-    from ...services.discovery.ai_service import AIService
+    from ...models.universe import Universe, UniverseMergeSuggestion  # Local import to prevent circular dependency
+    from ...services.discovery.ai_service import AIService  # Local import to prevent circular dependency
     from django.core.cache import cache
     
     logger.info("Universe Alignment - Info - Starting background AI ecosystem analysis.")

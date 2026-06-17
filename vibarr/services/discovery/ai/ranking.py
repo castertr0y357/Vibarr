@@ -212,9 +212,8 @@ class AIRankingService(AIBaseService):
         payload = self._prepare_payload(payload, json_mode=True)
 
         try:
-            response = requests.post(self.url, headers=self.headers, json=payload, timeout=120)
-            response.raise_for_status()
-            content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+            res_json = self._execute_payload(payload, timeout=120)
+            content = res_json.get('choices', [{}])[0].get('message', {}).get('content', '')
             data = self._parse_json_response(content, [])
             
             if isinstance(data, dict):
@@ -277,9 +276,8 @@ class AIRankingService(AIBaseService):
         payload = self._prepare_payload(payload, json_mode=True)
 
         try:
-            response = requests.post(self.url, headers=self.headers, json=payload, timeout=180)
-            response.raise_for_status()
-            content = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+            res_json = self._execute_payload(payload, timeout=180)
+            content = res_json.get('choices', [{}])[0].get('message', {}).get('content', '')
             data = self._parse_json_response(content, {})
             return data.get('scores', [])
         except Exception as e:

@@ -1,0 +1,16 @@
+<div class="glass p-6 rounded-3xl border border-rose-500/20 bg-rose-500/5 flex flex-col justify-center items-center h-[520px] w-full"
+     hx-get="{% url 'rescore_status' show.id %}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML">
+    <div class="relative mb-6">
+        <div class="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center border border-rose-500/30">
+            <svg class="w-8 h-8 text-rose-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+        </div>
+        <div class="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full border-2 border-black animate-ping"></div>
+    </div>
+    <h3 class="text-base font-black text-white tracking-tight uppercase mb-2">Re-scoring</h3>
+    <p class="text-xs text-rose-400 font-bold uppercase tracking-wider animate-pulse mb-1">"{show.title}"</p>
+    <p class="text-[10px] text-gray-500 font-medium">Scouting patterns & re-evaluating matches...</p>
+</div>

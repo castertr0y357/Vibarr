@@ -1,6 +1,7 @@
 import requests
 import json
 import logging
+from django.conf import settings
 from ....models import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -207,6 +208,35 @@ class AIBaseService:
             
         return payload
 
+    def _execute_payload(self, payload, timeout=60):
+        if getattr(settings, 'MOCK_MODE', False):
+            messages = payload.get('messages', [])
+            prompt = messages[-1].get('content', '') if messages else ''
+            
+            content = ""
+            if "cinematic universe" in prompt.lower() or "identify_universe" in prompt.lower():
+                content = json.dumps({"universe_name": "Marvel Cinematic Universe", "members": ["Iron Man (2008)", "The Incredible Hulk (2008)", "Iron Man 2 (2010)", "Thor (2011)"]})
+            elif "counterpart" in prompt.lower():
+                content = json.dumps({"title": "The Avengers", "media_type": "MOVIE", "reasoning": "Counterpart film"})
+            elif "Cinematic Universe Architect" in prompt:
+                content = "[]"
+            elif "vibe" in prompt.lower() or "atmospheric or thematic" in prompt.lower():
+                content = json.dumps({"recommendations": [{"title": "Inception", "media_type": "MOVIE", "reasoning": "Matches the mind-bending vibe"}]})
+            elif "mood" in prompt.lower():
+                content = json.dumps([{"title": "The Bear", "media_type": "SHOW", "reasoning": "Great cooking drama", "vibe_tags": ["Intense", "Drama"]}])
+            elif "rank_shows" in prompt.lower() or "User Taste Profile" in prompt:
+                content = json.dumps([{"title": "The Bear", "reasoning": "Fits the intense, character-driven profile", "score": 9.8, "vibe_tags": ["Intense", "Cooking", "Drama"]}])
+            elif "score_candidates" in prompt.lower() or "Evaluate the following" in prompt:
+                content = json.dumps({"scores": [{"title": "Candidate Title", "score": 8.5, "reasoning": "Fits taste profile", "vibe_tags": ["Drama"]}]})
+            else:
+                content = "Mock response content"
+                
+            return {"choices": [{"message": {"content": content}}]}
+
+        response = self._session.post(self.url, headers=self.headers, json=payload, timeout=timeout)
+        response.raise_for_status()
+        return response.json()
+
     def _post(self, prompt, temperature=0.3, timeout=60, json_mode=False):
         payload = {
             "model": self.model,
@@ -218,9 +248,8 @@ class AIBaseService:
         payload = self._prepare_payload(payload, json_mode=json_mode)
 
         try:
-            response = self._session.post(self.url, headers=self.headers, json=payload, timeout=timeout)
-            response.raise_for_status()
-            return response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
+            res_json = self._execute_payload(payload, timeout=timeout)
+            return res_json.get('choices', [{}])[0].get('message', {}).get('content', '')
         except Exception as e:
             logger.error(f"AI Integration - Error - API call failed: {e}")
             return None

@@ -8,6 +8,8 @@ from django.urls import reverse
 from django.db import transaction
 
 from django_q.tasks import async_task
+from django.core.cache import cache
+import json
 
 from ..models import Show, ShowState, AppConfig, MediaServerType, MediaWatchEvent
 from ..services.managers.sonarr_service import SonarrService
@@ -230,47 +232,26 @@ class RescoreShowView(View):
     def post(self, request, show_id):
         show = get_object_or_404(Show, id=show_id)
         
-        try:
-            rec, promoted = reevaluate_single_show(show)
-        except Exception as e:
-            logger.exception(f"Show Actions - Error - Re-scoring failed for '{show.title}': {e}")
-            if request.headers.get('HX-Request'):
-                if show.state == ShowState.SUGGESTED:
-                    response = render(request, 'vibarr/partials/discovery_card.html', {
-                        'show': show,
-                        'flipped': True
-                    })
-                elif show.state == ShowState.TASTING:
-                    response = render(request, 'vibarr/partials/active_tastings.html', {
-                        'tasting': [show],
-                        'flipped': True
-                    })
-                else:
-                    response = HttpResponse(HTMX_REMOVE)
-                response['HX-Trigger'] = json.dumps({
-                    'show-toast': {
-                        'message': f"Failed to re-score '{show.title}': {str(e)}",
-                        'type': 'error'
-                    }
-                })
-                return response
-            else:
-                messages.error(request, f"Failed to re-score '{show.title}': {str(e)}")
-                return redirect('dashboard')
-
+        # Start rescoring in the background
+        cache.set(f"rescoring_{show_id}", True, 120)
+        async_task('vibarr.tasks.discovery.recommendations.reevaluate_single_show_task', show.id)
+        
         if request.headers.get('HX-Request'):
-            if promoted:
-                response = HttpResponse(HTMX_REMOVE)
-                response['HX-Trigger'] = json.dumps({
-                    'discovery-changed': '',
-                    'tasting-changed': '',
-                    'show-toast': {
-                        'message': f"'{show.title}' promoted to Auto-Tasting!",
-                        'type': 'success'
-                    }
-                })
-                return response
+            return render(request, 'vibarr/partials/rescore_loading.html', {'show': show})
+        
+        messages.success(request, f"Re-scoring triggered for '{show.title}' in the background.")
+        return redirect('dashboard')
+
+class RescoreStatusView(View):
+    def get(self, request, show_id):
+        show = get_object_or_404(Show, id=show_id)
+        
+        is_rescoring = cache.get(f"rescoring_{show_id}")
+        if is_rescoring:
+            return render(request, 'vibarr/partials/rescore_loading.html', {'show': show})
             
+        # Rescoring completed!
+        if request.headers.get('HX-Request'):
             if show.state == ShowState.SUGGESTED:
                 response = render(request, 'vibarr/partials/discovery_card.html', {
                     'show': show,
@@ -282,9 +263,11 @@ class RescoreShowView(View):
                     'flipped': True
                 })
             else:
-                response = HttpResponse(HTMX_REMOVE)
+                response = HttpResponse("") # removed / redirect
                 
             response['HX-Trigger'] = json.dumps({
+                'discovery-changed': '',
+                'tasting-changed': '',
                 'show-toast': {
                     'message': f"Re-scored '{show.title}' successfully.",
                     'type': 'success'
@@ -292,10 +275,6 @@ class RescoreShowView(View):
             })
             return response
             
-        if promoted:
-            messages.success(request, f"'{show.title}' score updated and promoted to Auto-Tasting.")
-        else:
-            messages.success(request, f"Re-scored '{show.title}' successfully.")
         return redirect('dashboard')
 
 

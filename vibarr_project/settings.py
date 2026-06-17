@@ -13,15 +13,30 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import environ
 import os
+import secrets
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Auto-bootstrap .env from .env.example if missing
+env_path = BASE_DIR / '.env'
+if not env_path.exists():
+    env_example = BASE_DIR / '.env.example'
+    if env_example.exists():
+        content = env_example.read_text()
+        sec_key = secrets.token_urlsafe(50)
+        content = content.replace("django-insecure-vibarr-secret-change-me", sec_key)
+        env_path.write_text(content)
+        try:
+            os.chmod(env_path, 0o600)
+        except Exception:
+            pass
 
 env = environ.Env(
     DEBUG=(bool, False)
 )
 # Read .env file
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+environ.Env.read_env(str(env_path))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -31,12 +46,15 @@ SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+MOCK_MODE = env.bool('MOCK_MODE', default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'testserver'])
 
 # CSRF and proxy settings for external/reverse proxy deployments
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 
@@ -55,6 +73,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'vibarr.middleware.url_base.URLBaseMiddleware',
+    'vibarr.middleware.correlation.CorrelationIDMiddleware',
     'vibarr.middleware.timezone.TimezoneMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -167,9 +186,14 @@ CACHES = {
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'correlation': {
+            '()': 'vibarr.middleware.correlation.CorrelationIDFilter',
+        }
+    },
     'formatters': {
         'human': {
-            'format': '[{asctime}] {levelname:7} | {name:25} | {message}',
+            'format': '[{asctime}] [{correlation_id}] {levelname:7} | {name:25} | {message}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
@@ -178,12 +202,14 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'human',
+            'filters': ['correlation'],
         },
         'file': {
             'level': 'DEBUG',
             'class': 'vibarr.logging_handlers.SafeFileHandler',
             'filename': 'logs/vibarr.log',
             'formatter': 'human',
+            'filters': ['correlation'],
         },
     },
     'root': {

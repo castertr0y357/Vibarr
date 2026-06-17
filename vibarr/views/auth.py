@@ -45,6 +45,23 @@ class LoginView(View):
         return render(request, 'vibarr/login.html')
 
     def post(self, request):
+        from django.core.cache import cache
+        
+        # Get IP address for rate limiting
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+            
+        cache_key = f"login_attempts_{ip}"
+        attempts = cache.get(cache_key, 0)
+        
+        if attempts >= 5:
+            return render(request, 'vibarr/login.html', {
+                'error': 'Too many failed login attempts. Please try again in 5 minutes.'
+            })
+
         password = request.POST.get('password')
         config = AppConfig.get_solo()
         
@@ -54,10 +71,15 @@ class LoginView(View):
             })
 
         if check_password(password, config.auth_password):
+            # Clear rate limit state on successful login
+            cache.delete(cache_key)
+            # Cycle session key to prevent Session Fixation
+            request.session.cycle_key()
             request.session['vibarr_auth'] = True
             request.session.set_expiry(0) # Browser close or standard session timeout
             return redirect('dashboard')
         else:
+            cache.set(cache_key, attempts + 1, 300)
             return render(request, 'vibarr/login.html', {'error': 'Invalid password'})
 
 class LogoutView(View):

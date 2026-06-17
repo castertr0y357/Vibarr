@@ -1,10 +1,31 @@
 <div class="space-y-4">
+    {% if new_raw_key %}
+    <div class="p-6 rounded-2xl border border-amber-500/50 bg-amber-500/10 text-amber-200 mb-6 space-y-3 relative overflow-hidden animate-fade-in">
+        <div class="absolute -top-10 -right-10 w-24 h-24 bg-amber-500 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <h4 class="font-bold text-white">Copy your new API Key now</h4>
+        </div>
+        <p class="text-xs text-slate-300">
+            For security reasons, this key will only be displayed **once**. If you navigate away or refresh, you will not be able to retrieve it again.
+        </p>
+        <div class="bg-black/50 border border-slate-800 rounded-xl p-3 flex items-center justify-between font-mono text-sm text-white max-w-lg select-all">
+            <span>{{ new_raw_key }}</span>
+            <button onclick="navigator.clipboard.writeText('{{ new_raw_key }}'); this.innerHTML='Copied!';" class="text-xs font-bold text-[#e94560] hover:underline focus:outline-none cursor-pointer">
+                Copy
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
     {% for key in api_keys %}
     <div class="flex items-center justify-between p-4 glass rounded-xl border border-white/5">
         <div>
             <h4 class="font-bold text-white">{{ key.name }}</h4>
             <div class="flex items-center space-x-2 mt-1">
-                <code class="text-xs text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">{{ key.key }}</code>
+                <code class="text-xs text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded">{{ key.masked_key }}</code>
                 <span class="text-[10px] text-gray-500">Created {{ key.created_at|date:"M d, Y" }}</span>
                 {% if key.last_used_at %}
                 <span class="text-[10px] text-gray-500">• Last used {{ key.last_used_at|timesince }} ago</span>

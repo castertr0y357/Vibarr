@@ -1,6 +1,7 @@
 import requests
 import logging
 from django.core.cache import cache
+from django.conf import settings
 from ...models import AppConfig
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,8 @@ class TraktService:
 
     def test_connection(self) -> bool:
         """Tests connection to Trakt by fetching trending movies (limit 1)."""
+        if getattr(settings, 'MOCK_MODE', False):
+            return True
         if not self.client_id:
             return False
         try:
@@ -32,6 +35,8 @@ class TraktService:
 
     def _get_trakt_id(self, tmdb_id: int, media_type: str = "movie") -> int:
         """Resolves a TMDB ID to a Trakt ID using caching."""
+        if getattr(settings, 'MOCK_MODE', False):
+            return 12345
         if not self.client_id or not tmdb_id:
             return None
 
@@ -91,6 +96,31 @@ class TraktService:
 
     def get_user_history(self, username: str, limit: int = 100) -> list:
         """Fetches public history for a Trakt user."""
+        if getattr(settings, 'MOCK_MODE', False):
+            return [
+                {
+                    "id": 101,
+                    "type": "movie",
+                    "watched_at": "2026-06-02T16:14:39.000Z",
+                    "movie": {
+                        "title": "Inception",
+                        "ids": {"tmdb": 27205, "trakt": 16}
+                    }
+                },
+                {
+                    "id": 102,
+                    "type": "episode",
+                    "watched_at": "2026-06-03T16:14:39.000Z",
+                    "show": {
+                        "title": "Breaking Bad",
+                        "ids": {"tmdb": 1396, "trakt": 3}
+                    },
+                    "episode": {
+                        "season": 1,
+                        "number": 1
+                    }
+                }
+            ]
         if not self.client_id or not username:
             return []
 
@@ -109,6 +139,17 @@ class TraktService:
 
     def get_user_watchlist(self, username: str) -> list:
         """Fetches public watchlist for a Trakt user."""
+        if getattr(settings, 'MOCK_MODE', False):
+            return [
+                {
+                    "id": 201,
+                    "type": "show",
+                    "show": {
+                        "title": "The Bear",
+                        "ids": {"tmdb": 136315, "trakt": 1}
+                    }
+                }
+            ]
         if not self.client_id or not username:
             return []
 

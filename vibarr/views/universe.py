@@ -227,12 +227,10 @@ class MergeUniversesView(ConfigMixin, View):
         
         shows = source_universe.shows.all()
         count = shows.count()
-        for show in shows:
-            show.universes.add(target_universe)
-            show.universes.remove(source_universe)
-            if show.universe_name == source_name:
-                show.universe_name = final_target_name
-                show.save()
+        if count > 0:
+            Show.objects.filter(universes=source_universe, universe_name=source_name).update(universe_name=final_target_name)
+            target_universe.shows.add(*shows)
+            source_universe.shows.remove(*shows)
                 
         source_universe.delete()
         
