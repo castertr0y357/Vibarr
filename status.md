@@ -1,7 +1,7 @@
 # Project Status: Vibarr
 
-## Current State: AI THINKING & EFFORT CONTROLS (v1.14.0)
-**Last Checkpoint**: 2026-06-12 (Implemented AI thinking toggle and effort configuration, payload mapping, and settings integrations)
+## Current State: GLOBAL STANDARDS SYNCHRONIZATION (v1.15.0)
+**Last Checkpoint**: 2026-06-17 (Synchronized local rules files with the latest global template rules while preserving Vibarr-specific custom rules and commands)
 
 ## Core Architecture
 - **Framework**: Django (Postgres + Redis + Django-Q2)
@@ -22,6 +22,7 @@
 - **Concierge Notifications**: Real-time Discord/Telegram updates.
 
 ## Active Features
+- [x] **Global Standards Synchronization (v1.15.0)**: Synchronized local rules files (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.windsurfrules`) with the latest global template `project.md`, ensuring all multi-LLM configuration files are in perfect lockstep while preserving the Vibarr-specific custom rules of engagement and command triggers.
 - [x] **AI Thinking & Effort Controls (v1.14.0)**: Added configurable controls for toggling AI Thinking and adjusting the thinking effort level (Low, Medium, High). Integrated new properties into the `AppConfig` settings model, views, and settings/wizard HTML templates. Updated the `AIBaseService` layer to dynamically format OpenAI `reasoning_effort` and Anthropic `thinking` token budgets, automatically overriding request temperature to 1.0 when thinking is active to comply with reasoning model requirements. Added comprehensive unit tests validating configuration states and request payloads.
 - [x] **Universe Ecosystem Alignment & Status Bar (v1.13.2)**: Refactored cinematic universes to a relational model. Created a separate `Universe` model and a Many-to-Many `universes` relation on `Show` to support placing shows in multiple universes simultaneously. Implemented database migrations and a data migration to seamlessly import existing text-field data. Introduced a manual "Merge Universes" utility and an "AI Ecosystem Alignment" scanner that uses LLM prompts to analyze universes and suggest merges for fragmented continuities. Exposed controls in the UI for users to approve merges or dismiss suggestions with dynamic HTMX updates. Integrated a real-time progress/status bar for the AI Universe Ecosystem Scan, powered by a shared Redis Cache backend enabling inter-container status updates, and HTMX active polling to update the UI dynamically, with support for automatic container reload when finished, duplicate trigger race condition prevention, and persistence on page reload.
 - [x] **Library vs Grabber Tracking (v1.12.0)**: Added `is_downloaded` Boolean field to the `Show` model. Differentiated media server identifiers (Plex/Jellyfin) from manager library identifiers (Radarr/Sonarr) in sync tasks. Updated media server polling and external manager sync jobs to automatically sync the downloaded state based on physical file availability. Enhanced candidate filtering in discovery scouts to prevent suggesting items already added in Radarr/Sonarr. Updated UI/templates (Universe Architect cards, Discovery cards, Active tastings badges) to visually distinguish "In Library" (green), "Downloading" (pulsing rose), and "Added" (blue).
