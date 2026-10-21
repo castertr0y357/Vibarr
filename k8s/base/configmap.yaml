@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vibarr-config
+data:
+  DATABASE_HOST: "db"
+  DATABASE_PORT: "5432"
+  POSTGRES_DB: "vibarr"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_URL: "redis://redis:6379/0"
+  DATABASE: "postgres"
+  SQL_HOST: "db"
+  SQL_PORT: "5432"
+  DEBUG: "0"
+  ALLOWED_HOSTS: "*"
+  CSRF_TRUSTED_ORIGINS: "http://localhost:8000,http://127.0.0.1:8000,https://vibarr.example.com,http://vibarr.example.com"
