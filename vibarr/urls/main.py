@@ -12,6 +12,7 @@ from ..views.media_views import DiscoveryListView, TastingListView, CommittedLis
 from ..views.universe import UniverseListView, RefreshUniverseView, ReanalyzeUniverseView, MergeUniversesView, AnalyzeEcosystemView, DismissSuggestionView, UniverseScanStatusView
 from ..views.auth import LoginView, LogoutView
 from ..views.about import AboutView, CheckUpdateView
+from ..views import backup as backup_views
 
 
 urlpatterns = [
@@ -49,6 +50,7 @@ urlpatterns = [
     path('settings/governance/', SettingsView.as_view(), {'section': 'governance'}, name='settings_governance'),
     path('settings/household/', SettingsView.as_view(), {'section': 'household'}, name='settings_household'),
     path('settings/security/', SettingsView.as_view(), {'section': 'security'}, name='settings_security'),
+    path('settings/backups/', SettingsView.as_view(), {'section': 'backups'}, name='settings_backups'),
     path('settings/update/', UpdateSettingsView.as_view(), name='update_settings'),
     path('settings/test/', TestSettingsView.as_view(), name='test_settings'),
     path('settings/plex/discover/', DiscoverPlexServersView.as_view(), name='discover_plex_servers'),
@@ -66,5 +68,14 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('about/', AboutView.as_view(), name='about'),
     path('about/check-update/', CheckUpdateView.as_view(), name='check_update'),
-]
 
+    # Backup & Disaster Recovery APIs
+    path('api/v1/backups/config/', backup_views.save_backup_config_api, name='save_backup_config_api'),
+    path('api/v1/backups/test-connection/', backup_views.test_backup_storage_api, name='test_backup_storage_api'),
+    path('api/v1/backups/run-now/', backup_views.run_backup_now_api, name='run_backup_now_api'),
+    path('api/v1/backups/status/<uuid:uuid>/', backup_views.task_status_api, name='backup_task_status_api'),
+    path('api/v1/backups/download/<uuid:uuid>/', backup_views.download_backup_file, name='download_backup_file'),
+    path('api/v1/backups/restore/<uuid:uuid>/', backup_views.restore_backup_record_api, name='restore_backup_record_api'),
+    path('api/v1/backups/delete/<uuid:uuid>/', backup_views.delete_backup_record_api, name='delete_backup_record_api'),
+    path('api/v1/backups/upload/', backup_views.upload_backup_file_api, name='upload_backup_file_api'),
+]

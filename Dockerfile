@@ -9,6 +9,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    libnfs-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -31,6 +32,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     gosu \
     postgresql-client \
+    libnfs14 \
+    libnfs-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
@@ -38,8 +41,9 @@ COPY --from=builder /install /install
 
 # Create non-root user
 RUN useradd -m vibarr && \
-    mkdir -p /app/logs /app/data /app/staticfiles && \
-    chown -R vibarr:vibarr /app
+    mkdir -p /app/logs /app/data /app/staticfiles /backups && \
+    chown -R vibarr:vibarr /app /backups && \
+    chmod 700 /backups
 
 # Copy project files
 COPY --chown=vibarr:vibarr . /app/

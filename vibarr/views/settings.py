@@ -124,6 +124,11 @@ class SettingsView(ConfigMixin, TemplateView):
             if new_raw_key:
                 context['new_raw_key'] = new_raw_key
                 context['new_key_id'] = new_key_id
+
+        elif section == 'backups':
+            from ..models.backup import BackupConfiguration, BackupRecord
+            context['backup_config'] = BackupConfiguration.get_config()
+            context['backup_records'] = BackupRecord.objects.all().order_by('-created_at')[:50]
             
         return context
 
@@ -173,8 +178,42 @@ class UpdateSettingsView(View):
     }
 
     def post(self, request, *args, **kwargs):
-        config = AppConfig.get_solo()
         section = request.POST.get('section', 'general')
+
+        if section == 'backups':
+            from ..models.backup import BackupConfiguration
+            b_cfg = BackupConfiguration.get_config()
+            b_cfg.is_enabled = request.POST.get('is_enabled') in ['on', 'true', 'True', '1']
+            b_cfg.backup_time = request.POST.get('backup_time', '02:00').strip()
+            b_cfg.weekly_day = int(request.POST.get('weekly_day', 6))
+            b_cfg.monthly_day = int(request.POST.get('monthly_day', 1))
+            b_cfg.keep_daily = max(0, int(request.POST.get('keep_daily', 7)))
+            b_cfg.keep_weekly = max(0, int(request.POST.get('keep_weekly', 4)))
+            b_cfg.keep_monthly = max(0, int(request.POST.get('keep_monthly', 3)))
+            b_cfg.preserve_config_on_restore = request.POST.get('preserve_config_on_restore') in ['on', 'true', 'True', '1']
+            b_cfg.storage_type = request.POST.get('storage_type', 'LOCAL')
+            b_cfg.local_path = request.POST.get('local_path', '/backups').strip()
+            b_cfg.s3_endpoint_url = request.POST.get('s3_endpoint_url', '').strip() or None
+            b_cfg.s3_bucket = request.POST.get('s3_bucket', '').strip()
+            b_cfg.s3_region = request.POST.get('s3_region', 'us-east-1').strip()
+            b_cfg.s3_access_key = request.POST.get('s3_access_key', '').strip()
+            b_cfg.s3_secret_key = request.POST.get('s3_secret_key', '').strip()
+            b_cfg.s3_prefix = request.POST.get('s3_prefix', 'vibarr/').strip()
+            b_cfg.cifs_server = request.POST.get('cifs_server', '').strip()
+            b_cfg.cifs_share = request.POST.get('cifs_share', '').strip()
+            b_cfg.cifs_subpath = request.POST.get('cifs_subpath', '').strip()
+            b_cfg.cifs_username = request.POST.get('cifs_username', '').strip()
+            b_cfg.cifs_password = request.POST.get('cifs_password', '').strip()
+            b_cfg.cifs_domain = request.POST.get('cifs_domain', '').strip()
+            b_cfg.nfs_server = request.POST.get('nfs_server', '').strip()
+            b_cfg.nfs_export = request.POST.get('nfs_export', '').strip()
+            b_cfg.nfs_subpath = request.POST.get('nfs_subpath', '').strip()
+            b_cfg.encryption_passphrase = request.POST.get('encryption_passphrase', '').strip()
+            b_cfg.webhook_url = request.POST.get('webhook_url', '').strip()
+            b_cfg.save()
+            return HttpResponse(status=204)
+
+        config = AppConfig.get_solo()
         
         # Get the list of fields that this section is allowed to update
         allowed_fields = self.SECTION_FIELDS.get(section, [])

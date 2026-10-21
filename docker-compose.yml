@@ -34,6 +34,7 @@ services:
     volumes:
       - data_volume:/app/data
       - logs_volume:/app/logs
+      - backups_volume:/backups
     env_file:
       - path: .env
         required: false
@@ -72,6 +73,7 @@ services:
     volumes:
       - data_volume:/app/data
       - logs_volume:/app/logs
+      - backups_volume:/backups
     env_file:
       - path: .env
         required: false
@@ -103,5 +105,10 @@ services:
 
 volumes:
   postgres_data:
+    name: vibarr_postgres_data
   logs_volume:
+    name: vibarr_logs_data
   data_volume:
+    name: vibarr_data
+  backups_volume:
+    name: vibarr_backups_data

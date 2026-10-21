@@ -72,3 +72,10 @@ class VibarrConfig(AppConfig):
                     time.sleep(wait)
         except ImportError:
             logger.warning("[Startup] - Redis - redis-py not installed, skipping Redis pre-flight check.")
+
+        # Launch automated GFS backup scheduler loop
+        try:
+            from .tasks.backup_scheduler import start_backup_scheduler_task
+            start_backup_scheduler_task()
+        except Exception as e:
+            logger.error(f"[Startup] - Backups - Failed to launch backup scheduler task: {e}")

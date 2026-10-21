@@ -1,0 +1,509 @@
+{% extends 'vibarr/settings_layout.html' %}
+
+{% block settings_title %}Database Backups{% endblock %}
+{% block section_name %}Database Backups & Disaster Recovery{% endblock %}
+
+{% block settings_section %}
+<div class="space-y-8" x-data="backupManager()">
+    <!-- Quick Actions Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-rose-400">Manual Snapshot</span>
+                <h4 class="text-lg font-bold text-white mt-1">Instant Backup</h4>
+                <p class="text-xs text-gray-400 mt-1">Execute an immediate pg_dump snapshot and upload it to the active storage target.</p>
+            </div>
+            <button type="button" @click="runBackupNow()" :disabled="isBackingUp" class="w-full py-3 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white font-bold rounded-2xl transition shadow-lg shadow-rose-500/20 text-xs flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" :class="{'animate-spin': isBackingUp}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span x-text="isBackingUp ? 'Creating Snapshot...' : 'Run Backup Now'"></span>
+            </button>
+        </div>
+
+        <div class="glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-400">Restore Snapshot</span>
+                <h4 class="text-lg font-bold text-white mt-1">Upload Archive</h4>
+                <p class="text-xs text-gray-400 mt-1">Upload a previously generated .sql.gz or encrypted archive to calibrate or restore the database.</p>
+            </div>
+            <label class="w-full py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-2xl transition text-xs flex items-center justify-center gap-2 cursor-pointer border border-white/10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Upload & Restore File</span>
+                <input type="file" @change="uploadAndRestore($event)" accept=".sql,.gz,.bin" class="hidden">
+            </label>
+        </div>
+
+        <div class="glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
+            <div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-sky-400">Storage Connectivity</span>
+                <h4 class="text-lg font-bold text-white mt-1">Diagnostic Test</h4>
+                <p class="text-xs text-gray-400 mt-1">Verify read/write permissions for the selected backend target before scheduling.</p>
+            </div>
+            <button type="button" @click="testStorageConnection()" :disabled="isTesting" class="w-full py-3 bg-sky-500/20 hover:bg-sky-500/30 text-sky-400 border border-sky-500/30 font-bold rounded-2xl transition text-xs flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" :class="{'animate-spin': isTesting}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span x-text="isTesting ? 'Testing Connectivity...' : 'Test Storage Connection'"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Storage Status Alert Banner -->
+    <div x-show="testMessage" x-cloak class="p-4 rounded-2xl text-xs font-semibold flex items-center gap-3 transition" :class="testSuccess ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'">
+        <svg x-show="testSuccess" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <svg x-show="!testSuccess" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span x-text="testMessage"></span>
+    </div>
+
+    <!-- Master Schedule & GFS Retention Policy -->
+    <div class="glass p-8 rounded-3xl space-y-6">
+        <div class="flex items-center justify-between pb-4 border-b border-white/5">
+            <div>
+                <h3 class="text-xl font-bold text-white">Automated GFS Backup Schedule</h3>
+                <p class="text-xs text-gray-500">Rotate snapshots across Grandfather-Father-Son retention tiers.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="is_enabled" value="true" {% if backup_config.is_enabled %}checked{% endif %} class="sr-only peer">
+                <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+                <span class="ml-3 text-xs font-bold text-gray-400 uppercase tracking-widest">Active</span>
+            </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Execution Time (UTC)</label>
+                <input type="time" name="backup_time" value="{{ backup_config.backup_time }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">UTC time when automated daily backup triggers.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Weekly Promotion Day</label>
+                <select name="weekly_day" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                    <option value="0" {% if backup_config.weekly_day == 0 %}selected{% endif %}>Monday</option>
+                    <option value="1" {% if backup_config.weekly_day == 1 %}selected{% endif %}>Tuesday</option>
+                    <option value="2" {% if backup_config.weekly_day == 2 %}selected{% endif %}>Wednesday</option>
+                    <option value="3" {% if backup_config.weekly_day == 3 %}selected{% endif %}>Thursday</option>
+                    <option value="4" {% if backup_config.weekly_day == 4 %}selected{% endif %}>Friday</option>
+                    <option value="5" {% if backup_config.weekly_day == 5 %}selected{% endif %}>Saturday</option>
+                    <option value="6" {% if backup_config.weekly_day == 6 %}selected{% endif %}>Sunday</option>
+                </select>
+                <p class="text-[9px] text-gray-500">Day promoted to Father (Weekly) tier.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Monthly Promotion Day</label>
+                <input type="number" name="monthly_day" min="1" max="28" value="{{ backup_config.monthly_day }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Day (1-28) promoted to Grandfather (Monthly) tier.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Retain Daily Backups</label>
+                <input type="number" name="keep_daily" min="1" max="90" value="{{ backup_config.keep_daily }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Number of recent daily snapshots kept.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Retain Weekly Backups</label>
+                <input type="number" name="keep_weekly" min="1" max="52" value="{{ backup_config.keep_weekly }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Number of weekly snapshots kept.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Retain Monthly Backups</label>
+                <input type="number" name="keep_monthly" min="1" max="36" value="{{ backup_config.keep_monthly }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Number of monthly snapshots kept.</p>
+            </div>
+        </div>
+
+        <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+            <div class="space-y-1">
+                <h4 class="text-sm font-bold text-white">Preserve Backup Configuration on Restore</h4>
+                <p class="text-xs text-gray-500">Keep active schedule, S3 credentials, and retention settings intact when restoring older snapshots.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="preserve_config_on_restore" value="true" {% if backup_config.preserve_config_on_restore %}checked{% endif %} class="sr-only peer">
+                <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Storage Target Configuration -->
+    <div class="glass p-8 rounded-3xl space-y-6">
+        <div class="space-y-2">
+            <h3 class="text-xl font-bold text-white">Storage Destination Backend</h3>
+            <p class="text-xs text-gray-500">Select where database snapshots will be stored and archived.</p>
+        </div>
+
+        <div class="space-y-2">
+            <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Backend Driver</label>
+            <select name="storage_type" x-model="storageType" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <option value="LOCAL">Local Container Volume (/backups)</option>
+                <option value="S3">Amazon S3 / S3-Compatible (MinIO, R2, Wasabi)</option>
+                <option value="CIFS">CIFS / SMB Windows Network Share</option>
+                <option value="NFS">Direct Userspace NFS Export</option>
+            </select>
+        </div>
+
+        <!-- Local Storage Options -->
+        <div x-show="storageType === 'LOCAL'" class="space-y-4 pt-4 border-t border-white/5">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Volume Mount Path</label>
+                <input type="text" name="local_path" value="{{ backup_config.local_path }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Absolute container filesystem path mounted to a persistent volume.</p>
+            </div>
+        </div>
+
+        <!-- S3 Options -->
+        <div x-show="storageType === 'S3'" class="space-y-4 pt-4 border-t border-white/5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">S3 Endpoint URL (Optional)</label>
+                    <input type="url" name="s3_endpoint_url" value="{{ backup_config.s3_endpoint_url|default:'' }}" placeholder="https://s3.amazonaws.com" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                    <p class="text-[9px] text-gray-500">Leave blank for standard AWS S3, or specify for MinIO / Cloudflare R2.</p>
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Bucket Name</label>
+                    <input type="text" name="s3_bucket" value="{{ backup_config.s3_bucket }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Region</label>
+                    <input type="text" name="s3_region" value="{{ backup_config.s3_region }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Access Key ID</label>
+                    <input type="text" name="s3_access_key" value="{{ backup_config.s3_access_key }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Secret Access Key</label>
+                    <input type="password" name="s3_secret_key" value="{{ backup_config.s3_secret_key }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Path Prefix</label>
+                <input type="text" name="s3_prefix" value="{{ backup_config.s3_prefix }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+            </div>
+        </div>
+
+        <!-- CIFS Options -->
+        <div x-show="storageType === 'CIFS'" class="space-y-4 pt-4 border-t border-white/5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">SMB Server IP/Host</label>
+                    <input type="text" name="cifs_server" value="{{ backup_config.cifs_server }}" placeholder="192.168.1.50" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Share Name</label>
+                    <input type="text" name="cifs_share" value="{{ backup_config.cifs_share }}" placeholder="backups" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subfolder Path</label>
+                    <input type="text" name="cifs_subpath" value="{{ backup_config.cifs_subpath }}" placeholder="vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Username</label>
+                    <input type="text" name="cifs_username" value="{{ backup_config.cifs_username }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Password</label>
+                    <input type="password" name="cifs_password" value="{{ backup_config.cifs_password }}" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Domain / Workgroup</label>
+                    <input type="text" name="cifs_domain" value="{{ backup_config.cifs_domain }}" placeholder="WORKGROUP" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+            </div>
+        </div>
+
+        <!-- NFS Options -->
+        <div x-show="storageType === 'NFS'" class="space-y-4 pt-4 border-t border-white/5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">NFS Server IP/Host</label>
+                    <input type="text" name="nfs_server" value="{{ backup_config.nfs_server }}" placeholder="192.168.1.100" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Export Path</label>
+                    <input type="text" name="nfs_export" value="{{ backup_config.nfs_export }}" placeholder="/volume1/backups" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subpath</label>
+                    <input type="text" name="nfs_subpath" value="{{ backup_config.nfs_subpath }}" placeholder="vibarr" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security & Failure Webhooks -->
+    <div class="glass p-8 rounded-3xl space-y-6">
+        <div class="space-y-2">
+            <h3 class="text-xl font-bold text-white">Encryption & Failure Alerts</h3>
+            <p class="text-xs text-gray-500">Optionally protect snapshots with AES-256-GCM and configure failure webhooks.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">AES-256-GCM Encryption Passphrase</label>
+                <input type="password" name="encryption_passphrase" value="{{ backup_config.encryption_passphrase }}" placeholder="Leave blank to disable client-side encryption" class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Backups are encrypted using PBKDF2 key derivation and AES-GCM before transport.</p>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Failure Alert Webhook URL</label>
+                <input type="url" name="webhook_url" value="{{ backup_config.webhook_url }}" placeholder="https://discord.com/api/webhooks/..." class="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-rose-500/50">
+                <p class="text-[9px] text-gray-500">Receives payload on backup failures (compatible with Discord, Slack, Gotify, ntfy).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Snapshots Catalog -->
+    <div class="glass p-8 rounded-3xl space-y-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-xl font-bold text-white">Backup Snapshots Catalog</h3>
+                <p class="text-xs text-gray-500">History of database backups stored in the catalog with one-click restore.</p>
+            </div>
+            <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{ backup_records|length }} Snapshots</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-white/5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <th class="py-3 px-4">Filename</th>
+                        <th class="py-3 px-4">Retention Tier</th>
+                        <th class="py-3 px-4">Storage Backend</th>
+                        <th class="py-3 px-4">Size</th>
+                        <th class="py-3 px-4">Encrypted</th>
+                        <th class="py-3 px-4">Created</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-xs">
+                    {% for rec in backup_records %}
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="py-3 px-4 font-mono text-gray-300 font-medium">{{ rec.filename }}</td>
+                        <td class="py-3 px-4">
+                            {% if rec.tier == 'DAILY' %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/30">Daily</span>
+                            {% elif rec.tier == 'WEEKLY' %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30">Weekly</span>
+                            {% elif rec.tier == 'MONTHLY' %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">Monthly</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gray-500/20 text-gray-400 border border-gray-500/30">Manual</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-gray-400 font-semibold">{{ rec.get_storage_type_display }}</td>
+                        <td class="py-3 px-4 text-gray-400">{{ rec.file_size|filesizeformat }}</td>
+                        <td class="py-3 px-4">
+                            {% if rec.is_encrypted %}
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30">AES-256</span>
+                            {% else %}
+                                <span class="text-gray-600 text-[10px]">None</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-gray-400">{{ rec.created_at|date:"Y-m-d H:i" }} UTC</td>
+                        <td class="py-3 px-4 text-right space-x-2">
+                            <!-- ONE-CLICK RESTORE BUTTON -->
+                            <button type="button" @click="restoreSnapshot('{{ rec.uuid }}', '{{ rec.filename }}', {{ rec.is_encrypted|yesno:'true,false' }})" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition text-[11px] shadow-sm shadow-rose-500/20 inline-flex items-center gap-1.5" title="Restore database to this snapshot">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                <span>Restore</span>
+                            </button>
+                            <a href="{% url 'download_backup_file' rec.uuid %}" class="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition text-[11px] inline-flex items-center gap-1 border border-white/5" title="Download backup archive">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                <span>Download</span>
+                            </a>
+                            <button type="button" @click="deleteSnapshot('{{ rec.uuid }}', '{{ rec.filename }}')" class="px-2 py-1.5 text-gray-600 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition" title="Delete snapshot">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-gray-500">No database backup records found. Click "Run Backup Now" to create your first snapshot.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function backupManager() {
+    return {
+        storageType: '{{ backup_config.storage_type|default:"LOCAL" }}',
+        isBackingUp: false,
+        isTesting: false,
+        testMessage: '',
+        testSuccess: false,
+
+        async testStorageConnection() {
+            this.isTesting = true;
+            this.testMessage = '';
+            try {
+                const form = document.querySelector('form');
+                const formData = new FormData(form);
+                const payload = Object.fromEntries(formData.entries());
+
+                const res = await fetch("{% url 'test_backup_storage_api' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                this.testSuccess = (data.status === 'success');
+                this.testMessage = data.message || (this.testSuccess ? 'Connection verified successfully.' : 'Connection test failed.');
+            } catch (err) {
+                this.testSuccess = false;
+                this.testMessage = 'Diagnostic error: ' + err.message;
+            } finally {
+                this.isTesting = false;
+            }
+        },
+
+        async runBackupNow() {
+            if (!confirm("Initiate an immediate database backup snapshot?")) return;
+            this.isBackingUp = true;
+            try {
+                const res = await fetch("{% url 'run_backup_now_api' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+                });
+                const data = await res.json();
+                if (data.task_id) {
+                    this.pollTask(data.task_id);
+                } else {
+                    alert(data.error || "Failed to trigger backup.");
+                    this.isBackingUp = false;
+                }
+            } catch (err) {
+                alert("Error dispatching backup: " + err.message);
+                this.isBackingUp = false;
+            }
+        },
+
+        pollTask(taskId) {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/v1/backups/status/${taskId}/`);
+                    const data = await res.json();
+                    if (data.status === 'SUCCESS') {
+                        clearInterval(interval);
+                        this.isBackingUp = false;
+                        alert("Database snapshot created successfully!");
+                        window.location.reload();
+                    } else if (data.status === 'FAILURE') {
+                        clearInterval(interval);
+                        this.isBackingUp = false;
+                        alert("Backup snapshot failed: " + (data.error_message || 'Unknown error'));
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    this.isBackingUp = false;
+                }
+            }, 1500);
+        },
+
+        async restoreSnapshot(uuid, filename, isEncrypted) {
+            let passphrase = '';
+            if (isEncrypted) {
+                passphrase = prompt(`Snapshot '${filename}' is encrypted with AES-256-GCM.\nPlease enter the decryption passphrase:`);
+                if (passphrase === null) return;
+            }
+
+            const confirmed = confirm(`⚠️ WARNING: RESTORE DATABASE\n\nAre you sure you want to restore to snapshot '${filename}'?\n\nThis will drop all current tables, calibrate schemas, and overwrite current records!`);
+            if (!confirmed) return;
+
+            const secondConfirm = confirm(`🚨 FINAL CONFIRMATION\n\nAll current unbacked changes will be replaced with data from '${filename}'.\n\nProceed with full restore?`);
+            if (!secondConfirm) return;
+
+            try {
+                const res = await fetch(`/api/v1/backups/restore/${uuid}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ passphrase: passphrase })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("Database restored successfully! The page will now reload.");
+                    window.location.reload();
+                } else {
+                    alert("Database restore failed: " + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert("Restore request failed: " + err.message);
+            }
+        },
+
+        async deleteSnapshot(uuid, filename) {
+            if (!confirm(`Delete snapshot '${filename}' from storage catalog?`)) return;
+            try {
+                const res = await fetch(`/api/v1/backups/delete/${uuid}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    alert("Failed to delete snapshot: " + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert("Delete request failed: " + err.message);
+            }
+        },
+
+        async uploadAndRestore(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            let passphrase = '';
+            if (confirm("Is this backup file encrypted with a passphrase?")) {
+                passphrase = prompt("Please enter the decryption passphrase:") || '';
+            }
+
+            if (!confirm(`⚠️ Restore database from uploaded file '${file.name}'? Current data will be replaced!`)) {
+                event.target.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('backup_file', file);
+            formData.append('passphrase', passphrase);
+
+            try {
+                const res = await fetch("{% url 'upload_backup_file_api' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("Database restored successfully from uploaded file!");
+                    window.location.reload();
+                } else {
+                    alert("Restore failed: " + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert("Upload restore failed: " + err.message);
+            } finally {
+                event.target.value = '';
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
