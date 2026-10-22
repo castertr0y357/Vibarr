@@ -178,11 +178,9 @@ CACHES = {
     }
 }
 
-# External API settings are managed via the in-app Application Configuration (AppConfig model).
-# Environment variables can still be used for initial setup or overrides in services if needed,
-# but the primary source of truth is the database.
+# Observability, Loki JSON Logging, and Prometheus Configuration
+APP_LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
-# Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -192,6 +190,9 @@ LOGGING = {
         }
     },
     'formatters': {
+        'json': {
+            '()': 'vibarr.middleware.correlation.LokiJsonFormatter',
+        },
         'human': {
             'format': '[{asctime}] [{correlation_id}] {levelname:7} | {name:25} | {message}',
             'style': '{',
@@ -201,20 +202,20 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'human',
+            'formatter': 'human' if os.environ.get("CONSOLE_PRETTY", "").lower() in ("true", "1") else 'json',
             'filters': ['correlation'],
         },
         'file': {
             'level': 'DEBUG',
             'class': 'vibarr.logging_handlers.SafeFileHandler',
             'filename': 'logs/vibarr.log',
-            'formatter': 'human',
+            'formatter': 'json',
             'filters': ['correlation'],
         },
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': 'INFO',
+        'level': APP_LOG_LEVEL,
     },
     'loggers': {
         'django': {
@@ -224,12 +225,12 @@ LOGGING = {
         },
         'vibarr': {
             'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'level': APP_LOG_LEVEL,
             'propagate': False,
         },
         'django_q': {
             'handlers': ['console', 'file'],
-            'level': 'INFO',
+            'level': APP_LOG_LEVEL,
             'propagate': False,
         },
     },

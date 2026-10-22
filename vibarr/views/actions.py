@@ -40,6 +40,7 @@ class RejectShowView(View):
         show = get_object_or_404(Show, id=show_id)
         show.state = ShowState.REJECTED
         show.save()
+        logger.info(f"Show Actions - Rejected show '{show.title}' (ID {show.id})", extra={"action": "show.reject"})
         if request.headers.get('HX-Request'):
             response = HttpResponse(HTMX_REMOVE)
             response['HX-Trigger'] = 'discovery-changed'
@@ -53,6 +54,7 @@ class TogglePinShowView(View):
         show = get_object_or_404(Show, id=show_id)
         show.is_pinned = not show.is_pinned
         show.save()
+        logger.info(f"Show Actions - Toggled pin for '{show.title}' (ID {show.id}) to {show.is_pinned}", extra={"action": "show.toggle_pin"})
         if request.headers.get('HX-Request'):
             return render(request, 'vibarr/partials/pin_button.html', {'show': show})
         return redirect('dashboard')
@@ -74,6 +76,7 @@ class StopAndDeleteShowView(View):
         
         show.state = ShowState.REJECTED
         show.save()
+        logger.info(f"Show Actions - Stopped and deleted show '{show.title}' (ID {show.id})", extra={"action": "show.stop_delete"})
         
         messages.success(request, f"Removed '{show.title}' from tastings.")
         if request.headers.get('HX-Request'):
@@ -104,6 +107,7 @@ class MarkWatchedView(View):
                     'episode': 0,
                 }
             )
+        logger.info(f"Show Actions - Marked show '{show.title}' (ID {show.id}) as WATCHED", extra={"action": "show.mark_watched"})
         
         if request.headers.get('HX-Request'):
             response = HttpResponse(HTMX_REMOVE)
@@ -116,7 +120,7 @@ class TasteShowView(View):
         show = get_object_or_404(Show, id=show_id)
         show.state = ShowState.TASTING
         show.save()
-        
+        logger.info(f"Show Actions - Starting tasting for '{show.title}' (ID {show.id}) - queuing task", extra={"action": "show.taste"})
         async_task(start_tasting, show.id)
         
         if request.headers.get('HX-Request'):
@@ -138,6 +142,7 @@ class ManualSyncView(APIMixin, View):
         config.sync_status = "Sync task queued..."
         config.save()
         
+        logger.info("Show Actions - Manual sync triggered - queuing poll_media_servers & sync_external_states", extra={"action": "sync.manual"})
         async_task(poll_media_servers, hours=72)
         async_task(sync_external_states)
         
@@ -153,6 +158,7 @@ class ManualSyncView(APIMixin, View):
 
 class UniverseSyncView(APIMixin, View):
     def get(self, request, *args, **kwargs):
+        logger.info("Show Actions - Universe Architect: Batch sync triggered - queuing batch_universe_sync", extra={"action": "sync.universe"})
         async_task(batch_universe_sync)
         
         if request.headers.get('HX-Request'):
@@ -234,6 +240,7 @@ class RescoreShowView(View):
         
         # Start rescoring in the background
         cache.set(f"rescoring_{show_id}", True, 120)
+        logger.info(f"Show Actions - Enqueuing rescore task for show '{show.title}' (ID {show.id})", extra={"action": "show.rescore"})
         async_task('vibarr.tasks.discovery.recommendations.reevaluate_single_show_task', show.id)
         
         if request.headers.get('HX-Request'):

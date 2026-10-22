@@ -13,9 +13,15 @@ from ..views.universe import UniverseListView, RefreshUniverseView, ReanalyzeUni
 from ..views.auth import LoginView, LogoutView
 from ..views.about import AboutView, CheckUpdateView
 from ..views import backup as backup_views
+from ..middleware.correlation import metrics_view, debug_logging_toggle_api
 
 
 urlpatterns = [
+    # Observability
+    path('metrics', metrics_view, name='metrics'),
+    path('metrics/', metrics_view, name='metrics_slash'),
+    path('api/observability/debug/', debug_logging_toggle_api, name='debug_logging_toggle'),
+
     path('universes/', UniverseListView.as_view(), name='universe_architect_list'),
     path('universe/refresh/', RefreshUniverseView.as_view(), name='refresh_universe'),
     path('universe/reanalyze/', ReanalyzeUniverseView.as_view(), name='reanalyze_universe'),
