@@ -17,16 +17,22 @@ class VibarrAuthMiddleware:
         if config.auth_mode == AuthMode.NONE:
             return self.get_response(request)
             
-        # 2. Define allowed paths (login, static files, etc.)
+        # 2. Define allowed paths (login, static files, probes, etc.)
         try:
             current_url_name = resolve(request.path_info).url_name
         except Resolver404:
             current_url_name = None
 
-        allowed_url_names = ['login', 'health_check']
+        allowed_url_names = [
+            'login', 'health_check',
+            'readyz', 'readyz_slash',
+            'livez', 'livez_slash',
+            'healthz', 'healthz_slash'
+        ]
         
-        # Check if the path is in the allowed list or starts with static/media
+        # Check if the path is in the allowed list or starts with static/media/probes
         if current_url_name in allowed_url_names or \
+           request.path_info in ['/readyz', '/readyz/', '/livez', '/livez/', '/healthz', '/healthz/'] or \
            request.path.startswith('/static/') or \
            request.path.startswith('/favicon.ico'):
             return self.get_response(request)

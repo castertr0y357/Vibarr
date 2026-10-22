@@ -1,25 +1,28 @@
 """
 URL configuration for recommender_project project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
+
+def readyz(request):
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
+def livez(request):
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
+def healthz(request):
+    return HttpResponse("OK", content_type="text/plain", status=200)
 
 urlpatterns = [
+    path('readyz', readyz, name='readyz'),
+    path('readyz/', readyz, name='readyz_slash'),
+    path('livez', livez, name='livez'),
+    path('livez/', livez, name='livez_slash'),
+    path('healthz', healthz, name='healthz'),
+    path('healthz/', healthz, name='healthz_slash'),
     path('admin/', admin.site.urls),
     path('', include('vibarr.urls')),
 ]
